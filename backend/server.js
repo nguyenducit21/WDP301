@@ -29,6 +29,9 @@ app.use(
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
 
+const router = require("./API/routers/index.router");
+router(app);
+
 // run server
 app.listen(port, () => {
   console.log(`server is running at port ${port}`);
