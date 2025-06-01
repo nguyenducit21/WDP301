@@ -23,13 +23,13 @@ const Navbar = ({ setShowLogin }) => {
         >
           Home
         </Link>
-        <Link
-          to="/menu "
+        <a
+          href="#explore-menu"
           onClick={() => setMenu("menu")}
           className={menu === "menu" ? "active" : ""}
         >
           Menu
-        </Link>
+        </a>
         <a
           href="#app-download"
           onClick={() => setMenu("mobile-app")}
