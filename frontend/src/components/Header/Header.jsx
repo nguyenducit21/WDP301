@@ -1,20 +1,29 @@
 import React from "react";
 import "./Header.css";
+import { assets } from "../../assets/assets";
 
 const Header = () => {
   return (
     <header>
       <div className="header-contents">
-        <h2>Order Your Favourite Food Here</h2>
-        <p>
-          Choose from a diverse menu featuring a delectable array of dishes
-          crafted with the finest ingredients and culinary expertise. Our
-          mission is to satisfy your cravings and elevate your dining
-          experience, one delicious meal at a time.
-        </p>
-        <a href="#explore-menu">
-          <button>View Menu</button>
-        </a>
+        <div className="header-text">
+          <h1>
+            NHỮNG MÓN ĂN NGON
+            <br />
+            SẴN SÀNG PHỤC VỤ THỰC KHÁCH
+          </h1>
+          <p>
+            Khám phá hành trình ẩm thực châu Á đầy màu sắc. Với menu phong phú,
+            từ những món ăn truyền thống đến những biến tấu mới lạ, chúng tôi
+            mang đến cho thực khách những trải nghiệm ẩm thực độc đáo.
+          </p>
+          <a href="#explore-menu">
+            <button>ĐẶT BÀN NGAY</button>
+          </a>
+        </div>
+        <div className="header-image">
+          <img src={assets.mamcom} alt="header_img" />
+        </div>
       </div>
     </header>
   );

@@ -1,0 +1,29 @@
+.navbar-header-wrapper {
+    position: relative;
+    width: 100%;
+    min-width: 100vw;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    box-sizing: border-box;
+  
+    background: url("/path-to-your-image.jpg") no-repeat center center;
+    background-size: cover;
+  }
+  
+  /* Lớp phủ màu đen mờ */
+  .navbar-header-wrapper::before {
+    content: "";
+    position: absolute;
+    inset: 0; /* top:0; right:0; bottom:0; left:0; */
+    background-color: rgba(0, 0, 0, 0.5); /* màu đen mờ 50% */
+    pointer-events: none; /* để không che chắn các tương tác */
+    z-index: 1; /* nằm trên background nhưng dưới nội dung */
+  }
+  
+  /* Nội dung bên trong .navbar-header-wrapper phải nằm trên lớp phủ */
+  .navbar-header-wrapper > * {
+    position: relative;
+    z-index: 2;
+  }
+  

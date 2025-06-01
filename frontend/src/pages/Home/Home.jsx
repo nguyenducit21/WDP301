@@ -1,19 +1,33 @@
 import React, { useState } from "react";
-import "./Home.css";
+import Navbar from "../../components/Navbar/Navbar";
 import Header from "../../components/Header/Header";
-import Footer from "../../components/Footer/Footer";
 import ExploreMenu from "../../components/ExploreMenu/ExploreMenu";
 import FoodDisplay from "../../components/FoodDisplay/FoodDisplay";
+import Footer from "../../components/Footer/Footer";
+import { assets } from "../../assets/assets"; // Import the assets
+import "./Home.css";
 
 const Home = () => {
   const [category, setCategory] = useState("All");
+  const [showLogin, setShowLogin] = useState(false);
+
   return (
-    <div>
-      <Header />
-      <ExploreMenu/>
-      <FoodDisplay category={category}/>
-      <Footer/>
-    </div>
+    <>
+      <div
+        className="navbar-header-wrapper"
+        style={{
+          background: `url(${assets.background}) no-repeat center center`,
+          backgroundSize: "cover",
+        }}
+      >
+        <Navbar setShowLogin={setShowLogin} />
+        <Header />
+      </div>
+
+      <ExploreMenu category={category} setCategory={setCategory} />
+      <FoodDisplay category={category} />
+      <Footer />
+    </>
   );
 };
 

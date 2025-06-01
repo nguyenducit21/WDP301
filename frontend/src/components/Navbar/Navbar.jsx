@@ -1,63 +1,53 @@
-import React, { useContext, useState } from "react";
-import { StoreContext } from "../../context/StoreContext";
+import React from "react";
+import { Link } from "react-router-dom";
 import "./Navbar.css";
 import { assets } from "../../assets/assets";
-import { Link } from "react-router-dom";
 
 const Navbar = ({ setShowLogin }) => {
-  const { getTotalQuantity } = useContext(StoreContext);
-  const totalQuantity = getTotalQuantity();
-
-  const [menu, setMenu] = useState("home");
-
   return (
-    <div className="navbar">
-      <Link to="/">
-        <img src={assets.logo} alt="logo" className="logo" />
+    <nav className="navbar">
+      <Link to="/" className="logo-container">
+        <img src={assets.logo} alt="Logo Hương Sen" className="logo-img" />
       </Link>
+
       <ul className="navbar-menu">
-        <Link
-          to="/"
-          onClick={() => setMenu("home")}
-          className={menu === "home" ? "active" : ""}
-        >
-          Home
-        </Link>
-        <a
-          href="#explore-menu"
-          onClick={() => setMenu("menu")}
-          className={menu === "menu" ? "active" : ""}
-        >
-          Menu
-        </a>
-        <a
-          href="#app-download"
-          onClick={() => setMenu("mobile-app")}
-          className={menu === "mobile-app" ? "active" : ""}
-        >
-          Mobile App
-        </a>
-        <a
-          href="#footer"
-          onClick={() => setMenu("contact-us")}
-          className={menu === "contact-us" ? "active" : ""}
-        >
-          Contact Us
-        </a>
-      </ul>
-      <div className="navbar-right">
-        <img src={assets.search_icon} alt="search_icon" />
-        <div className="navbar-basket-icon">
-          <Link to="/cart">
-            <img src={assets.basket_icon} alt="basket_icon" />
+        <li>
+          <Link to="/" className="menu-item">
+            TRANG CHỦ
           </Link>
-          <div className={totalQuantity === 0 ? "dotHidden" : "dot"}>
-            <p>{totalQuantity}</p>
-          </div>
-        </div>
-        <button onClick={() => setShowLogin(true)}>Sign in</button>
+        </li>
+        <li>
+          <a href="#menu" className="menu-item">
+            THỰC ĐƠN
+          </a>
+        </li>
+        <li>
+          <a href="#service" className="menu-item">
+            DỊCH VỤ
+          </a>
+        </li>
+        <li>
+          <a href="#news" className="menu-item">
+            TIN TỨC & MẸO HAY
+          </a>
+        </li>
+        <li className="dropdown">
+          <span className="menu-item">
+            KHÁC <span className="dropdown-arrow">▼</span>
+          </span>
+        </li>
+      </ul>
+
+      <div className="navbar-buttons">
+        <button className="btn-book">ĐẶT BÀN</button>
+        <button
+          className="btn-login"
+          onClick={() => setShowLogin && setShowLogin(true)}
+        >
+          Đăng nhập
+        </button>
       </div>
-    </div>
+    </nav>
   );
 };
 
