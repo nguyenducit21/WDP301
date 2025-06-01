@@ -4,31 +4,49 @@
   padding: 10px 40px;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   justify-content: space-between;
-  background: transparent; /* Make the navbar transparent */
+  background: transparent;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1000;
+  transition: all 0.3s ease;
 }
 
-/* Logo bên trái */
+.navbar.shrink {
+  padding: 5px 20px;
+  background: rgba(30, 40, 50, 0.9);
+}
+
 .logo-container {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
-  margin-right: 30px; /* Tăng khoảng cách nếu cần */
+  margin-right: 30px;
 }
 
 .logo-img {
   width: 100px;
   height: 100px;
+  transition: all 0.3s ease;
 }
 
-/* Menu canh giữa */
+.navbar.shrink .logo-img {
+  width: 70px;
+  height: 70px;
+}
+
 .navbar-menu {
   list-style: none;
   display: flex;
   gap: 30px;
-  flex: 1 1 auto; /* chiếm không gian giữa */
-  justify-content: center; /* canh giữa menu */
+  flex: 1 1 auto;
+  justify-content: center;
   margin: 0;
   padding: 0;
+}
+
+.navbar.shrink .navbar-menu {
+  gap: 20px;
 }
 
 .menu-item {
@@ -38,7 +56,11 @@
   text-decoration: none;
   cursor: pointer;
   user-select: none;
-  transition: color 0.3s ease;
+  transition: color 0.3s ease, font-size 0.3s ease;
+}
+
+.navbar.shrink .menu-item {
+  font-size: 12px;
 }
 
 .menu-item:hover {
@@ -50,7 +72,10 @@
   margin-left: 4px;
 }
 
-/* Phần nút bên phải */
+.navbar.shrink .dropdown-arrow {
+  font-size: 8px;
+}
+
 .navbar-buttons {
   flex: 0 0 auto;
   display: flex;
@@ -58,7 +83,10 @@
   gap: 15px;
 }
 
-/* Nút ĐẶT BÀN */
+.navbar.shrink .navbar-buttons {
+  gap: 10px;
+}
+
 .btn-book {
   background-color: #f69e1e;
   border: none;
@@ -68,14 +96,18 @@
   font-weight: 700;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+.navbar.shrink .btn-book {
+  padding: 8px 18px;
+  font-size: 12px;
 }
 
 .btn-book:hover {
   background-color: #d68015;
 }
 
-/* Nút Đăng nhập */
 .btn-login {
   background: none;
   border: 1.5px solid #f69e1e;
@@ -85,7 +117,12 @@
   font-weight: 600;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: all 0.3s ease;
+}
+
+.navbar.shrink .btn-login {
+  padding: 6px 12px;
+  font-size: 12px;
 }
 
 .btn-login:hover {

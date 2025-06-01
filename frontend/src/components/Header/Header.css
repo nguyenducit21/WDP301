@@ -9,7 +9,6 @@ header {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Bao toàn bộ nội dung header */
 .header-contents {
   position: absolute;
   bottom: 10%;
@@ -24,7 +23,6 @@ header {
   animation: fadeIn 3s;
 }
 
-/* Phần text bên trái */
 .header-text {
   flex: 1 1 50%;
   display: flex;
@@ -46,7 +44,6 @@ header {
   max-width: 80%;
 }
 
-/* Nút ĐẶT BÀN */
 .header-text button {
   border-radius: 50px;
   color: var(--gray);
@@ -64,7 +61,6 @@ header {
   background-color: #d68015;
 }
 
-/* Phần ảnh bên phải */
 .header-image {
   flex: 0 0 40%;
   display: flex;
@@ -80,7 +76,6 @@ header {
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
 }
 
-/* Animation xoay tròn */
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -90,7 +85,6 @@ header {
   }
 }
 
-/* Responsive */
 @media (max-width: 1050px) {
   header {
     height: auto;

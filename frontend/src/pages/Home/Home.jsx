@@ -4,7 +4,7 @@ import Header from "../../components/Header/Header";
 import ExploreMenu from "../../components/ExploreMenu/ExploreMenu";
 import FoodDisplay from "../../components/FoodDisplay/FoodDisplay";
 import Footer from "../../components/Footer/Footer";
-import { assets } from "../../assets/assets"; // Import the assets
+import { assets } from "../../assets/assets";
 import "./Home.css";
 import AboutSection from "../../components/AboutSection/AboutSection";
 import ScrollToTopButton from "../../components/Scroll/ScrollToTopButton";
@@ -22,13 +22,13 @@ const Home = () => {
           backgroundSize: "cover",
         }}
       >
-        <Navbar setShowLogin={setShowLogin} />
+        {/* <Navbar setShowLogin={setShowLogin} /> */}
         <Header />
       </div>
-        <AboutSection/>
+      <AboutSection />
       <ExploreMenu category={category} setCategory={setCategory} />
       <FoodDisplay category={category} />
-      <ScrollToTopButton/>
+      <ScrollToTopButton />
       <Footer />
     </>
   );
