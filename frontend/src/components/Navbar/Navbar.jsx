@@ -17,18 +17,18 @@ const Navbar = ({ setShowLogin }) => {
           </Link>
         </li>
         <li>
-          <a href="#menu" className="menu-item">
+          <a href="menu" className="menu-item">
             THỰC ĐƠN
           </a>
         </li>
         <li>
-          <a href="#service" className="menu-item">
-            DỊCH VỤ
+          <a href="#about-section" className="menu-item">
+            GIỚI THIỆU
           </a>
         </li>
         <li>
-          <a href="#news" className="menu-item">
-            TIN TỨC & MẸO HAY
+          <a href="service" className="menu-item">
+            DỊCH VỤ
           </a>
         </li>
         <li className="dropdown">

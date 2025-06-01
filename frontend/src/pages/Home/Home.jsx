@@ -7,6 +7,7 @@ import Footer from "../../components/Footer/Footer";
 import { assets } from "../../assets/assets"; // Import the assets
 import "./Home.css";
 import AboutSection from "../../components/AboutSection/AboutSection";
+import ScrollToTopButton from "../../components/Scroll/ScrollToTopButton";
 
 const Home = () => {
   const [category, setCategory] = useState("All");
@@ -27,6 +28,7 @@ const Home = () => {
         <AboutSection/>
       <ExploreMenu category={category} setCategory={setCategory} />
       <FoodDisplay category={category} />
+      <ScrollToTopButton/>
       <Footer />
     </>
   );

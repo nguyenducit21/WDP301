@@ -5,7 +5,7 @@ import { assets } from "../../assets/assets";
 
 const AboutSection = () => {
   return (
-    <section className="about-section">
+    <section id="about-section" className="about-section">
   <div className="about-images">
     <div className="img-large img-1" style={{ backgroundImage: `url(${assets.anh1})` }}></div>
     <div className="img-small img-2" style={{ backgroundImage: `url(${assets.anh2})` }}></div>
