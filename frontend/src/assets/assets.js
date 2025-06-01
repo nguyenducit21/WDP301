@@ -46,6 +46,10 @@ import food_32 from './food_32.png'
 
 import mamcom from './mamcom.jpg'
 import background from './backgroundhero.jpg'
+import anh1 from './anh1.jpg'
+import anh2 from './anh2.jpg'
+import anh3 from './anh3.jpg'
+import anh4 from './anh4.jpg'
 
 import add_icon_white from './add_icon_white.png'
 import add_icon_green from './add_icon_green.png'
@@ -86,7 +90,11 @@ export const assets = {
     bag_icon,
     parcel_icon,
     mamcom,
-    background
+    background,
+    anh1,
+    anh2,
+    anh3,
+    anh4
 }
 
 export const menu_list = [

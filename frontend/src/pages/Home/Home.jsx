@@ -6,6 +6,7 @@ import FoodDisplay from "../../components/FoodDisplay/FoodDisplay";
 import Footer from "../../components/Footer/Footer";
 import { assets } from "../../assets/assets"; // Import the assets
 import "./Home.css";
+import AboutSection from "../../components/AboutSection/AboutSection";
 
 const Home = () => {
   const [category, setCategory] = useState("All");
@@ -23,7 +24,7 @@ const Home = () => {
         <Navbar setShowLogin={setShowLogin} />
         <Header />
       </div>
-
+        <AboutSection/>
       <ExploreMenu category={category} setCategory={setCategory} />
       <FoodDisplay category={category} />
       <Footer />
