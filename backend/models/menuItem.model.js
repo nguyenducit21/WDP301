@@ -1,17 +1,47 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
 
-const MenuItemSchema = new Schema({
-    name: { type: String, required: true },
-    category_id: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
-    price: { type: Number, required: true },
-    image: { type: String },
-    description: { type: String },
-    ingredients: [{ type: String }],
-    is_featured: { type: Boolean, default: false },
-    is_available: { type: Boolean, default: true },
-    created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
+const menuItemSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: [true, 'Tên món ăn không được bỏ trống'],
+        trim: true
+    },
+    category_id: {
+        type: String, // Nếu là ObjectId thì để: type: mongoose.Schema.Types.ObjectId, ref: 'Category'
+        required: [true, 'Danh mục không được bỏ trống']
+    },
+    price: {
+        type: Number,
+        required: [true, 'Giá món ăn không được bỏ trống'],
+        min: [0, 'Giá phải >= 0']
+    },
+    image: {
+        type: String,
+        required: [true, 'Ảnh món ăn không được bỏ trống']
+    },
+    description: {
+        type: String,
+        required: [true, 'Mô tả không được bỏ trống'],
+        trim: true
+    },
+    ingredients: [{
+        type: String,
+        required: true
+    }],
+    is_featured: {
+        type: Boolean,
+        default: false
+    },
+    is_available: {
+        type: Boolean,
+        default: true
+    }
+}, {
+    timestamps: {
+        createdAt: 'created_at',
+        updatedAt: 'updated_at'
+    },
+    versionKey: false
 });
 
-module.exports = mongoose.model('MenuItem', MenuItemSchema);
+module.exports = mongoose.model('MenuItem', menuItemSchema);
