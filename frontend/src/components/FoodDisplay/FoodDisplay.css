@@ -1,16 +1,23 @@
 .food-display {
-  margin-top: 30px;
+  margin-top: 60px;
+  padding: 0 40px;
 }
 
 .food-display h2 {
-  font-size: max(2vw, 24px);
-  font-weight: 600;
+  text-align: center;
+  font-size: 32px;
+  color: #0d1526;
+  margin-bottom: 40px;
 }
 
-.food-display-list {
+.section-subtitle {
+  font-family: 'Great Vibes', cursive;
+  color: #f69e1e;
+  font-size: 20px;
+}
+
+.food-display-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  margin-top: 30px;
+  grid-template-columns: 1fr 1fr;
   gap: 30px;
-  row-gap: 50px;
 }

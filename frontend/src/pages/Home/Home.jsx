@@ -26,7 +26,7 @@ const Home = () => {
         <Header />
       </div>
       <AboutSection />
-      <ExploreMenu category={category} setCategory={setCategory} />
+      {/* <ExploreMenu category={category} setCategory={setCategory} /> */}
       <FoodDisplay category={category} />
       <ScrollToTopButton />
       <Footer />
