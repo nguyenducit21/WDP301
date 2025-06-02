@@ -29,7 +29,7 @@ app.use(
 const cookieParser = require("cookie-parser");
 app.use(cookieParser());
 
-const router = require("./API/routers/index.router");
+const router = require("./routes/index.routes");
 router(app);
 
 // run server
