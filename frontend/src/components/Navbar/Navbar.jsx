@@ -1,23 +1,30 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import "./Navbar.css";
 import { assets } from "../../assets/assets";
 
 const Navbar = ({ setShowLogin }) => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const location = useLocation();
+  const isHome = location.pathname === "/";
 
   useEffect(() => {
+    if (!isHome) {
+      setIsScrolled(true); // Trang khác: luôn shrink
+      return;
+    }
+    // Nếu về Home, ép về false nếu scrollY=0
+    if (window.scrollY <= 100) setIsScrolled(false);
+    else setIsScrolled(true);
+  
     const handleScroll = () => {
-      if (window.scrollY > 50) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      if (window.scrollY > 50) setIsScrolled(true);
+      else setIsScrolled(false);
     };
-
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [isHome]);
+  
 
   return (
     <nav className={`navbar ${isScrolled ? "shrink" : ""}`}>
@@ -32,9 +39,9 @@ const Navbar = ({ setShowLogin }) => {
           </Link>
         </li>
         <li>
-          <a href="menu" className="menu-item">
+          <Link to="/menu" className="menu-item">
             THỰC ĐƠN
-          </a>
+          </Link>
         </li>
         <li>
           <a href="#about-section" className="menu-item">
@@ -42,9 +49,9 @@ const Navbar = ({ setShowLogin }) => {
           </a>
         </li>
         <li>
-          <a href="service" className="menu-item">
+          <Link to="/service" className="menu-item">
             DỊCH VỤ
-          </a>
+          </Link>
         </li>
         <li>
           <a href="#footer" className="menu-item">
