@@ -7,6 +7,7 @@ import Menu from "./pages/Menu/Menu"
 import Footer from "./components/Footer/Footer";
 import ServicePage from "./components/ServicePage/ServicePage";
 import AboutPage from "./pages/AboutPage/AboutPage";
+import ScrollToTopButton from "./components/Scroll/ScrollToTopButton";
 
 const App = () => {
   return (
@@ -21,6 +22,7 @@ const App = () => {
           <Route path="/about" element={<AboutPage/>} />
 
         </Routes>
+        <ScrollToTopButton/>
         <Footer/>
       </div>
     </>
