@@ -1,0 +1,160 @@
+:root {
+    --primary-bg: #e7e3dc;
+    --secondary-bg: #f8f8f8;
+    --section-alt-bg: #ecddca;
+    --accent-color: #c9a063;
+    --text-color: #222;
+    --subtitle-color: #75613a;
+    --footer-bg: #ece7de;
+    --card-bg: #fff;
+  }
+  
+  body {
+    /* Nếu muốn nền vân nhẹ cho toàn site (dùng noise.png là ảnh vân cực nhẹ, chỉ 4-10kb) */
+    background: var(--primary-bg) url('/assets/noise.png') repeat;
+    /* Nếu không có noise.png thì bỏ dòng này đi, hoặc để background: var(--primary-bg); */
+  }
+  
+  .about-fullpage {
+    min-height: 100vh;
+    font-family: 'Roboto', 'Arial', sans-serif;
+    color: var(--text-color);
+    background: linear-gradient(180deg, #fffdfa 0%, #f6f6ef 100%);
+  }
+  
+  /* --- Hero Banner --- */
+  .about-hero {
+    position: relative;
+    width: 100vw;
+    height: 60vh;
+    min-height: 340px;
+    max-height: 600px;
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    margin-top: 78px;
+  }
+  
+  .about-hero-img {
+    width: 100vw;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 80%; /* Chỉnh để lấy đúng phần mong muốn */
+    position: absolute;
+    left: 0;
+    top: 0;
+    z-index: 1;
+  }
+  
+  .about-hero-overlay {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0,0,0,0.27);
+    color: #fff;
+    text-align: center;
+  }
+  
+  .about-hero-overlay h1 {
+    font-size: 2.7rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    text-shadow: 0 3px 16px #222, 0 2px 8px #0008;
+  }
+  
+  .about-hero-overlay p {
+    font-size: 1.18rem;
+    font-weight: 400;
+    text-shadow: 0 2px 8px #222, 0 2px 4px #0006;
+  }
+  
+  /* --- Section chung --- */
+  .container { max-width: 1080px; margin: 0 auto; padding: 56px 16px 0 16px; }
+  .about-history h2,
+  .about-zones h2,
+  .about-gallery-dish h2,
+  .about-reviews h2 { font-size: 2rem; color: var(--accent-color); margin-bottom: 18px; }
+  
+  /* Section nền xen kẽ */
+  .section-alt { background: var(--section-alt-bg); }
+  .about-mission-chef { background: var(--primary-bg); }
+  .about-gallery-dish { background: var(--secondary-bg); }
+  .about-reviews { background: var(--primary-bg); }
+  
+  /* --- Lịch sử & triết lý --- */
+  .about-history.section-alt { padding-bottom: 30px; }
+  .about-history p { font-size: 1.1rem; }
+  
+  /* --- Sứ mệnh + hình đầu bếp --- */
+  .about-mission-chef {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 48px 0 32px 0;
+    flex-wrap: wrap;
+  }
+  .about-mission-content { flex: 1; min-width: 300px; padding: 0 32px; }
+  .about-mission-content blockquote {
+    font-size: 1.4rem; color: var(--subtitle-color);
+    font-style: italic; border-left: 5px solid var(--accent-color); padding-left: 20px;
+  }
+  .about-chef-img { flex: 1; text-align: center; }
+  .about-chef-img img { width: 240px; height: 300px; object-fit: cover; border-radius: 24px; box-shadow: 0 4px 24px #e4dacb; }
+  
+  /* --- Không gian nhà hàng (zones) --- */
+  .about-zones-list { display: flex; gap: 32px; flex-wrap: wrap; }
+  .zone-card {
+    background: var(--card-bg); border-radius: 20px; box-shadow: 0 4px 16px #f2e2c0;
+    overflow: hidden; width: 320px; flex-shrink: 0;
+  }
+  .zone-card img { width: 100%; height: 180px; object-fit: cover; }
+  .zone-card-content { padding: 16px 20px; }
+  .zone-card-content h3 { color: var(--accent-color); font-size: 1.12rem; margin-bottom: 6px; }
+  
+  /* --- Gallery món ăn --- */
+  .gallery-dish-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 18px; }
+  .gallery-dish-item {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px #f2ece0;
+    padding: 16px;
+    text-align: center;
+  }
+  .gallery-dish-item img { width: 100%; aspect-ratio: 1/1; object-fit: cover; border-radius: 16px; }
+  .dish-name {
+    margin-top: 10px;
+    font-weight: 600;
+    color: #bb903a;
+    font-size: 1.08rem;
+  }
+  .dish-desc {
+    font-size: 0.98rem;
+    color: #75613a;
+    margin-top: 5px;
+  }
+  
+  /* --- Đánh giá khách hàng --- */
+  .about-review-list { display: flex; gap: 26px; margin-top: 18px; flex-wrap: wrap; }
+  .about-review-card {
+    background: var(--card-bg); border-radius: 14px; box-shadow: 0 2px 10px #e0dab7;
+    padding: 26px 20px; width: 320px; min-height: 200px;
+    display: flex; flex-direction: column; align-items: flex-start;
+  }
+  .review-quote { color: var(--accent-color); font-size: 2rem; }
+  .review-rating { margin: 12px 0 4px 0; }
+  .star-filled { color: #ffd700; }
+  .star-empty { color: #dcdcdc; }
+  .review-author { color: var(--accent-color); font-weight: 500; margin-top: 6px; }
+  
+  /* --- Responsive --- */
+  @media (max-width: 900px) {
+    .about-mission-chef { flex-direction: column; }
+    .about-chef-img { margin-top: 22px; }
+    .about-zones-list { flex-direction: column; }
+    .about-footer-content { flex-direction: column; gap: 24px; }
+    .gallery-dish-list { grid-template-columns: repeat(2, 1fr); }
+    .about-review-list { flex-direction: column; }
+  }

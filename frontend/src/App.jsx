@@ -6,6 +6,7 @@ import Cart from "./pages/Cart/Cart"
 import Menu from "./pages/Menu/Menu"
 import Footer from "./components/Footer/Footer";
 import ServicePage from "./components/ServicePage/ServicePage";
+import AboutPage from "./pages/AboutPage/AboutPage";
 
 const App = () => {
   return (
@@ -17,6 +18,7 @@ const App = () => {
           <Route path="/cart" element={<Cart />} />
           <Route path="/menu" element={<Menu />} />
           <Route path="/service" element={<ServicePage/>} />
+          <Route path="/about" element={<AboutPage/>} />
 
         </Routes>
         <Footer/>

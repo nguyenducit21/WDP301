@@ -50,6 +50,21 @@ import anh1 from './anh1.jpg'
 import anh2 from './anh2.jpg'
 import anh3 from './anh3.jpg'
 import anh4 from './anh4.jpg'
+import chef1 from './chef1.jpg'
+import chef2 from './chef2.jpg'
+import chef3 from './chef3.jpg'
+import mon1 from './mon1.jpg'
+import mon2 from './mon2.jpg'
+import mon3 from './mon3.jpg'
+import mon4 from './mon4.jpg'
+import mon5 from './mon5.jpg'
+import mon6 from './mon6.jpg'
+import mon7 from './mon7.jpg'
+import mon8 from './mon8.jpg'
+import bgnhahang from './bgnhahang.jpg'
+import phongtiec from './phongtiec.jpg'
+import nhago from './nhago.jpg'
+import sanvuon from './sanvuon.jpg'
 
 import add_icon_white from './add_icon_white.png'
 import add_icon_green from './add_icon_green.png'
@@ -94,7 +109,22 @@ export const assets = {
     anh1,
     anh2,
     anh3,
-    anh4
+    anh4,
+    chef1,
+    chef2,
+    chef3,
+    mon1,   
+    mon2,
+    mon3,
+    mon4,   
+    mon5,
+    mon6,
+    mon7,
+    mon8   ,
+    bgnhahang,
+    phongtiec,
+    nhago,
+    sanvuon
 }
 
 export const menu_list = [

@@ -44,7 +44,7 @@ const Navbar = ({ setShowLogin }) => {
           </Link>
         </li>
         <li>
-          <a href="#about-section" className="menu-item">
+          <a href="/about" className="menu-item">
             GIỚI THIỆU
           </a>
         </li>

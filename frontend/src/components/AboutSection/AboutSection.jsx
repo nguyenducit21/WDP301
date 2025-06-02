@@ -3,6 +3,7 @@ import "./AboutSection.css";
 import logo from "../../assets/logo.png";
 import { assets } from "../../assets/assets";
 import { FaUserTie, FaUtensils, FaChair, FaHeadset } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 const AboutSection = () => {
   const features = [
@@ -90,7 +91,7 @@ const AboutSection = () => {
             </div>
           </div>
 
-          <button className="btn-see-more">XEM THÊM TẠI ĐÂY</button>
+        <Link to="/about" className="btn-see-more">XEM THÊM TẠI ĐÂY</Link>
         </div>
       </section>
     </>
