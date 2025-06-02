@@ -46,10 +46,10 @@ const Navbar = ({ setShowLogin }) => {
             DỊCH VỤ
           </a>
         </li>
-        <li className="dropdown">
-          <span className="menu-item">
+        <li>
+          <a href="#footer" className="menu-item">
             KHÁC <span className="dropdown-arrow">▼</span>
-          </span>
+          </a>
         </li>
       </ul>
 
