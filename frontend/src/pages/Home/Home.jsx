@@ -29,7 +29,6 @@ const Home = () => {
       {/* <ExploreMenu category={category} setCategory={setCategory} /> */}
       <FoodDisplay category={category} />
       <ScrollToTopButton />
-      <Footer />
     </>
   );
 };

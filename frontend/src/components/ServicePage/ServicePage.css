@@ -1,0 +1,95 @@
+/* src/pages/ServicePage/ServicePage.css */
+.service-page {
+    padding: 60px 0 40px 0;
+    background: #f2f9ff;
+    min-height: 100vh;
+    margin-top: 50px;
+  }
+  .service-header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .service-header h4 {
+    color: #f69e1e;
+    font-family: 'Great Vibes', cursive;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+  .service-header h1 {
+    font-size: 2.6rem;
+    font-weight: 900;
+    color: #19223c;
+    margin-bottom: 0;
+  }
+  .service-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 36px;
+    max-width: 1300px;
+    margin: 0 auto;
+  }
+  .service-card {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(40, 60, 100, 0.10);
+    padding: 38px 26px 32px 26px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: relative;
+    cursor: pointer;
+    transition: 0.35s cubic-bezier(.52,.01,.58,1);
+    border: 2px solid transparent;
+  }
+  .service-card:hover,
+  .service-card.active {
+    background: #f69e1e;
+    color: #fff;
+    box-shadow: 0 10px 36px 0 rgba(246,158,30,0.10), 0 2px 4px 0 #f69e1e55;
+    border-color: #f69e1e;
+  }
+  .service-card:hover .service-icon,
+  .service-card.active .service-icon {
+    color: #fff;
+    background: #efb244;
+  }
+  .service-icon {
+    font-size: 2.7rem;
+    color: #f69e1e;
+    background: #fff4e2;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px #f69e1e30;
+    transition: background 0.3s, color 0.3s;
+  }
+  .service-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .service-desc {
+    font-size: 1.05rem;
+    font-weight: 400;
+    color: #46505f;
+    line-height: 1.45;
+  }
+  
+  .service-card:hover .service-title,
+  .service-card.active .service-title {
+    color: #fff;
+  }
+  .service-card:hover .service-desc,
+  .service-card.active .service-desc {
+    color: #fff;
+  }
+  
+  @media (max-width: 900px) {
+    .service-header h1 { font-size: 2rem; }
+    .service-header h4 { font-size: 1.4rem; }
+  }
+  @media (max-width: 600px) {
+    .service-grid { gap: 18px; }
+    .service-card { padding: 18px 8px 18px 12px; }
+  }
+  
