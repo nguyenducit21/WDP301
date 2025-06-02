@@ -1,0 +1,202 @@
+.menu-page {
+    margin-top: 60px;
+    padding: 40px 0;
+    min-height: 100vh;
+    background-color: #f9f9f9;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.menu-container {
+    width: 100%;
+    /* max-width: 1400px; */
+    margin: 0 auto;
+    display: flex;
+    gap: 30px;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+.menu-nav {
+    width: 250px;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    height: fit-content;
+    position: sticky;
+    top: 100px;
+    box-sizing: border-box;
+    margin-top: 80px;
+}
+
+.menu-nav h2 {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+    color: #333;
+}
+
+.category-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.category-list li {
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.category-list li:hover {
+    background-color: #f5f5f5;
+    color: #ff4d4d;
+}
+
+.category-list li.active {
+    background-color: #ff4d4d;
+    color: white;
+}
+
+.category-dropdown {
+    display: none;
+    width: 100%;
+    max-width: 100%;
+    /* Ensure dropdown doesn't exceed parent container */
+    padding: 12px 15px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    cursor: pointer;
+    font-weight: 500;
+    color: #333;
+    box-sizing: border-box;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    /* Add subtle shadow for depth */
+    appearance: none;
+    /* Remove default browser styling */
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    /* Custom arrow */
+    background-repeat: no-repeat;
+    background-position: right 15px center;
+    background-size: 18px;
+    transition: all 0.3s ease;
+}
+
+.category-dropdown:hover {
+    border-color: #ff4d4d;
+    background-color: #f9f9f9;
+    /* Subtle hover effect */
+}
+
+.category-dropdown:focus {
+    outline: none;
+    border-color: #ff4d4d;
+    box-shadow: 0 0 0 3px rgba(255, 77, 77, 0.2);
+    /* Focus ring */
+}
+
+.menu-content {
+    flex: 1;
+    width: 100%;
+}
+
+.menu-content h1 {
+    margin-bottom: 30px;
+    color: #333;
+    font-size: 32px;
+}
+
+.menu-items-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    width: 100%;
+}
+
+.menu-items-grid>* {
+    max-width: 100%;
+}
+
+/* At 1400px and below, maintain 2 items per row */
+@media (max-width: 1400px) {
+    .menu-container {
+        max-width: 1200px;
+    }
+
+    .menu-items-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+}
+
+/* At 1200px and below, 2 items per row with smaller item widths */
+@media (max-width: 1200px) {
+    .menu-container {
+        max-width: 1000px;
+        padding: 0 10px;
+    }
+
+    .menu-items-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .menu-items-grid>* {
+        max-width: 100%;
+    }
+}
+
+/* At 768px and below, switch to 1 item per row and show dropdown */
+@media (max-width: 768px) {
+    .menu-container {
+        flex-direction: column;
+        padding: 0 15px;
+        max-width: 100%;
+    }
+
+    .menu-nav {
+        width: 100%;
+        position: relative;
+        top: 0;
+        margin-bottom: 20px;
+    }
+
+    .category-list {
+        display: none;
+    }
+
+    .category-dropdown {
+        display: block;
+        max-width: 100%;
+        /* Ensure dropdown stays within page bounds */
+    }
+
+    .menu-items-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
+
+/* For very small screens (below 480px), further optimize */
+@media (max-width: 480px) {
+    .menu-items-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .menu-content h1 {
+        font-size: 28px;
+    }
+
+    .category-dropdown {
+        font-size: 14px;
+        padding: 10px 15px;
+        max-width: 100%;
+    }
+}
