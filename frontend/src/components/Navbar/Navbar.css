@@ -129,3 +129,92 @@
   background-color: #f69e1e;
   color: #121212;
 }
+
+/* User Profile and Dropdown */
+.user-profile {
+  position: relative;
+  display: inline-block;
+}
+
+.user-profile-btn {
+  background-color: #f69e1e;
+  color: white;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.3s;
+}
+
+.user-profile-btn:hover {
+  background-color: #d68015;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 200px;
+  background-color: white;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 8px 0;
+  z-index: 1000;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.user-dropdown a,
+.user-dropdown button {
+  color: #333;
+  padding: 10px 16px;
+  text-decoration: none;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+}
+
+.user-dropdown a:hover,
+.user-dropdown button:hover {
+  background-color: #f5f5f5;
+  color: #89370B;
+}
+
+.user-dropdown button {
+  width: 100%;
+}
+
+.user-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -6px;
+  right: 20px;
+  width: 12px;
+  height: 12px;
+  background-color: white;
+  transform: rotate(45deg);
+  border-left: 1px solid rgba(0, 0, 0, 0.05);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* Responsive styles for user dropdown */
+@media (max-width: 768px) {
+  .user-profile {
+    margin-left: 0;
+  }
+
+  .user-dropdown {
+    width: 160px;
+    right: 0;
+  }
+}
