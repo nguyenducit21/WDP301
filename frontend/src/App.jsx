@@ -10,6 +10,8 @@ import AboutPage from "./pages/AboutPage/AboutPage";
 import ScrollToTopButton from "./components/Scroll/ScrollToTopButton";
 import Login from "../src/pages/Login/Login"
 import Register from "../src/pages/Register/Register"
+import Dashboard from "./pages/Dashboard/Dashboard";
+import TableManagement from "./pages/TableManagement/TableManagement";
 
 const App = () => {
   return (
@@ -24,7 +26,8 @@ const App = () => {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard/tables" element={<TableManagement />} />
         </Routes>
         <ScrollToTopButton />
         <Footer />
