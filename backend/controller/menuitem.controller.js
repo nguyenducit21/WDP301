@@ -14,12 +14,14 @@ exports.create = async (req, res) => {
 // Lấy tất cả menu items
 exports.findAll = async (req, res) => {
     try {
-        const menuItems = await MenuItem.find();
+        // Lấy luôn thông tin tên category
+        const menuItems = await MenuItem.find().populate('category_id', 'name');
         res.status(200).json(menuItems);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 // Lấy 1 menu item theo id
 exports.findOne = async (req, res) => {
