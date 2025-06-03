@@ -71,9 +71,17 @@ const Login = () => {
             // Lưu thông tin người dùng vào AuthContext
             login(response.data);
 
-            // Redirect to home or intended page
-            const redirectTo = location.state?.from || '/';
-            navigate(redirectTo);
+            // Kiểm tra role và điều hướng tương ứng
+            const userRole = response.data.user.role;
+            if (userRole === 'admin' || userRole === 'waiter' || userRole === 'manager') {
+                navigate('/dashboard');
+            } else if (userRole === 'customer') {
+                navigate('/');
+            } else {
+                // Redirect to home or intended page
+                const redirectTo = location.state?.from || '/';
+                navigate(redirectTo);
+            }
         } catch (error) {
             console.error('Login error:', error);
             setErrors({

@@ -1,4 +1,7 @@
 const User = require("../models/user.model");
+const Role = require("../models/role.model");
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const test = async (req, res) => {
     try {
@@ -31,6 +34,10 @@ const register = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
+        // Gán role mặc định (customer)
+        const defaultRole = await Role.findOne({ name: "customer" });
+        const roleId = defaultRole._id
+
         // Create user (use default role for now)
         const newUser = new User({
             username,
@@ -38,10 +45,14 @@ const register = async (req, res) => {
             password: hashedPassword,
             full_name,
             phone,
-            role_id: "657313cf6be6cd5039a87676"
+            role_id: roleId
         });
 
         await newUser.save();
+
+        const user = await User.findById(newUser._id).populate('role_id');
+        const roleName = user.role_id.name;
+
 
         // Generate token
         const token = jwt.sign(
@@ -63,7 +74,8 @@ const register = async (req, res) => {
                 id: newUser._id,
                 username: newUser.username,
                 email: newUser.email,
-                full_name: newUser.full_name
+                full_name: newUser.full_name,
+                role: roleName
             }
         });
     } catch (error) {
@@ -77,7 +89,7 @@ const login = async (req, res) => {
         // Find user by username or email
         const user = await User.findOne({
             $or: [{ username }, { email: username }]
-        });
+        }).populate('role_id');
 
         if (!user) {
             return res.status(400).json({ message: "Tên đăng nhập hoặc mật khẩu không chính xác" });
@@ -88,6 +100,9 @@ const login = async (req, res) => {
         if (!isMatch) {
             return res.status(400).json({ message: "Tên đăng nhập hoặc mật khẩu không chính xác" });
         }
+
+        // Lấy tên role
+        const roleName = user.role_id ? user.role_id.name : 'customer';
 
         // Generate token
         const token = jwt.sign(
@@ -110,7 +125,8 @@ const login = async (req, res) => {
                 id: user._id,
                 username: user.username,
                 email: user.email,
-                full_name: user.full_name
+                full_name: user.full_name,
+                role: roleName
             }
         });
     } catch (error) {
