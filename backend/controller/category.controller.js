@@ -9,7 +9,32 @@ exports.findAll = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+// Thêm danh mục mới
+exports.create = async (req, res) => {
+  try {
+    const { name, description, is_active } = req.body;
+    if (!name) {
+      return res.status(400).json({ message: "Tên danh mục là bắt buộc" });
+    }
+    // Kiểm tra trùng tên (nếu cần)
+    const existingCategory = await Category.findOne({ name });
+    if (existingCategory) {
+      return res.status(400).json({ message: "Tên danh mục đã tồn tại" });
+    }
 
+    const newCategory = new Category({
+      name,
+      description: description || "",
+      is_active: is_active !== false,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+    const savedCategory = await newCategory.save();
+    res.status(201).json(savedCategory);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 // Xóa danh mục
 exports.delete = async (req, res) => {
   try {

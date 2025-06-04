@@ -1,3 +1,33 @@
+/* Header với tiêu đề và nút thêm */
+.header-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.header-actions h2 {
+  margin: 0;
+}
+
+.add-btn {
+  padding: 8px 15px;
+  font-size: 14px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  background: #28a745;
+  color: #fff;
+}
+
+.add-btn:hover {
+  background: #218838;
+}
+
+.add-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
 /* Tăng kích thước modal */
 .modal-large {
     width: 600px !important; /* Tăng chiều rộng */

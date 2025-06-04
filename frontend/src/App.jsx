@@ -10,7 +10,7 @@ import AboutPage from "./pages/AboutPage/AboutPage";
 import ScrollToTopButton from "./components/Scroll/ScrollToTopButton";
 import ChefLayout from "./pages/Chef/ChefLayout";
 import { useLocation } from "react-router-dom";
-import CategoryProductManagement from "./pages/Chef/CategoryProductManagement";
+import CategoryProductManagement from "./pages/Chef/Cateogry/CategoryManagement";
 import { ToastContainer } from "react-toastify"; // Thêm ToastContainer
 import "react-toastify/dist/ReactToastify.css"; // Thêm CSS của react-toastify
 

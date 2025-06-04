@@ -1,110 +1,12 @@
+// src/pages/Chef/Category/CategoryManagement.jsx
 import React, { useState, useEffect, useMemo } from "react";
 import axios from "axios";
-import "./CategoryProductManagement.css";
+import "./CategoryManagement.css";
 import { toast } from "react-toastify";
+import EditModal from "./EditModal";
+import ConfirmDelete from "./ConfirmDelete";
 
-// Modal Edit
-const EditModal = ({ open, onClose, category, onSave }) => {
-    const [form, setForm] = useState({ name: "", description: "", is_active: true });
-    const [error, setError] = useState("");
-
-    useEffect(() => {
-        if (category) {
-            setForm({
-                name: category.name,
-                description: category.description || "",
-                is_active: category.is_active !== false,
-            });
-        }
-    }, [category]);
-
-    if (!open) return null;
-
-    const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setForm((f) => ({
-            ...f,
-            [name]: type === "checkbox" ? checked : value,
-        }));
-        setError("");
-    };
-
-    const handleToggleActive = () => {
-        setForm((f) => ({ ...f, is_active: !f.is_active }));
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!form.name.trim()) {
-            setError("Tên danh mục không được để trống");
-            return;
-        }
-        onSave({ ...category, ...form });
-    };
-
-    return (
-        <div className="modal-overlay">
-            <div className="modal modal-large">
-                <h3>Sửa danh mục</h3>
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label>Tên danh mục</label>
-                        <input name="name" value={form.name} onChange={handleChange} />
-                    </div>
-                    <div className="form-group">
-                        <label>Mô tả</label>
-                        <textarea name="description" value={form.description} onChange={handleChange} />
-                    </div>
-                    <div className="form-group">
-                        <label>Trạng thái</label>
-                        <div className="toggle-switch" onClick={handleToggleActive}>
-                            <input
-                                type="checkbox"
-                                name="is_active"
-                                checked={form.is_active}
-                                onChange={handleChange}
-                                style={{ display: "none" }} // Ẩn checkbox gốc
-                            />
-                            <span className={`slider ${form.is_active ? "active" : ""}`}></span>
-                            <span className="toggle-label">
-                                {form.is_active ? "Hoạt động" : "Ngừng hoạt động"}
-                            </span>
-                        </div>
-                    </div>
-                    {error && <div className="form-error">{error}</div>}
-                    <div className="modal-actions">
-                        <button type="button" className="btn" onClick={onClose}>
-                            Hủy
-                        </button>
-                        <button type="submit" className="btn btn-primary">
-                            Lưu
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
-
-// Confirm delete modal
-const ConfirmDelete = ({ open, onClose, onConfirm }) =>
-    open ? (
-        <div className="modal-overlay">
-            <div className="modal">
-                <p>Bạn có chắc muốn xóa danh mục này?</p>
-                <div className="modal-actions">
-                    <button className="btn" onClick={onClose}>
-                        Hủy
-                    </button>
-                    <button className="btn btn-danger" onClick={onConfirm}>
-                        Xóa
-                    </button>
-                </div>
-            </div>
-        </div>
-    ) : null;
-
-const CategoryProductManagement = () => {
+const CategoryManagement = () => {
     const [categories, setCategories] = useState([]);
     const [selected, setSelected] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -129,7 +31,7 @@ const CategoryProductManagement = () => {
         fetchData();
     }, []);
 
-    // Phân trang (useMemo cho hiệu quả)
+    // Phân trang
     const totalPages = Math.ceil(categories.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const currentItems = useMemo(
@@ -145,25 +47,33 @@ const CategoryProductManagement = () => {
     const handleSelectAll = (e) =>
         setSelected(e.target.checked ? currentItems.map((c) => c._id) : []);
 
-    // Edit modal
-    const openEdit = (category) => setEditModal({ open: true, category });
+    // Edit/Add modal
+    const openEdit = (category = null) => setEditModal({ open: true, category });
     const closeEdit = () => setEditModal({ open: false, category: null });
 
-    // Update category
-    const handleEditSave = async (edited) => {
+    // Add or Update category
+    const handleEditSave = async (data) => {
         setActionLoading(true);
         try {
-            const res = await axios.put(
-                `http://localhost:9999/api/categories/${edited._id}`,
-                edited
-            );
-            setCategories((prev) =>
-                prev.map((cat) => (cat._id === edited._id ? res.data : cat))
-            );
+            if (data._id) {
+                // Chế độ chỉnh sửa
+                const res = await axios.put(
+                    `http://localhost:9999/api/categories/${data._id}`,
+                    data
+                );
+                setCategories((prev) =>
+                    prev.map((cat) => (cat._id === data._id ? res.data : cat))
+                );
+                toast.success("Cập nhật danh mục thành công!", { autoClose: 3000 });
+            } else {
+                // Chế độ thêm mới
+                const res = await axios.post("http://localhost:9999/api/categories", data);
+                setCategories((prev) => [...prev, res.data]);
+                toast.success("Thêm danh mục thành công!", { autoClose: 3000 });
+            }
             closeEdit();
-            toast.success("Cập nhật danh mục thành công!", { autoClose: 3000 });
         } catch (e) {
-            toast.error("Lỗi khi lưu. Có thể tên bị trùng.", { autoClose: 3000 });
+            toast.error(data._id ? "Lỗi khi lưu. Có thể tên bị trùng." : "Lỗi khi thêm danh mục.", { autoClose: 3000 });
         }
         setActionLoading(false);
     };
@@ -192,18 +102,26 @@ const CategoryProductManagement = () => {
         if (!date) return "-";
         const d = new Date(date);
         if (isNaN(d)) return "-";
-        // Điều chỉnh múi giờ về UTC+07:00 (Việt Nam)
-        const vietnamTime = new Date(d.getTime() + 7 * 60 * 60 * 1000);
+        // Không cần thêm 7 tiếng vì JavaScript tự động điều chỉnh theo múi giờ client (+07:00)
         return (
-            vietnamTime.toLocaleDateString("vi-VN") +
+            d.toLocaleDateString("vi-VN") +
             " " +
-            vietnamTime.toLocaleTimeString("vi-VN", { hour12: false })
+            d.toLocaleTimeString("vi-VN", { hour12: false })
         );
     };
 
     return (
         <div className="category-product-management">
-            <h2>Quản lý danh mục sản phẩm</h2>
+            <div className="header-actions">
+                <h2>Quản lý danh mục sản phẩm</h2>
+                <button
+                    className="add-btn btn btn-primary"
+                    onClick={() => openEdit()} // Mở modal để thêm mới
+                    disabled={actionLoading}
+                >
+                    Thêm danh mục
+                </button>
+            </div>
             {loading ? (
                 <div className="loading">Đang tải...</div>
             ) : (
@@ -270,7 +188,6 @@ const CategoryProductManagement = () => {
                             ))}
                         </tbody>
                     </table>
-                    {/* Phân trang */}
                     <div className="pagination">
                         <label>Số lượng mục</label>
                         <select
@@ -307,11 +224,9 @@ const CategoryProductManagement = () => {
                         >
                             {">"}
                         </button>
-
                     </div>
                 </>
             )}
-            {/* Modal */}
             <EditModal
                 open={editModal.open}
                 onClose={closeEdit}
@@ -328,4 +243,4 @@ const CategoryProductManagement = () => {
     );
 };
 
-export default CategoryProductManagement;
+export default CategoryManagement;
