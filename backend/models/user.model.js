@@ -3,7 +3,7 @@ const Schema = mongoose.Schema;
 
 const UserSchema = new Schema({
     username: { type: String, required: true, unique: true },
-    password: { type: String, required: true }, // Nên mã hóa (bcrypt)
+    password: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     phone: { type: String },
     role_id: { type: Schema.Types.ObjectId, ref: 'Role', required: true },

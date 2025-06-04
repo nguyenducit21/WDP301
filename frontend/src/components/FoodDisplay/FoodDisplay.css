@@ -1,0 +1,23 @@
+.food-display {
+  margin-top: 60px;
+  padding: 0 40px;
+}
+
+.food-display h2 {
+  text-align: center;
+  font-size: 32px;
+  color: #0d1526;
+  margin-bottom: 40px;
+}
+
+.section-subtitle {
+  font-family: 'Great Vibes', cursive;
+  color: #f69e1e;
+  font-size: 20px;
+}
+
+.food-display-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+}
