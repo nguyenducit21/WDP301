@@ -1,4 +1,3 @@
-process.env.TZ = 'Asia/Ho_Chi_Minh'; // Đặt múi giờ mặc định là Việt Nam (UTC+07:00)
 // create server
 const express = require("express");
 
