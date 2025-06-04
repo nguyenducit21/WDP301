@@ -1,43 +1,11 @@
 const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
-const categorySchema = new mongoose.Schema(
-    {
-        name: {
-            type: String,
-            required: true,
-            trim: true,
-        },
-        description: {
-            type: String,
-            trim: true,
-        },
-        is_active: {
-            type: Boolean,
-            default: true, 
-        },
-        created_at: {
-            type: Date,
-            default: Date.now, 
-        },
-        updated_at: {
-            type: Date,
-            default: Date.now, // Không cần điều chỉnh múi giờ
-        },
-    },
-    { versionKey: false }
-);
-
-categorySchema.pre('save', function (next) {
-    this.updated_at = new Date(); // Không cần điều chỉnh múi giờ
-    if (!this.created_at) {
-        this.created_at = new Date(); // Không cần điều chỉnh múi giờ
-    }
-    next();
+const CategorySchema = new Schema({
+    name: { type: String, required: true, unique: true },
+    description: { type: String },
+    created_at: { type: Date, default: Date.now },
+    updated_at: { type: Date, default: Date.now }
 });
 
-categorySchema.pre('findOneAndUpdate', function (next) {
-    this._update.updated_at = new Date(); // Không cần điều chỉnh múi giờ
-    next();
-});
-
-module.exports = mongoose.model('Category', categorySchema);
+module.exports = mongoose.model('Category', CategorySchema);
