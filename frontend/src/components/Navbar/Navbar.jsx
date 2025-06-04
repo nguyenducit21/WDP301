@@ -1,17 +1,12 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useLocation } from "react-router-dom";
 import "./Navbar.css";
 import { assets } from "../../assets/assets";
-import { AuthContext } from "../../context/AuthContext";
 
 const Navbar = ({ setShowLogin }) => {
   const [isScrolled, setIsScrolled] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate();
   const isHome = location.pathname === "/";
-  const { user, logout, isAuthenticated } = useContext(AuthContext);
-  const dropdownRef = useRef(null);
 
   useEffect(() => {
     if (!isHome) {
@@ -21,7 +16,7 @@ const Navbar = ({ setShowLogin }) => {
     // Nếu về Home, ép về false nếu scrollY=0
     if (window.scrollY <= 100) setIsScrolled(false);
     else setIsScrolled(true);
-
+  
     const handleScroll = () => {
       if (window.scrollY > 50) setIsScrolled(true);
       else setIsScrolled(false);
@@ -29,27 +24,7 @@ const Navbar = ({ setShowLogin }) => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [isHome]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowDropdown(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleLogout = async () => {
-    const result = await logout();
-    if (result.success) {
-      navigate("/");
-    } else {
-      alert(result.message);
-    }
-    setShowDropdown(false);
-  };
+  
 
   return (
     <nav className={`navbar ${isScrolled ? "shrink" : ""}`}>
@@ -87,32 +62,12 @@ const Navbar = ({ setShowLogin }) => {
 
       <div className="navbar-buttons">
         <button className="btn-book">ĐẶT BÀN</button>
-        {isAuthenticated ? (
-          <div className="user-profile" ref={dropdownRef}>
-            <button
-              className="user-profile-btn"
-              onClick={() => setShowDropdown(!showDropdown)}
-            >
-              {user?.user?.username || "Người dùng"}
-              <span className="dropdown-arrow">▼</span>
-            </button>
-            {showDropdown && (
-              <div className="user-dropdown">
-                <Link to="/profile" onClick={() => setShowDropdown(false)}>
-                  Thông tin cá nhân
-                </Link>
-                <button onClick={handleLogout}>Đăng xuất</button>
-              </div>
-            )}
-          </div>
-        ) : (
-          <button
-            className="btn-login"
-            onClick={() => setShowLogin && setShowLogin(true)}
-          >
-            <Link to="/login">Đăng nhập</Link>
-          </button>
-        )}
+        <button
+          className="btn-login"
+          onClick={() => setShowLogin && setShowLogin(true)}
+        >
+          Đăng nhập
+        </button>
       </div>
     </nav>
   );

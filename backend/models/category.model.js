@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const Schema = mongoose.Schema;
 
 const categorySchema = new mongoose.Schema(
     {
@@ -34,11 +33,11 @@ categorySchema.pre('save', function (next) {
         this.created_at = new Date();
     }
     next();
-const CategorySchema = new Schema({
-    name: { type: String, required: true, unique: true },
-    description: { type: String },
-    created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Category', CategorySchema);
+categorySchema.pre('findOneAndUpdate', function (next) {
+    this._update.updated_at = new Date(); // Không cần điều chỉnh múi giờ
+    next();
+});
+
+module.exports = mongoose.model('Category', categorySchema);
