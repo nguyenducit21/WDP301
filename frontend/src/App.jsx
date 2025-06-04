@@ -8,16 +8,13 @@ import Footer from "./components/Footer/Footer";
 import ServicePage from "./components/ServicePage/ServicePage";
 import AboutPage from "./pages/AboutPage/AboutPage";
 import ScrollToTopButton from "./components/Scroll/ScrollToTopButton";
-<<<<<<< HEAD
 import ChefLayout from "./pages/Chef/ChefLayout";
 import { useLocation } from "react-router-dom";
 import CategoryProductManagement from "./pages/Chef/Cateogry/CategoryManagement";
 import { ToastContainer } from "react-toastify"; // Thêm ToastContainer
 import "react-toastify/dist/ReactToastify.css"; // Thêm CSS của react-toastify
-=======
 import Login from "../src/pages/Login/Login"
 import Register from "../src/pages/Register/Register"
->>>>>>> origin/Customer
 
 const App = () => {
   const location = useLocation();
