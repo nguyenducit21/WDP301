@@ -10,7 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+<<<<<<< HEAD
     "antd": "^5.25.4",
+=======
+>>>>>>> origin/Customer
     "axios": "^1.9.0",
     "framer-motion": "^12.15.0",
     "react": "^19.1.0",
