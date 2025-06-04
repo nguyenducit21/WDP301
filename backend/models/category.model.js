@@ -21,16 +21,16 @@ const categorySchema = new mongoose.Schema(
         },
         updated_at: {
             type: Date,
-            default: Date.now, // Không cần điều chỉnh múi giờ
+            default: Date.now,
         },
     },
     { versionKey: false }
 );
 
 categorySchema.pre('save', function (next) {
-    this.updated_at = new Date(); // Không cần điều chỉnh múi giờ
+    this.updated_at = new Date();
     if (!this.created_at) {
-        this.created_at = new Date(); // Không cần điều chỉnh múi giờ
+        this.created_at = new Date();
     }
     next();
 });
