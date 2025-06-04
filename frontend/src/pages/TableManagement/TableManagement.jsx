@@ -434,6 +434,12 @@ const TableManagement = () => {
                     <h1>Quản lý đặt bàn</h1>
                     <div className="tab-navigation">
                         <button
+                            className={`tab-button ${activeTab === 'areas' ? 'active' : ''}`}
+                            onClick={() => navigate('/dashboard/areas')}
+                        >
+                            Quản lý khu vực
+                        </button>
+                        <button
                             className={`tab-button ${activeTab === 'tables' ? 'active' : ''}`}
                             onClick={() => handleTabChange('tables')}
                         >
