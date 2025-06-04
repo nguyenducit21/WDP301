@@ -30,6 +30,8 @@ const App = () => {
           <Route path="/menu" element={<Menu />} />
           <Route path="/service" element={<ServicePage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route path="/chef" element={<ChefLayout />}>
             {/* Thêm các route con */}
             <Route path="dashboard" element={<h2>Đây là màn hình: <span style={{ color: "#f4a70b" }}>Dashboard</span></h2>} />
@@ -37,15 +39,9 @@ const App = () => {
             <Route path="products" element={<h2>Đây là màn hình: <span style={{ color: "#f4a70b" }}>Sản phẩm</span></h2>} />
             <Route path="trash" element={<h2>Đây là màn hình: <span style={{ color: "#f4a70b" }}>Sản phẩm tạm xóa</span></h2>} />
           </Route>
+          </Routes>
         {!isChefPage && <ScrollToTopButton />}
         {!isChefPage && <Footer />}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-        </Routes>
-
-       
-        <ScrollToTopButton />
-        <Footer />
       </div>
       <ToastContainer 
         position="top-right"
