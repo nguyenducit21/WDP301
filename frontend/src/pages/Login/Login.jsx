@@ -60,7 +60,7 @@ const Login = () => {
 
         try {
             const response = await axios.post(
-                '/api/user/login',
+                '/user/login',
                 {
                     username: formData.username,
                     password: formData.password

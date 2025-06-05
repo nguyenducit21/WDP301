@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import axios from '../../utils/axios.customize';
+import { Card, InputNumber, Button, Spin, Alert, Typography, Space, Divider } from 'antd';
+import { ShoppingCartOutlined } from '@ant-design/icons';
+
+const { Title, Text } = Typography;
 
 export default function Step3Menu({ form, setForm, next, prev }) {
     const [menu, setMenu] = useState([]);
@@ -11,7 +15,7 @@ export default function Step3Menu({ form, setForm, next, prev }) {
             try {
                 setLoading(true);
                 setErr('');
-                const response = await axios.get('/api/menu-items');
+                const response = await axios.get('/menu-items');
 
                 if (response?.data?.success && Array.isArray(response.data.data)) {
                     setMenu(response.data.data);
@@ -41,42 +45,89 @@ export default function Step3Menu({ form, setForm, next, prev }) {
         setForm({ ...form, pre_order_items: items });
     };
 
+    const calculateTotal = () => {
+        return (form.pre_order_items || []).reduce((total, item) => {
+            const menuItem = menu.find(m => m._id === item.menu_item_id);
+            return total + (menuItem?.price || 0) * item.quantity;
+        }, 0);
+    };
+
     return (
-        <div>
-            <h3>Chọn món (tùy chọn)</h3>
+        <div style={{ maxWidth: 800, margin: '0 auto', padding: '20px' }}>
+            <Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>
+                <ShoppingCartOutlined style={{ marginRight: 8 }} />
+                Chọn món ăn (tùy chọn)
+            </Title>
+
             {loading ? (
-                <div>Đang tải danh sách món ăn...</div>
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <Spin size="large" />
+                    <div style={{ marginTop: 16 }}>Đang tải danh sách món ăn...</div>
+                </div>
             ) : err ? (
-                <div style={{ color: 'red' }}>{err}</div>
+                <Alert
+                    message="Lỗi"
+                    description={err}
+                    type="error"
+                    showIcon
+                />
             ) : menu.length === 0 ? (
-                <div>Không có món ăn nào!</div>
+                <Alert
+                    message="Thông báo"
+                    description="Không có món ăn nào trong menu!"
+                    type="info"
+                    showIcon
+                />
             ) : (
-                menu.map(item => {
-                    const found = (form.pre_order_items || []).find(i => i.menu_item_id === item._id);
-                    return (
-                        <div key={item._id} style={{ margin: '8px 0' }}>
-                            {item.name} - {item.price.toLocaleString()}đ
-                            <input
-                                type="number"
-                                min={0}
-                                value={found ? found.quantity : 0}
-                                onChange={e => handleChange(item._id, parseInt(e.target.value) || 0)}
-                                style={{ width: 60, marginLeft: 8 }}
-                            />
+                <>
+                    <Space direction="vertical" style={{ width: '100%' }} size="large">
+                        {menu.map(item => {
+                            const found = (form.pre_order_items || []).find(i => i.menu_item_id === item._id);
+                            return (
+                                <Card key={item._id} hoverable style={{ width: '100%' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <div>
+                                            <Title level={5} style={{ margin: 0 }}>{item.name}</Title>
+                                            <Text type="secondary">{item.price.toLocaleString()}đ</Text>
+                                        </div>
+                                        <InputNumber
+                                            min={0}
+                                            value={found ? found.quantity : 0}
+                                            onChange={value => handleChange(item._id, value || 0)}
+                                            style={{ width: 100 }}
+                                        />
+                                    </div>
+                                </Card>
+                            );
+                        })}
+                    </Space>
+
+                    <Divider />
+
+                    <Card>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Title level={4} style={{ margin: 0 }}>Tổng tiền:</Title>
+                            <Title level={4} style={{ margin: 0, color: '#1890ff' }}>
+                                {calculateTotal().toLocaleString()}đ
+                            </Title>
                         </div>
-                    );
-                })
+                    </Card>
+
+                    <div style={{ marginTop: 24, display: 'flex', justifyContent: 'space-between' }}>
+                        <Button size="large" onClick={prev}>
+                            Quay lại
+                        </Button>
+                        <Button
+                            type="primary"
+                            size="large"
+                            onClick={next}
+                            disabled={loading}
+                        >
+                            Tiếp theo
+                        </Button>
+                    </div>
+                </>
             )}
-            <div style={{ marginTop: '16px' }}>
-                <button onClick={prev}>Quay lại</button>
-                <button
-                    onClick={next}
-                    style={{ marginLeft: 8 }}
-                    disabled={loading}
-                >
-                    Tiếp theo
-                </button>
-            </div>
         </div>
     );
 }

@@ -15,7 +15,7 @@ export default function Step2Table({ form, setForm, next, prev }) {
             try {
                 setLoading(true);
                 setErr('');
-                const response = await axios.get('/api/reservations/available-tables', {
+                const response = await axios.get('/reservations/available-tables', {
                     params: {
                         area_id: form.area_id,
                         date: form.date,

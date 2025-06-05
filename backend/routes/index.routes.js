@@ -6,12 +6,14 @@ const categoryRouter = require("./category.routes");
 const tableRouter = require("./table.routes");
 const areaRouter = require("./area.routes");
 const reservationRouter = require("./reservation.routes");
+const paymentRouter = require("./payment.routes");
 
-router.use("/api/user", userRouter);
-router.use("/api/menu-items", menuItemRouter);
-router.use("/api/categories", categoryRouter);
-router.use("/api/tables", tableRouter);
-router.use("/api/areas", areaRouter);
-router.use("/api/reservations", reservationRouter);
+router.use("/user", userRouter);
+router.use("/menu-items", menuItemRouter);
+router.use("/categories", categoryRouter);
+router.use("/tables", tableRouter);
+router.use("/areas", areaRouter);
+router.use("/reservations", reservationRouter);
+router.use("/payment", paymentRouter);
 
 module.exports = router;
