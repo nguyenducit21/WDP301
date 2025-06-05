@@ -12,6 +12,7 @@ import Login from "../src/pages/Login/Login"
 import Register from "../src/pages/Register/Register"
 import Dashboard from "./pages/Dashboard/Dashboard";
 import TableManagement from "./pages/TableManagement/TableManagement";
+import Reservation from "./pages/Reservation";
 
 const App = () => {
   return (
@@ -28,6 +29,7 @@ const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/tables" element={<TableManagement />} />
+          <Route path="/table-booking" element={<Reservation />} />
         </Routes>
         <ScrollToTopButton />
         <Footer />

@@ -86,7 +86,7 @@ const Navbar = ({ setShowLogin }) => {
       </ul>
 
       <div className="navbar-buttons">
-        <button className="btn-book">ĐẶT BÀN</button>
+        <button onClick={() => navigate("/table-booking")} className="btn-book">ĐẶT BÀN</button>
         {isAuthenticated ? (
           <div className="user-profile" ref={dropdownRef}>
             <button

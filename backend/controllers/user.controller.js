@@ -82,6 +82,7 @@ const register = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 }
+
 const login = async (req, res) => {
     try {
         const { username, password } = req.body;

@@ -17,8 +17,8 @@ const Header = () => {
             từ những món ăn truyền thống đến những biến tấu mới lạ, chúng tôi
             mang đến cho thực khách những trải nghiệm ẩm thực độc đáo.
           </p>
-          <a href="#explore-menu">
-            <button>ĐẶT BÀN NGAY</button>
+          <a href="/table-booking">
+            <button onClick={() => navigate("/table-booking")}>ĐẶT BÀN NGAY</button>
           </a>
         </div>
         <div className="header-image">
