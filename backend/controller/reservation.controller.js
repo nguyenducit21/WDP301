@@ -56,6 +56,70 @@ const getReservations = async (req, res) => {
     }
 };
 
+const getCustomerReservations = async (req, res) => {
+    try {
+        const {
+            status,
+            date,
+            table_id,
+            page = 1,
+            limit = 10,
+            sort = '-created_at'
+        } = req.query;
+
+        let filter = {};
+
+        // Nếu là customer, chỉ lấy đặt bàn của mình
+        if (req.user.role === 'customer') {
+            filter.customer_id = req.user.userId;
+        } else {
+            // Admin/Manager/Waiter có thể filter theo customer_id
+            if (req.query.customer_id) {
+                filter.customer_id = req.query.customer_id;
+            }
+        }
+
+        if (status) filter.status = status;
+        if (date) {
+            const startDate = new Date(date);
+            const endDate = new Date(date);
+            endDate.setDate(endDate.getDate() + 1);
+            filter.date = { $gte: startDate, $lt: endDate };
+        }
+        if (table_id) filter.table_id = table_id;
+
+        const reservations = await Reservation.find(filter)
+            .populate('customer_id', 'username full_name email phone')
+            .populate('table_id', 'name capacity')
+            .populate('pre_order_items.menu_item_id', 'name price')
+            .sort(sort)
+            .limit(limit * 1)
+            .skip((page - 1) * limit);
+
+        const total = await Reservation.countDocuments(filter);
+        const totalPages = Math.ceil(total / limit);
+
+        res.status(200).json({
+            success: true,
+            data: reservations,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages,
+                totalReservations: total,
+                hasNextPage: page < totalPages,
+                hasPrevPage: page > 1
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy danh sách đặt bàn',
+            error: error.message
+        });
+    }
+};
+
+
 // Lấy chi tiết đặt bàn
 const getReservationById = async (req, res) => {
     try {
@@ -600,6 +664,7 @@ const moveReservation = async (req, res) => {
 
 module.exports = {
     getReservations,
+    getCustomerReservations,
     getReservationById,
     createReservation,
     updateReservation,

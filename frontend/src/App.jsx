@@ -13,6 +13,7 @@ import Register from "../src/pages/Register/Register"
 import Dashboard from "./pages/Dashboard/Dashboard";
 import TableManagement from "./pages/TableManagement/TableManagement";
 import AreaManagement from "./pages/TableManagement/AreaManagement";
+import Profile from "./pages/Profile/Profile"
 
 const App = () => {
   return (
@@ -30,6 +31,7 @@ const App = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/tables" element={<TableManagement />} />
           <Route path="/dashboard/areas" element={<AreaManagement />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
         <ScrollToTopButton />
         <Footer />

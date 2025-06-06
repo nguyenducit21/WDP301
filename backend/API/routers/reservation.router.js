@@ -5,14 +5,17 @@ const {
     getReservationById,
     createReservation,
     updateReservation,
-    cancelReservation ,
-    moveReservation
+    cancelReservation,
+    moveReservation,
+    getCustomerReservations
 } = require('../../controller/reservation.controller');
 const authMiddleware = require('../../middlewares/auth.middleware');
 const roleMiddleware = require('../../middlewares/role.middleware')
 
 // Lấy tất cả đặt bàn
 router.get('/', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), getReservations);
+
+router.get('/my-reservations', authMiddleware, getCustomerReservations);
 
 // Lấy chi tiết đặt bàn
 router.get('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), getReservationById);
@@ -28,6 +31,6 @@ router.put('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']
 router.patch('/:id/move', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), moveReservation);
 
 // Xóa đặt bàn
-router.patch('/:id/cancel', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), cancelReservation );
+router.patch('/:id/cancel', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), cancelReservation);
 
 module.exports = router;
