@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useLayoutEffect } from "react";
 import Step1Info from "./Step1Info";
 import Step2Table from "./Step2Table";
 import Step3Menu from "./Step3Menu";
@@ -22,8 +22,18 @@ export default function ReservationForm() {
   const next = () => setStep((s) => s + 1);
   const prev = () => setStep((s) => s - 1);
 
+  useLayoutEffect(() => {
+    document.body.classList.add('reservation-form-open');
+
+    return () => {
+      document.body.classList.remove('reservation-form-open');
+    };
+  }, []);
+
+
   return (
     <div
+      className="reservation-form-wrapper"
       style={{
         maxWidth: 600,
         margin: "0 auto",

@@ -1,5 +1,9 @@
-.navbar {
+/* .reservation-form-wrapper .navbar {
     position: unset;
+} */
+
+body.reservation-form-open .navbar {
+    position: unset !important;
 }
 
 .step1-page {
