@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 
 const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
+    
     const [form, setForm] = useState({
         name: "",
         category_id: "",
@@ -13,6 +14,8 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
         is_featured: false,
     });
     const [error, setError] = useState("");
+
+
 
     useEffect(() => {
         if (menuItem) {
