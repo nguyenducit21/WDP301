@@ -18,7 +18,7 @@ const AuthContextProvider = (props) => {
 
     const login = (userData) => {
         setUser(userData);
-        // console.log(userData);
+        console.log(userData);
         localStorage.setItem('user', JSON.stringify(userData));
     };
 

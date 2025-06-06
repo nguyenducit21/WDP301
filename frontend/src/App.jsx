@@ -17,6 +17,7 @@ import Login from "../src/pages/Login/Login"
 import Register from "../src/pages/Register/Register"
 import MenuItemManagement from "./pages/Chef/Food/MenuItemManagement";
 import DeletedMenuItems from "./pages/Chef/Food/DeletedMenuItems";
+import Dashboard from "./pages/Chef/Dashboard";
 
 const App = () => {
   const location = useLocation();
@@ -36,7 +37,7 @@ const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/chef" element={<ChefLayout />}>
             {/* Thêm các route con */}
-            <Route path="dashboard" element={<h2>Đây là màn hình: <span style={{ color: "#f4a70b" }}>Dashboard</span></h2>} />
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="manage-categories" element={<CategoryProductManagement />} />
             <Route path="products" element={<MenuItemManagement/>} />
             <Route path="deleted-menu-items" element={<DeletedMenuItems/>} />

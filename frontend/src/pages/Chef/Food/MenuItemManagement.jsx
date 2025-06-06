@@ -5,8 +5,13 @@ import { Link } from "react-router-dom";
 import "./MenuItemManagement.css";
 import EditMenuItemModal from "./EditMenuItemModal";
 import ConfirmDelete from "./ConfirmDelete";
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../../context/AuthContext";
+import { useContext } from "react";
 
 const MenuItemManagement = () => {
+    const navigate = useNavigate();
+    const { user } = useContext(AuthContext);
     const [menuItems, setMenuItems] = useState([]);
     const [categories, setCategories] = useState([]);
     const [selected, setSelected] = useState([]);
@@ -17,6 +22,26 @@ const MenuItemManagement = () => {
     const [deleteSelectedModal, setDeleteSelectedModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
+    // Utility function for safe object access
+    const safeGet = (obj, path, defaultValue = null) => {
+        try {
+            return path.split('.').reduce((o, p) => o && o[p], obj) || defaultValue;
+        } catch {
+            return defaultValue;
+        }
+    };
+
+    // Check authorization
+    useEffect(() => {
+        if (user !== null && user !== undefined) {
+            const userRole = safeGet(user, 'user.role') || safeGet(user, 'role');
+            const allowedRoles = ['chef'];
+            if (!userRole || !allowedRoles.includes(userRole)) {
+                console.log('Unauthorized access, redirecting to login');
+                navigate('/login');
+            }
+        }
+    }, [user, navigate]);
 
     useEffect(() => {
         const fetchData = async () => {

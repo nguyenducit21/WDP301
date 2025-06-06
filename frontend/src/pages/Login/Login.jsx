@@ -77,7 +77,10 @@ const Login = () => {
                 navigate('/dashboard');
             } else if (userRole === 'customer') {
                 navigate('/');
-            } else {
+            } else if (userRole === 'chef') {
+                navigate('/chef/dashboard');
+            }
+            else {
                 // Redirect to home or intended page
                 const redirectTo = location.state?.from || '/';
                 navigate(redirectTo);
