@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const menuItemController = require('../../controller/menuitem.controller');
-const authMiddleware = require('../../middlewares/auth.middleware');
-const roleMiddleware = require('../../middlewares/role.middleware');
+const menuItemController = require('../controllers/menuitem.controller');
+const authMiddleware = require('../middlewares/auth.middleware');
+const roleMiddleware = require('../middlewares/role.middleware');
 
 // ROUTE PUBLIC (cho KH xem)
 router.get('/', menuItemController.findAll); // Menu cho khách
