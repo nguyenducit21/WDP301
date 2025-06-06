@@ -1,13 +1,32 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "./MenuItemManagement.css";
 import EditMenuItemModal from "./EditMenuItemModal";
 import ConfirmDelete from "./ConfirmDelete";
-import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../context/AuthContext";
-import { useContext } from "react";
+
+// ===== HÀM BỎ DẤU TIẾNG VIỆT =====
+function removeVietnameseTones(str) {
+    return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d").replace(/Đ/g, "D");
+}
+
+// ===== HÀM TÌM KIẾM FUZZY RỜI RẠC =====
+function fuzzyMatch(text, pattern) {
+    text = removeVietnameseTones(text).toLowerCase();
+    pattern = removeVietnameseTones(pattern).toLowerCase();
+
+    let i = 0, j = 0;
+    while (i < text.length && j < pattern.length) {
+        if (text[i] === pattern[j]) j++;
+        i++;
+    }
+    return j === pattern.length;
+}
 
 const MenuItemManagement = () => {
     const navigate = useNavigate();
@@ -22,6 +41,9 @@ const MenuItemManagement = () => {
     const [deleteSelectedModal, setDeleteSelectedModal] = useState(false);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
+    const [searchText, setSearchText] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("");
+
     // Utility function for safe object access
     const safeGet = (obj, path, defaultValue = null) => {
         try {
@@ -48,8 +70,8 @@ const MenuItemManagement = () => {
             setLoading(true);
             try {
                 const [menuItemsRes, categoriesRes] = await Promise.all([
-                    axios.get("http://localhost:5000/api/menuitems",{withCredentials: true}),
-                    axios.get("http://localhost:5000/api/categories",{withCredentials: true}),
+                    axios.get("http://localhost:5000/api/menuitems", { withCredentials: true }),
+                    axios.get("http://localhost:5000/api/categories", { withCredentials: true }),
                 ]);
                 setMenuItems(menuItemsRes.data);
                 setCategories(categoriesRes.data);
@@ -61,11 +83,28 @@ const MenuItemManagement = () => {
         fetchData();
     }, []);
 
-    const totalPages = Math.ceil(menuItems.length / itemsPerPage);
+    // ==== LỌC TÌM KIẾM KHÔNG DẤU VÀ FUZZY ====
+    const filteredItems = useMemo(() => {
+        let filtered = menuItems;
+        if (searchText) {
+            filtered = filtered.filter(item =>
+                fuzzyMatch(item.name, searchText)
+            );
+        }
+        if (selectedCategory) {
+            filtered = filtered.filter(item =>
+                item.category_id?._id === selectedCategory
+            );
+        }
+        // Món mới thêm ở đầu
+        return [...filtered].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }, [menuItems, searchText, selectedCategory]);
+
+    const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const currentItems = useMemo(
-        () => menuItems.slice(startIndex, startIndex + itemsPerPage),
-        [menuItems, startIndex, itemsPerPage]
+        () => filteredItems.slice(startIndex, startIndex + itemsPerPage),
+        [filteredItems, startIndex, itemsPerPage]
     );
 
     const handleSelect = (id) =>
@@ -85,8 +124,7 @@ const MenuItemManagement = () => {
                 const res = await axios.put(
                     `http://localhost:5000/api/menuitems/${editModal.menuItem._id}`,
                     data,
-                    { headers: { "Content-Type": "multipart/form-data" } },
-                    { withCredentials: true }
+                    { headers: { "Content-Type": "multipart/form-data" }, withCredentials: true }
                 );
                 setMenuItems((prev) =>
                     prev.map((m) => (m._id === res.data._id ? res.data : m))
@@ -96,10 +134,9 @@ const MenuItemManagement = () => {
                 const res = await axios.post(
                     "http://localhost:5000/api/menuitems",
                     data,
-                    { headers: { "Content-Type": "multipart/form-data" } },
-                    { withCredentials: true }
+                    { headers: { "Content-Type": "multipart/form-data" }, withCredentials: true },
                 );
-                setMenuItems((prev) => [...prev, res.data]);
+                setMenuItems((prev) => [res.data, ...prev]); // Đẩy món mới lên đầu
                 toast.success("Thêm món ăn thành công!", { autoClose: 3000 });
             }
             closeEdit();
@@ -165,26 +202,51 @@ const MenuItemManagement = () => {
         <div className="menu-item-management">
             <div className="header-section">
                 <h2>Danh sách món ăn</h2>
-                <div className="action-buttons">
-                    <button
-                        className="delete-selected-btn"
-                        onClick={openDeleteSelected}
-                        disabled={actionLoading || selected.length === 0}
-                    >
-                        Xóa mục đã chọn
-                    </button>
-                    <Link to="/chef/deleted-menu-items">
-                        <button className="deleted-items-btn">
-                            Sản phẩm tạm xóa
+                <div className="toolbar-row">
+                    <div className="filter-section">
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm tên món..."
+                            value={searchText}
+                            onChange={(e) => {
+                                setSearchText(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        />
+                        <select
+                            value={selectedCategory}
+                            onChange={(e) => {
+                                setSelectedCategory(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <option value="">Tất cả danh mục</option>
+                            {categories.map((cat) => (
+                                <option key={cat._id} value={cat._id}>{cat.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="action-buttons">
+                        <button
+                            className="delete-selected-btn"
+                            onClick={openDeleteSelected}
+                            disabled={actionLoading || selected.length === 0}
+                        >
+                            Xóa mục đã chọn
                         </button>
-                    </Link>
-                    <button
-                        className="add-btn"
-                        onClick={() => openEdit()}
-                        disabled={actionLoading}
-                    >
-                        Thêm món ăn
-                    </button>
+                        <Link to="/chef/deleted-menu-items">
+                            <button className="deleted-items-btn">
+                                Sản phẩm tạm xóa
+                            </button>
+                        </Link>
+                        <button
+                            className="add-btn"
+                            onClick={() => openEdit()}
+                            disabled={actionLoading}
+                        >
+                            Thêm món ăn
+                        </button>
+                    </div>
                 </div>
             </div>
             {loading ? (

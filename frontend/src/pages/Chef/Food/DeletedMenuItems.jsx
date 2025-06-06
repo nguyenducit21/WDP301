@@ -1,22 +1,44 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import "./DeletedMenuItems.css";
-import ConfirmDelete from "./ConfirmDelete"; // Tái sử dụng ConfirmDelete
+import ConfirmDelete from "./ConfirmDelete";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../context/AuthContext";
-import { useContext } from "react";
+
+// ===== HÀM BỎ DẤU TIẾNG VIỆT =====
+function removeVietnameseTones(str) {
+    return str
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/đ/g, "d").replace(/Đ/g, "D");
+}
+function fuzzyMatch(text, pattern) {
+    text = removeVietnameseTones(text).toLowerCase();
+    pattern = removeVietnameseTones(pattern).toLowerCase();
+
+    let i = 0, j = 0;
+    while (i < text.length && j < pattern.length) {
+        if (text[i] === pattern[j]) j++;
+        i++;
+    }
+    return j === pattern.length;
+}
 
 const DeletedMenuItems = () => {
     const { user } = useContext(AuthContext);
     const navigate = useNavigate();
     const [menuItems, setMenuItems] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [selected, setSelected] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(5);
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
-    const [restoreModal, setRestoreModal] = useState({ open: false, id: null }); // Thêm trạng thái xác nhận khôi phục
+    const [restoreModal, setRestoreModal] = useState({ open: false, id: null });
+    const [searchText, setSearchText] = useState("");
+    const [selectedCategory, setSelectedCategory] = useState("");
+
     const safeGet = (obj, path, defaultValue = null) => {
         try {
             return path.split('.').reduce((o, p) => o && o[p], obj) || defaultValue;
@@ -25,24 +47,26 @@ const DeletedMenuItems = () => {
         }
     };
 
-    // Check authorization
     useEffect(() => {
         if (user !== null && user !== undefined) {
             const userRole = safeGet(user, 'user.role') || safeGet(user, 'role');
             const allowedRoles = ['chef'];
             if (!userRole || !allowedRoles.includes(userRole)) {
-                console.log('Unauthorized access, redirecting to login');
                 navigate('/login');
             }
         }
     }, [user, navigate]);
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                // Thêm withCredentials: true ở đây!
-                const res = await axios.get("http://localhost:5000/api/menuitems/deleted", { withCredentials: true });
-                setMenuItems(res.data);
+                const [menuRes, categoriesRes] = await Promise.all([
+                    axios.get("http://localhost:5000/api/menuitems/deleted", { withCredentials: true }),
+                    axios.get("http://localhost:5000/api/categories", { withCredentials: true }),
+                ]);
+                setMenuItems(menuRes.data);
+                setCategories(categoriesRes.data);
             } catch (error) {
                 toast.error("Không thể tải dữ liệu", { autoClose: 3000 });
             }
@@ -51,12 +75,26 @@ const DeletedMenuItems = () => {
         fetchData();
     }, []);
 
+    // Filter & search
+    const filteredItems = useMemo(() => {
+        let filtered = menuItems;
+        if (searchText) {
+            filtered = filtered.filter(item => fuzzyMatch(item.name, searchText));
+        }
+        if (selectedCategory) {
+            filtered = filtered.filter(item =>
+                item.category_id?._id === selectedCategory
+            );
+        }
+        // Món mới xóa gần nhất lên đầu
+        return [...filtered].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    }, [menuItems, searchText, selectedCategory]);
 
-    const totalPages = Math.ceil(menuItems.length / itemsPerPage);
+    const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
     const currentItems = useMemo(
-        () => menuItems.slice(startIndex, startIndex + itemsPerPage),
-        [menuItems, startIndex, itemsPerPage]
+        () => filteredItems.slice(startIndex, startIndex + itemsPerPage),
+        [filteredItems, startIndex, itemsPerPage]
     );
 
     const handleSelect = (id) =>
@@ -72,7 +110,11 @@ const DeletedMenuItems = () => {
     const handleRestore = async () => {
         setActionLoading(true);
         try {
-            const res = await axios.put(`http://localhost:5000/api/menuitems/${restoreModal.id}/restore`, {}, { withCredentials: true });
+            await axios.put(
+                `http://localhost:5000/api/menuitems/${restoreModal.id}/restore`,
+                {},
+                { withCredentials: true }
+            );
             setMenuItems((prev) => prev.filter((m) => m._id !== restoreModal.id));
             setSelected((prev) => prev.filter((s) => s !== restoreModal.id));
             closeRestore();
@@ -87,6 +129,33 @@ const DeletedMenuItems = () => {
         <div className="deleted-menu-items">
             <div className="header-section">
                 <h2>Sản phẩm tạm xóa</h2>
+                <div className="toolbar-row">
+                    <div className="filter-section">
+                        <input
+                            type="text"
+                            placeholder="Tìm kiếm tên món..."
+                            value={searchText}
+                            onChange={e => {
+                                setSearchText(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        />
+                        <select
+                            value={selectedCategory}
+                            onChange={e => {
+                                setSelectedCategory(e.target.value);
+                                setCurrentPage(1);
+                            }}
+                        >
+                            <option value="">Tất cả danh mục</option>
+                            {categories.map(cat => (
+                                <option key={cat._id} value={cat._id}>
+                                    {cat.name}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
             </div>
             {loading ? (
                 <div className="loading">Đang tải...</div>
