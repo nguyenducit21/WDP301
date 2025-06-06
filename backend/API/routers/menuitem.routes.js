@@ -5,7 +5,7 @@ const authMiddleware = require('../../middlewares/auth.middleware');
 const roleMiddleware = require('../../middlewares/role.middleware');
 
 router.post('/', authMiddleware, roleMiddleware(['chef']), menuItemController.create);
-router.get('/', authMiddleware, roleMiddleware(['chef']), menuItemController.findAll);
+router.get('/', menuItemController.findAll);
 router.get('/deleted', authMiddleware, roleMiddleware(['chef']), menuItemController.findDeleted); // Route lấy món ăn đã xóa mềm
 router.get('/:id', authMiddleware, roleMiddleware(['chef']), menuItemController.findOne);
 router.put('/:id', authMiddleware, roleMiddleware(['chef']), menuItemController.update);

@@ -3,8 +3,13 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import "./DeletedMenuItems.css";
 import ConfirmDelete from "./ConfirmDelete"; // Tái sử dụng ConfirmDelete
+import { useNavigate } from "react-router-dom";
+import { AuthContext } from "../../../context/AuthContext";
+import { useContext } from "react";
 
 const DeletedMenuItems = () => {
+    const { user } = useContext(AuthContext);
+    const navigate = useNavigate();
     const [menuItems, setMenuItems] = useState([]);
     const [selected, setSelected] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
@@ -12,12 +17,31 @@ const DeletedMenuItems = () => {
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [restoreModal, setRestoreModal] = useState({ open: false, id: null }); // Thêm trạng thái xác nhận khôi phục
+    const safeGet = (obj, path, defaultValue = null) => {
+        try {
+            return path.split('.').reduce((o, p) => o && o[p], obj) || defaultValue;
+        } catch {
+            return defaultValue;
+        }
+    };
 
+    // Check authorization
+    useEffect(() => {
+        if (user !== null && user !== undefined) {
+            const userRole = safeGet(user, 'user.role') || safeGet(user, 'role');
+            const allowedRoles = ['chef'];
+            if (!userRole || !allowedRoles.includes(userRole)) {
+                console.log('Unauthorized access, redirecting to login');
+                navigate('/login');
+            }
+        }
+    }, [user, navigate]);
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const res = await axios.get("http://localhost:5000/api/menuitems/deleted");
+                // Thêm withCredentials: true ở đây!
+                const res = await axios.get("http://localhost:5000/api/menuitems/deleted", { withCredentials: true });
                 setMenuItems(res.data);
             } catch (error) {
                 toast.error("Không thể tải dữ liệu", { autoClose: 3000 });
@@ -26,6 +50,7 @@ const DeletedMenuItems = () => {
         };
         fetchData();
     }, []);
+
 
     const totalPages = Math.ceil(menuItems.length / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -47,7 +72,7 @@ const DeletedMenuItems = () => {
     const handleRestore = async () => {
         setActionLoading(true);
         try {
-            const res = await axios.put(`http://localhost:5000/api/menuitems/${restoreModal.id}/restore`);
+            const res = await axios.put(`http://localhost:5000/api/menuitems/${restoreModal.id}/restore`, {}, { withCredentials: true });
             setMenuItems((prev) => prev.filter((m) => m._id !== restoreModal.id));
             setSelected((prev) => prev.filter((s) => s !== restoreModal.id));
             closeRestore();

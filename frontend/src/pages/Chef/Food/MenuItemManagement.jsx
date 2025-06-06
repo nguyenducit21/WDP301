@@ -48,8 +48,8 @@ const MenuItemManagement = () => {
             setLoading(true);
             try {
                 const [menuItemsRes, categoriesRes] = await Promise.all([
-                    axios.get("http://localhost:5000/api/menuitems"),
-                    axios.get("http://localhost:5000/api/categories"),
+                    axios.get("http://localhost:5000/api/menuitems",{withCredentials: true}),
+                    axios.get("http://localhost:5000/api/categories",{withCredentials: true}),
                 ]);
                 setMenuItems(menuItemsRes.data);
                 setCategories(categoriesRes.data);
@@ -85,7 +85,8 @@ const MenuItemManagement = () => {
                 const res = await axios.put(
                     `http://localhost:5000/api/menuitems/${editModal.menuItem._id}`,
                     data,
-                    { headers: { "Content-Type": "multipart/form-data" } }
+                    { headers: { "Content-Type": "multipart/form-data" } },
+                    { withCredentials: true }
                 );
                 setMenuItems((prev) =>
                     prev.map((m) => (m._id === res.data._id ? res.data : m))
@@ -95,7 +96,8 @@ const MenuItemManagement = () => {
                 const res = await axios.post(
                     "http://localhost:5000/api/menuitems",
                     data,
-                    { headers: { "Content-Type": "multipart/form-data" } }
+                    { headers: { "Content-Type": "multipart/form-data" } },
+                    { withCredentials: true }
                 );
                 setMenuItems((prev) => [...prev, res.data]);
                 toast.success("Thêm món ăn thành công!", { autoClose: 3000 });
@@ -113,7 +115,7 @@ const MenuItemManagement = () => {
     const handleDelete = async () => {
         setActionLoading(true);
         try {
-            await axios.delete(`http://localhost:5000/api/menuitems/${deleteModal.id}`);
+            await axios.delete(`http://localhost:5000/api/menuitems/${deleteModal.id}`, { withCredentials: true });
             setMenuItems((prev) => prev.filter((m) => m._id !== deleteModal.id));
             setSelected((prev) => prev.filter((id) => id !== deleteModal.id));
             closeDelete();
@@ -137,7 +139,7 @@ const MenuItemManagement = () => {
     const handleDeleteSelected = async () => {
         setActionLoading(true);
         try {
-            await axios.post("http://localhost:5000/api/menuitems/delete-many", { ids: selected });
+            await axios.post("http://localhost:5000/api/menuitems/delete-many", { ids: selected }, { withCredentials: true });
             setMenuItems((prev) => prev.filter((m) => !selected.includes(m._id)));
             setSelected([]);
             closeDeleteSelected();
