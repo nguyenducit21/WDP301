@@ -202,7 +202,7 @@ const MenuItemManagement = () => {
                                             <img
                                                 src={`http://localhost:5000/uploads/${menuItem.image}`}
                                                 alt={menuItem.name}
-                                                style={{ width: "50px", height: "50px" }}
+                                                style={{ width: "110px", height: "95px" }}
                                             />
                                         )}
                                     </td>
