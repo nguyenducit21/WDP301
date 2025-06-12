@@ -8,23 +8,25 @@ const {
     deleteTable,
     updateTableStatus
 } = require('../controllers/table.controller');
+const authMiddleware = require('../middlewares/auth.middleware');
+const roleMiddleware = require('../middlewares/role.middleware')
 
 // Lấy tất cả bàn
-router.get('/', getTables);
+router.get('/', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getTables);
 
 // Lấy chi tiết bàn
-router.get('/:id', getTableById);
+router.get('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getTableById);
 
 // Tạo bàn mới
-router.post('/', createTable);
+router.post('/', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), createTable);
 
 // Cập nhật thông tin bàn
-router.put('/:id', updateTable);
+router.put('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), updateTable);
 
 // Cập nhật trạng thái bàn
-router.patch('/:id/status', updateTableStatus);
+router.put('/:id/status', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), updateTableStatus);
 
 // Xóa bàn
-router.delete('/:id', deleteTable);
+router.delete('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), deleteTable);
 
 module.exports = router;

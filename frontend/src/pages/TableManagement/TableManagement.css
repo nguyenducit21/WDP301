@@ -866,3 +866,781 @@
         min-width: 32px;
     }
 }
+
+/* Pre-order section styles */
+.pre-order-section {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+.menu-items-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.menu-item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.menu-item-row:last-child {
+    border-bottom: none;
+}
+
+.menu-item-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.menu-item-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.menu-item-price {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.menu-item-quantity {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.menu-item-quantity input {
+    width: 40px;
+    text-align: center;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.quantity-btn {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.quantity-btn:hover {
+    background-color: #e0e0e0;
+}
+
+.pre-order-total {
+    background-color: #f0f7ff;
+    padding: 10px;
+    border-radius: 4px;
+    text-align: right;
+    font-size: 1.1em;
+}
+
+/* Styles for displaying pre-order items in reservations */
+.reservation-pre-order {
+    margin-top: 10px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+.pre-order-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.pre-order-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px dashed #eee;
+}
+
+.pre-order-item:last-child {
+    border-bottom: none;
+}
+
+/* Pre-order indicators in table */
+.has-pre-order {
+    display: inline-block;
+    background-color: #e6f7ff;
+    color: #1890ff;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.9em;
+    border: 1px solid #91d5ff;
+}
+
+.no-pre-order {
+    color: #999;
+    font-style: italic;
+}
+
+/* Order items section styles */
+.order-items-section {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+.order-total {
+    background-color: #e6f7ff;
+    padding: 10px;
+    border-radius: 4px;
+    text-align: right;
+    font-size: 1.1em;
+    color: #1890ff;
+    border: 1px solid #91d5ff;
+}
+
+/* Payment styles */
+.order-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid #e8e8e8;
+    border-radius: 4px;
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+.order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.order-item:last-child {
+    border-bottom: none;
+}
+
+.order-item-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.order-item-name {
+    font-weight: 500;
+    color: #333;
+}
+
+.order-item-quantity {
+    font-size: 0.9em;
+    color: #666;
+    margin-left: 8px;
+}
+
+.order-item-price {
+    font-weight: 500;
+    color: #1890ff;
+}
+
+.payment-total {
+    background-color: #f6ffed;
+    padding: 15px;
+    border-radius: 4px;
+    text-align: right;
+    font-size: 1.3em;
+    color: #52c41a;
+    border: 1px solid #b7eb8f;
+    margin-top: 10px;
+}
+
+/* Button styles */
+.action-button.add-menu-items {
+    background-color: #1890ff;
+    color: white;
+}
+
+.action-button.add-menu-items:hover {
+    background-color: #096dd9;
+}
+
+.action-button.payment {
+    background-color: #52c41a;
+    color: white;
+}
+
+.action-button.payment:hover {
+    background-color: #389e0d;
+}
+
+/* Walk-in customer styling */
+.walk-in-customer {
+    color: #666;
+    font-style: italic;
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.customer-info {
+    color: #1890ff;
+    margin: 8px 0;
+    font-size: 14px;
+}
+
+.customer-info small {
+    background: #e6f7ff;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #91d5ff;
+}
+
+/* Pre-order section styling */
+.pre-order-section {
+    margin-top: 16px;
+    padding: 12px;
+    background: #e6f7ff;
+    border-left: 4px solid #1890ff;
+    border-radius: 6px;
+}
+
+.pre-order-items-display {
+    margin-top: 8px;
+}
+
+.pre-order-item-detail {
+    background: #f0f8ff;
+    padding: 6px 8px;
+    margin: 4px 0;
+    border-radius: 4px;
+}
+
+.pre-order-subtotal {
+    margin-top: 8px;
+    padding: 8px;
+    background: #d4edda;
+    border-radius: 4px;
+    text-align: right;
+    color: #155724;
+}
+
+/* Current order section styling */
+.current-order-section {
+    margin-top: 16px;
+    padding: 12px;
+    background: #fff7e6;
+    border-left: 4px solid #fa8c16;
+    border-radius: 6px;
+}
+
+.order-items-display {
+    margin-top: 8px;
+}
+
+.order-subtotal {
+    margin-top: 8px;
+    padding: 8px;
+    background: #fff2e8;
+    border-radius: 4px;
+    text-align: right;
+    color: #d46b08;
+}
+
+/* Amount styling */
+.paid-amount {
+    color: #52c41a;
+    font-weight: 500;
+}
+
+.unpaid-amount {
+    color: #fa8c16;
+    font-weight: 500;
+}
+
+/* Order grand total styling */
+.order-grand-total {
+    margin-top: 16px;
+    padding: 16px;
+    background: #f9f9f9;
+    border: 2px solid #e8e8e8;
+    border-radius: 8px;
+}
+
+.total-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.grand-total-row {
+    border-top: 2px solid #d9d9d9;
+    padding-top: 12px;
+    margin-top: 8px;
+    font-size: 16px;
+}
+
+.paid-total {
+    color: #52c41a;
+    font-weight: 600;
+}
+
+.unpaid-total {
+    color: #fa8c16;
+    font-weight: 600;
+}
+
+.grand-total-amount {
+    color: #1890ff;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Action button for invoice */
+.action-button.invoice {
+    background: #52c41a;
+    color: white;
+    font-size: 12px;
+    padding: 4px 8px;
+}
+
+.action-button.invoice:hover:not(:disabled) {
+    background: #73d13d;
+}
+
+/* Status badges cho reservation */
+.status-badge.seated {
+    background-color: #52c41a;
+    color: white;
+}
+
+.status-badge.completed {
+    background-color: #722ed1;
+    color: white;
+}
+
+/* Payment status badges */
+.payment-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.payment-badge.pending {
+    background-color: #fadb14;
+    color: #333;
+}
+
+.payment-badge.partial {
+    background-color: #fa8c16;
+    color: white;
+}
+
+.payment-badge.paid {
+    background-color: #52c41a;
+    color: white;
+}
+
+.payment-badge.refunded {
+    background-color: #722ed1;
+    color: white;
+}
+
+/* Action buttons cho trạng thái mới */
+.action-button.confirm {
+    background-color: #52c41a;
+    color: white;
+}
+
+.action-button.seat {
+    background-color: #1890ff;
+    color: white;
+}
+
+.action-button.complete {
+    background-color: #722ed1;
+    color: white;
+}
+
+.action-button.invoice {
+    background-color: #52c41a;
+    color: white;
+    font-size: 12px;
+    padding: 4px 8px;
+}
+
+.action-button.invoice:hover:not(:disabled) {
+    background-color: #73d13d;
+}
+
+/* Walk-in customer styling */
+.walk-in-customer {
+    color: #666;
+    font-style: italic;
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* Pre-order section styling */
+.pre-order-section {
+    margin-top: 16px;
+    padding: 12px;
+    background: #e6f7ff;
+    border-left: 4px solid #1890ff;
+    border-radius: 6px;
+}
+
+.current-order-section {
+    margin-top: 16px;
+    padding: 12px;
+    background: #fff7e6;
+    border-left: 4px solid #fa8c16;
+    border-radius: 6px;
+}
+
+.paid-amount {
+    color: #52c41a;
+    font-weight: 500;
+}
+
+.unpaid-amount {
+    color: #fa8c16;
+    font-weight: 500;
+}
+
+.order-grand-total {
+    margin-top: 16px;
+    padding: 16px;
+    background: #f9f9f9;
+    border: 2px solid #e8e8e8;
+    border-radius: 8px;
+}
+
+.total-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.grand-total-row {
+    border-top: 2px solid #d9d9d9;
+    padding-top: 12px;
+    margin-top: 8px;
+    font-size: 16px;
+}
+
+.paid-total {
+    color: #52c41a;
+    font-weight: 600;
+}
+
+.unpaid-total {
+    color: #fa8c16;
+    font-weight: 600;
+}
+
+.grand-total-amount {
+    color: #1890ff;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Payment breakdown */
+.payment-breakdown {
+    margin-bottom: 16px;
+}
+
+.payment-amount {
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 16px;
+}
+
+.payment-amount.paid {
+    background: #f6ffed;
+    border: 1px solid #b7eb8f;
+    color: #52c41a;
+}
+
+.payment-amount.unpaid {
+    background: #fff7e6;
+    border: 1px solid #ffd591;
+    color: #fa8c16;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .action-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .action-button {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+
+    .action-button.invoice {
+        order: 1;
+    }
+
+    .total-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+}
+
+/* Payment status button */
+.action-button.payment-status {
+    background-color: #fa8c16;
+    color: white;
+    font-size: 12px;
+    padding: 4px 8px;
+}
+
+.action-button.payment-status:hover:not(:disabled) {
+    background-color: #d46b08;
+}
+
+/* Status badges cho reservation */
+.status-badge.seated {
+    background-color: #52c41a;
+    color: white;
+}
+
+.status-badge.completed {
+    background-color: #722ed1;
+    color: white;
+}
+
+/* Payment status badges */
+.payment-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.payment-badge.pending {
+    background-color: #fadb14;
+    color: #333;
+}
+
+.payment-badge.partial {
+    background-color: #fa8c16;
+    color: white;
+}
+
+.payment-badge.paid {
+    background-color: #52c41a;
+    color: white;
+}
+
+.payment-badge.refunded {
+    background-color: #722ed1;
+    color: white;
+}
+
+/* Action buttons cho trạng thái mới */
+.action-button.confirm {
+    background-color: #52c41a;
+    color: white;
+}
+
+.action-button.seat {
+    background-color: #1890ff;
+    color: white;
+}
+
+.action-button.complete {
+    background-color: #722ed1;
+    color: white;
+}
+
+.action-button.invoice {
+    background-color: #52c41a;
+    color: white;
+    font-size: 12px;
+    padding: 4px 8px;
+}
+
+/* Current status display */
+.current-status {
+    padding: 8px;
+    background: #f5f5f5;
+    border-radius: 4px;
+    margin: 8px 0;
+}
+
+/* Payment warning styles */
+.payment-warning {
+    background: #fff7e6;
+    border: 1px solid #ffd591;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 16px;
+}
+
+.payment-warning ul {
+    margin: 8px 0 0 16px;
+    font-size: 14px;
+}
+
+.payment-warning li {
+    margin: 4px 0;
+    color: #d46b08;
+}
+
+/* Move warning for seated customers */
+.move-warning {
+    background: #fff2e8;
+    border: 1px solid #ffbb96;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 16px;
+    color: #d46b08;
+}
+
+.move-warning p {
+    margin: 0;
+    font-size: 14px;
+}
+
+/* Walk-in customer styling */
+.walk-in-customer {
+    color: #666;
+    font-style: italic;
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+/* Pre-order section styling */
+.pre-order-section {
+    margin-top: 16px;
+    padding: 12px;
+    background: #e6f7ff;
+    border-left: 4px solid #1890ff;
+    border-radius: 6px;
+}
+
+.current-order-section {
+    margin-top: 16px;
+    padding: 12px;
+    background: #fff7e6;
+    border-left: 4px solid #fa8c16;
+    border-radius: 6px;
+}
+
+.paid-amount {
+    color: #52c41a;
+    font-weight: 500;
+}
+
+.unpaid-amount {
+    color: #fa8c16;
+    font-weight: 500;
+}
+
+.order-grand-total {
+    margin-top: 16px;
+    padding: 16px;
+    background: #f9f9f9;
+    border: 2px solid #e8e8e8;
+    border-radius: 8px;
+}
+
+.total-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.grand-total-row {
+    border-top: 2px solid #d9d9d9;
+    padding-top: 12px;
+    margin-top: 8px;
+    font-size: 16px;
+}
+
+.paid-total {
+    color: #52c41a;
+    font-weight: 600;
+}
+
+.unpaid-total {
+    color: #fa8c16;
+    font-weight: 600;
+}
+
+.grand-total-amount {
+    color: #1890ff;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Payment breakdown */
+.payment-breakdown {
+    margin-bottom: 16px;
+}
+
+.payment-amount {
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+    font-size: 16px;
+}
+
+.payment-amount.paid {
+    background: #f6ffed;
+    border: 1px solid #b7eb8f;
+    color: #52c41a;
+}
+
+.payment-amount.unpaid {
+    background: #fff7e6;
+    border: 1px solid #ffd591;
+    color: #fa8c16;
+}

@@ -250,14 +250,17 @@ const updateTableStatus = async (req, res) => {
         if (!['available', 'reserved', 'occupied', 'cleaning', 'maintenance'].includes(status)) {
             return res.status(400).json({
                 success: false,
-                message: 'Trạng thái không hợp lệ'
+                message: 'Trạng thái bàn không hợp lệ'
             });
         }
 
         const table = await Table.findByIdAndUpdate(
             req.params.id,
-            { status, updated_at: new Date() },
-            { new: true, runValidators: true }
+            {
+                status,
+                updated_at: new Date()
+            },
+            { new: true }
         ).populate('area_id', 'name');
 
         if (!table) {
