@@ -1,44 +1,20 @@
-import React, { useContext } from "react";
+import React from "react";
 import "./FoodItem.css";
-import { assets } from "../../assets/assets";
-import { StoreContext } from "../../context/StoreContext";
 
-const FoodItem = ({ id, name, price, description, image }) => {
-  const { cartItems, addToCart, removeFromCart } = useContext(StoreContext);
-
+const FoodItem = ({ name, price, description, image }) => {
   return (
     <div className="food-item">
-      <div className="food-item-top">
-        <img src={image} alt={name} className="food-item-img" />
-        <div className="food-item-text">
-          <p className="food-item-name">{name}</p>
-          <p className="food-item-price">{price.toLocaleString("vi-VN")} ₫</p>
+      <img
+        src={`http://localhost:3000/uploads/${image}`} 
+        alt={name}
+        className="food-item-img"
+      />
+      <div className="food-item-info">
+        <div className="food-item-title">{name}</div>
+        <div className="food-item-price">
+          {price.toLocaleString("vi-VN")} <span className="vnd">đ</span>
         </div>
-      </div>
-
-      <div className="food-item-bottom">
-        {!cartItems[id] ? (
-          <img
-            src={assets.add_icon_white}
-            alt="add"
-            className="add-button"
-            onClick={() => addToCart(id)}
-          />
-        ) : (
-          <div className="food-item-counter">
-            <img
-              src={assets.remove_icon_red}
-              alt="remove"
-              onClick={() => removeFromCart(id)}
-            />
-            <p>{cartItems[id]}</p>
-            <img
-              src={assets.add_icon_green}
-              alt="add"
-              onClick={() => addToCart(id)}
-            />
-          </div>
-        )}
+        <div className="food-item-desc">{description}</div>
       </div>
     </div>
   );

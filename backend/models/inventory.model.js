@@ -1,14 +1,13 @@
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const InventorySchema = new Schema({
-    name: { type: String, required: true },
-    unit: { type: String, required: true }, // kg, lít, cái...
+const InventoryLogSchema = new Schema({
+    inventory_id: { type: Schema.Types.ObjectId, ref: 'Inventory', required: true },
+    type: { type: String, enum: ['import', 'export', 'adjust'], required: true },
     quantity: { type: Number, required: true },
-    min_quantity: { type: Number },
-    price: { type: Number, required: true },
-    created_at: { type: Date, default: Date.now },
-    updated_at: { type: Date, default: Date.now }
+    staff_id: { type: Schema.Types.ObjectId, ref: 'User' },
+    note: { type: String },
+    created_at: { type: Date, default: Date.now }
 });
 
-module.exports = mongoose.model('Inventory', InventorySchema);
+module.exports = mongoose.model('InventoryLog', InventoryLogSchema);

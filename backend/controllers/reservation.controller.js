@@ -1,7 +1,7 @@
 const Reservation = require('../models/reservation.model');
 const Table = require('../models/table.model');
 const Area = require('../models/area.model');
-const MenuItem = require('../models/menuItem.model');
+const MenuItem = require('../models/menuItems.model');
 const Log = require('../models/log.model');
 const mongoose = require('mongoose');
 

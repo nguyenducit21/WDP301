@@ -163,7 +163,7 @@ export default function Step4Confirm({ form, prev }) {
     useEffect(() => {
         const user = JSON.parse(localStorage.getItem('user'));
         if (user?.userId) {
-            fetchDataFromApi(`/api/cart?userId=${user.userId}`).then((res) => {
+            fetchDataFromApi(`/cart?userId=${user.userId}`).then((res) => {
                 setCartData(res);
                 calculateTotal(res);
                 // Initialize expandedItems
@@ -174,7 +174,7 @@ export default function Step4Confirm({ form, prev }) {
                 setExpandedItems(initialExpanded);
             });
 
-            fetchDataFromApi(`/api/user/${user.userId}`).then((res) => {
+            fetchDataFromApi(`/user/${user.userId}`).then((res) => {
                 setUserData(res);
                 setFormField({
                     fullname: res.name || '',
@@ -246,7 +246,7 @@ export default function Step4Confirm({ form, prev }) {
                     status: 'Success',
                 };
 
-                await postData('/api/orders/create', orderData).then((res) => {
+                await postData('/orders/create', orderData).then((res) => {
                     console.log('Order created:', res);
                 });
 

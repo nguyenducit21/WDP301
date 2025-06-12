@@ -1,71 +1,101 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useEffect } from "react";
 import "./Menu.css";
-import { StoreContext } from "../../context/StoreContext";
 import FoodItem from "../../components/FoodItem/FoodItem";
-import { menu_list } from "../../assets/assets";
+import axios from "../../utils/axios.customize";
 
 const Menu = () => {
-    const { food_list } = useContext(StoreContext);
+    const [foodList, setFoodList] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState("All");
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchMenu = async () => {
+            setLoading(true);
+            try {
+                const res = await axios.get("/menu-items");
+                setFoodList(res.data);
+            } catch (err) {
+                alert("Lỗi khi tải thực đơn!");
+            }
+            setLoading(false);
+        };
+        fetchMenu();
+    }, []);
+
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                const res = await axios.get("/categories");
+                setCategories(res.data);
+            } catch (err) {
+                alert("Lỗi khi tải danh mục!");
+            }
+        };
+        fetchCategories();
+    }, []);
+
+    // Lấy tên category đang chọn
+    const currentCategoryName =
+        selectedCategory === "All"
+            ? "Thực đơn"
+            : categories.find((c) => c._id === selectedCategory)?.name || "";
 
     return (
         <div className="menu-page">
             <div className="menu-container">
-                <div className="menu-nav">
-                    <h2>Categories</h2>
-                    {/* Category list for larger screens */}
-                    <ul className="category-list">
+                <aside className="menu-sidebar">
+                    <div className="menu-sidebar-title">
+                        <span className="decor">—</span>
+                        <span>THỰC ĐƠN</span>
+                        <span className="decor">—</span>
+                    </div>
+                    <ul className="sidebar-list">
                         <li
                             className={selectedCategory === "All" ? "active" : ""}
                             onClick={() => setSelectedCategory("All")}
                         >
-                            All Items
+                            Xem tất cả
                         </li>
-                        {menu_list.map((item, index) => (
+                        {categories.map((cat) => (
                             <li
-                                key={index}
-                                className={selectedCategory === item.menu_name ? "active" : ""}
-                                onClick={() => setSelectedCategory(item.menu_name)}
+                                key={cat._id}
+                                className={selectedCategory === cat._id ? "active" : ""}
+                                onClick={() => setSelectedCategory(cat._id)}
                             >
-                                {item.menu_name}
+                                {cat.name}
                             </li>
                         ))}
                     </ul>
-                    {/* Dropdown for smaller screens */}
-                    <select
-                        className="category-dropdown"
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                    >
-                        <option value="All">All Items</option>
-                        {menu_list.map((item, index) => (
-                            <option key={index} value={item.menu_name}>
-                                {item.menu_name}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="menu-content">
-                    <h1>Thực đơn</h1>
-                    <div className="menu-items-grid">
-                        {food_list.map((item, index) => {
-                            if (selectedCategory === "All" || selectedCategory === item.category) {
-                                return (
+                </aside>
+                <main className="menu-content">
+                    <div className="menu-heading">
+                        <span className="sub-title">Nhà Hàng Hương Sen</span>
+                        <h1>{currentCategoryName}</h1>
+                    </div>
+                    {loading ? (
+                        <div>Đang tải...</div>
+                    ) : (
+                        <div className="menu-items-grid">
+                            {foodList
+                                .filter(
+                                    (item) =>
+                                        selectedCategory === "All" ||
+                                        item.category_id === selectedCategory ||
+                                        (item.category_id?._id && item.category_id._id === selectedCategory)
+                                )
+                                .map((item) => (
                                     <FoodItem
-                                        key={index}
-                                        id={item._id}
+                                        key={item._id}
                                         name={item.name}
                                         description={item.description}
                                         price={item.price}
                                         image={item.image}
                                     />
-                                );
-                            }
-                            return null;
-                        })}
-                    </div>
-                </div>
+                                ))}
+                        </div>
+                    )}
+                </main>
             </div>
         </div>
     );
