@@ -16,6 +16,7 @@ import Reservation from "./pages/Reservation";
 import ChefLayout from "./pages/Chef/ChefLayout";
 import MenuItemManagement from "./pages/Chef/Food/MenuItemManagement";
 import DeletedMenuItems from "./pages/Chef/Food/DeletedMenuItems";
+import CategoryManagement from "./pages/Chef/Cateogry/CategoryManagement";
   
 const App = () => {
 
@@ -42,6 +43,7 @@ const App = () => {
             {/* Thêm các route con */}
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="products" element={<MenuItemManagement/>} />
+            <Route path="manage-categories" element={<CategoryManagement/>} />
             <Route path="deleted-menu-items" element={<DeletedMenuItems/>} />
           </Route>
         </Routes>
