@@ -179,6 +179,7 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
                             name="image"
                             onChange={handleChange}
                             accept="image/*"
+                            multiple
                         />
                         <small className="form-text text-muted">
                             {menuItem ? "Để trống nếu không muốn thay đổi ảnh" : "Chọn ảnh món ăn"}
