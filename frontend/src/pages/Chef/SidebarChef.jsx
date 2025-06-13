@@ -14,7 +14,7 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
     if (location.pathname.includes("dashboard")) return "dashboard";
     if (location.pathname.includes("manage-categories")) return "categories";
     if (location.pathname.includes("products")) return "products";
-    if (location.pathname.includes("trash")) return "trash";
+    if (location.pathname.includes("deleted-menu-items")) return "trash";
     return "dashboard"; // Mặc định
   };
 
@@ -86,7 +86,7 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
             </li>
             <li
               className={currentTab === "trash" ? "active" : ""}
-              onClick={() => navigate("/chef/trash")}
+              onClick={() => navigate("/chef/deleted-menu-items")}
             >
               <FaTrash className="sidebar-icon" />
               <span>Sản phẩm tạm xóa</span>

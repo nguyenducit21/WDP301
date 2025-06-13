@@ -21,7 +21,7 @@ const CategoryManagement = () => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const res = await axios.get("http://localhost:9999/api/categories");
+                const res = await axios.get("http://localhost:3000/api/categories");
                 setCategories(res.data);
             } catch {
                 toast.error("Không thể tải danh mục", { autoClose: 3000 });
@@ -58,7 +58,7 @@ const CategoryManagement = () => {
             if (data._id) {
                 // Chế độ chỉnh sửa
                 const res = await axios.put(
-                    `http://localhost:9999/api/categories/${data._id}`,
+                    `http://localhost:3000/api/categories/${data._id}`,
                     data
                 );
                 setCategories((prev) =>
@@ -67,7 +67,7 @@ const CategoryManagement = () => {
                 toast.success("Cập nhật danh mục thành công!", { autoClose: 3000 });
             } else {
                 // Chế độ thêm mới
-                const res = await axios.post("http://localhost:9999/api/categories", data);
+                const res = await axios.post("http://localhost:3000/api/categories", data);
                 setCategories((prev) => [...prev, res.data]);
                 toast.success("Thêm danh mục thành công!", { autoClose: 3000 });
             }
@@ -86,7 +86,7 @@ const CategoryManagement = () => {
     const handleDelete = async () => {
         setActionLoading(true);
         try {
-            await axios.delete(`http://localhost:9999/api/categories/${deleteModal.id}`);
+            await axios.delete(`http://localhost:3000/api/categories/${deleteModal.id}`);
             setCategories((prev) => prev.filter((cat) => cat._id !== deleteModal.id));
             setSelected((prev) => prev.filter((id) => id !== deleteModal.id));
             closeDelete();
