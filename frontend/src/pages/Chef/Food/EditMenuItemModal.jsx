@@ -1,6 +1,6 @@
 // src/pages/Chef/MenuItem/EditMenuItemModal.jsx
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axios from "../../../utils/axios.customize";
 
 const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
 
@@ -16,6 +16,7 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
     });
     const [error, setError] = useState("");
     const [imagePreview, setImagePreview] = useState(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     useEffect(() => {
         if (menuItem) {
@@ -122,6 +123,7 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
         }
 
         try {
+            setIsUploading(true);
             let imageUrl = menuItem?.image;
 
             // If there's a new image, upload it first
@@ -132,7 +134,11 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
                     headers: { "Content-Type": "multipart/form-data" },
                     withCredentials: true
                 });
-                imageUrl = uploadRes.data.data;
+                if (uploadRes.data?.success) {
+                    imageUrl = uploadRes.data.data;
+                } else {
+                    throw new Error(uploadRes.data?.message || "Lỗi khi tải lên ảnh");
+                }
             }
 
             // Prepare the menu item data
@@ -148,9 +154,15 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
                 data.append("image", imageUrl);
             }
 
-            onSave(data);
+            await onSave(data);
+            // Close modal and refresh page after successful save
+            onClose();
+            window.location.reload();
         } catch (error) {
-            setError(error.response?.data?.message || "Lỗi khi tải lên ảnh");
+            console.error("Upload error:", error);
+            setError(error.response?.data?.message || error.message || "Lỗi khi tải lên ảnh");
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -265,14 +277,20 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
                     </div>
                     {error && <div className="form-error">{error}</div>}
                     <div className="modal-actions">
-                        <button type="button" className="btn" onClick={onClose}>
+                        <button type="button" className="btn" onClick={onClose} disabled={isUploading}>
                             Hủy
                         </button>
-                        <button type="submit" className="btn btn-primary">
-                            {menuItem ? "Lưu" : "Thêm"}
+                        <button type="submit" className="btn btn-primary" disabled={isUploading}>
+                            {isUploading ? "Đang xử lý..." : (menuItem ? "Lưu" : "Thêm")}
                         </button>
                     </div>
                 </form>
+                {isUploading && (
+                    <div className="loading-overlay">
+                        <div className="loading-spinner"></div>
+                        <div>Đang xử lý...</div>
+                    </div>
+                )}
             </div>
         </div>
     );
