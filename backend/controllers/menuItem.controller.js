@@ -4,27 +4,13 @@ const fs = require('fs');
 
 const createMenuItem = async (req, res) => {
     try {
-        const { name, category_id, price, description, ingredients, is_available, is_featured } = req.body;
-
-        // Handle image upload
-        let imageUrl = "default.jpg";
-        if (req.file) {
-            const result = await cloudinary.uploader.upload(req.file.path, {
-                folder: "menu_items",
-                use_filename: true,
-                unique_filename: false,
-                overwrite: false,
-            });
-            imageUrl = result.secure_url;
-            // Clean up the temporary file
-            fs.unlinkSync(req.file.path);
-        }
+        const { name, category_id, price, description, ingredients, is_available, is_featured, image } = req.body;
 
         const menuItem = new MenuItem({
             name,
             category_id,
             price: parseFloat(price),
-            image: imageUrl,
+            image: image || "default.jpg",
             description,
             ingredients: Array.isArray(ingredients) ? ingredients : [ingredients || ""],
             is_available: is_available === 'true',
@@ -50,12 +36,9 @@ const createMenuItem = async (req, res) => {
 
 const getAllMenuItems = async (req, res) => {
     try {
-        const { deleted } = req.query;
-        const query = deleted === 'true' ? { is_deleted: true } : { is_deleted: false };
-
-        const menuItems = await MenuItem.find(query)
+        const menuItems = await MenuItem.find({ is_deleted: false })
             .populate("category_id", "name")
-            .sort({ updated_at: -1 });
+            .sort({ created_at: -1 });
         res.status(200).json({
             success: true,
             data: menuItems
@@ -93,7 +76,7 @@ const getMenuItemById = async (req, res) => {
 const updateMenuItem = async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, category_id, price, description, ingredients, is_available, is_featured } = req.body;
+        const { name, category_id, price, description, ingredients, is_available, is_featured, image } = req.body;
 
         const existingMenuItem = await MenuItem.findById(id);
         if (!existingMenuItem) {
@@ -114,17 +97,9 @@ const updateMenuItem = async (req, res) => {
             updated_at: new Date(),
         };
 
-        // Handle image upload if new image is provided
-        if (req.file) {
-            const result = await cloudinary.uploader.upload(req.file.path, {
-                folder: "menu_items",
-                use_filename: true,
-                unique_filename: false,
-                overwrite: false,
-            });
-            updateData.image = result.secure_url;
-            // Clean up the temporary file
-            fs.unlinkSync(req.file.path);
+        // If new image URL is provided, update it
+        if (image) {
+            updateData.image = image;
         }
 
         const updatedMenuItem = await MenuItem.findByIdAndUpdate(id, updateData, {
@@ -241,6 +216,23 @@ const restoreMenuItem = async (req, res) => {
     }
 };
 
+const getMenuItemDeleted = async (req, res) => {
+    try {
+        const menuItems = await MenuItem.find({ is_deleted: true })
+            .populate("category_id", "name")
+            .sort({ updated_at: -1 });
+        res.status(200).json({
+            success: true,
+            data: menuItems
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     createMenuItem,
     getAllMenuItems,
@@ -250,5 +242,6 @@ module.exports = {
     getFeaturedMenuItems,
     getMenuItemsByCategory,
     restoreMenuItem,
-    deleteMany
+    deleteMany,
+    getMenuItemDeleted
 };

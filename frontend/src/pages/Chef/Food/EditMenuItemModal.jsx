@@ -1,5 +1,6 @@
 // src/pages/Chef/MenuItem/EditMenuItemModal.jsx
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 
 const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
 
@@ -99,7 +100,7 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
         setForm((f) => ({ ...f, is_featured: !f.is_featured }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const filteredIngredients = form.ingredients.filter((i) => i.trim() !== "");
         if (
@@ -119,16 +120,38 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
             );
             return;
         }
-        const data = new FormData();
-        data.append("name", form.name);
-        data.append("category_id", form.category_id);
-        data.append("price", form.price);
-        if (form.image) data.append("image", form.image);
-        data.append("description", form.description);
-        filteredIngredients.forEach((ingredient, idx) => data.append(`ingredients[${idx}]`, ingredient));
-        data.append("is_available", form.is_available);
-        data.append("is_featured", form.is_featured);
-        onSave(data);
+
+        try {
+            let imageUrl = menuItem?.image;
+
+            // If there's a new image, upload it first
+            if (form.image) {
+                const uploadData = new FormData();
+                uploadData.append("image", form.image);
+                const uploadRes = await axios.post("/menu-items/upload", uploadData, {
+                    headers: { "Content-Type": "multipart/form-data" },
+                    withCredentials: true
+                });
+                imageUrl = uploadRes.data.data;
+            }
+
+            // Prepare the menu item data
+            const data = new FormData();
+            data.append("name", form.name);
+            data.append("category_id", form.category_id);
+            data.append("price", form.price);
+            data.append("description", form.description);
+            filteredIngredients.forEach((ingredient, idx) => data.append(`ingredients[${idx}]`, ingredient));
+            data.append("is_available", form.is_available);
+            data.append("is_featured", form.is_featured);
+            if (imageUrl) {
+                data.append("image", imageUrl);
+            }
+
+            onSave(data);
+        } catch (error) {
+            setError(error.response?.data?.message || "Lỗi khi tải lên ảnh");
+        }
     };
 
     if (!open) return null;

@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 const MenuItem = require("../models/menuItems.model");
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 const cloudinary = require("cloudinary").v2;
 const {
     getAllMenuItems,
@@ -14,7 +12,8 @@ const {
     getFeaturedMenuItems,
     getMenuItemsByCategory,
     restoreMenuItem,
-    deleteMany
+    deleteMany,
+    getMenuItemDeleted
 } = require('../controllers/menuItem.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware');
@@ -27,39 +26,39 @@ cloudinary.config({
     secure: true
 });
 
-// Configure multer storage
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, "uploads");
-    },
-    filename: function (req, file, cb) {
-        cb(null, `${Date.now()}_${file.originalname}`);
-    },
+// Configure multer for memory storage
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit
+    }
 });
 
-const upload = multer({ storage: storage });
-
 // Image upload route
-router.post('/upload', upload.array("images"), async (req, res) => {
+router.post('/upload', upload.single("image"), async (req, res) => {
     try {
-        const uploadedUrls = [];
-        for (let i = 0; i < req.files.length; i++) {
-            const options = {
-                use_filename: true,
-                unique_filename: false,
-                overwrite: false,
-                folder: "menu_items"
-            };
-
-            const result = await cloudinary.uploader.upload(req.files[i].path, options);
-            uploadedUrls.push(result.secure_url);
-            // Clean up the temporary file
-            fs.unlinkSync(req.files[i].path);
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: "No file uploaded"
+            });
         }
+
+        // Convert buffer to base64
+        const b64 = Buffer.from(req.file.buffer).toString('base64');
+        const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+        // Upload to Cloudinary
+        const result = await cloudinary.uploader.upload(dataURI, {
+            folder: "menu_items",
+            use_filename: true,
+            unique_filename: true,
+            overwrite: false,
+        });
 
         res.status(200).json({
             success: true,
-            data: uploadedUrls
+            data: result.secure_url
         });
     } catch (error) {
         console.error("Upload error:", error);
@@ -77,10 +76,7 @@ router.get('/category/:categoryId', getMenuItemsByCategory);
 
 // ROUTE CHEF
 router.post('/', authMiddleware, roleMiddleware(['chef']), upload.single('image'), createMenuItem);
-router.get('/deleted', authMiddleware, roleMiddleware(['chef']), (req, res, next) => {
-    req.query.deleted = 'true';
-    next();
-}, getAllMenuItems);
+router.get('/deleted', authMiddleware, roleMiddleware(['chef']), getMenuItemDeleted);
 router.delete('/:id', authMiddleware, roleMiddleware(['chef']), deleteMenuItem);
 router.put('/:id', authMiddleware, roleMiddleware(['chef']), upload.single('image'), updateMenuItem);
 router.get('/:id', authMiddleware, roleMiddleware(['chef']), getMenuItemById);
