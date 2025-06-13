@@ -142,7 +142,7 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
                         {menuItem?.image && !form.image && (
                             <div>
                                 <img
-                                    src={`http://localhost:5000/uploads/${menuItem.image}`}
+                                    src={`http://localhost:3000/uploads/${menuItem.image}`}
                                     alt="Current"
                                     style={{ width: "100px", height: "100px", marginBottom: "10px" }}
                                 />

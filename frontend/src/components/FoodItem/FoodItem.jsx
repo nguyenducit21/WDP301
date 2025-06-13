@@ -5,7 +5,7 @@ const FoodItem = ({ name, price, description, image }) => {
   return (
     <div className="food-item">
       <img
-        src={`http://localhost:5000/uploads/${image}`} 
+        src={`http://localhost:3000/uploads/${image}`} 
         alt={name}
         className="food-item-img"
       />

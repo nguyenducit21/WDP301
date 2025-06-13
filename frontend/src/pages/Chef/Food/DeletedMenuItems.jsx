@@ -62,8 +62,8 @@ const DeletedMenuItems = () => {
             setLoading(true);
             try {
                 const [menuRes, categoriesRes] = await Promise.all([
-                    axios.get("http://localhost:5000/api/menuitems/deleted", { withCredentials: true }),
-                    axios.get("http://localhost:5000/api/categories", { withCredentials: true }),
+                    axios.get("http://localhost:3000/api/menuitems/deleted", { withCredentials: true }),
+                    axios.get("http://localhost:3000/api/categories", { withCredentials: true }),
                 ]);
                 setMenuItems(menuRes.data);
                 setCategories(categoriesRes.data);
@@ -111,7 +111,7 @@ const DeletedMenuItems = () => {
         setActionLoading(true);
         try {
             await axios.put(
-                `http://localhost:5000/api/menuitems/${restoreModal.id}/restore`,
+                `http://localhost:3000/api/menuitems/${restoreModal.id}/restore`,
                 {},
                 { withCredentials: true }
             );
@@ -197,7 +197,7 @@ const DeletedMenuItems = () => {
                                     <td>
                                         {menuItem.image && (
                                             <img
-                                                src={`http://localhost:5000/uploads/${menuItem.image}`}
+                                                src={`http://localhost:3000/uploads/${menuItem.image}`}
                                                 alt={menuItem.name}
                                                 style={{ width: "110px", height: "95px" }}
                                             />

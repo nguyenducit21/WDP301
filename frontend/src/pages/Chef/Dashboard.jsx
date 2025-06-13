@@ -14,7 +14,7 @@ const Dashboard = () => {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await axios.get("http://localhost:5000/api/dashboard/chef", { withCredentials: true });
+        const res = await axios.get("http://localhost:3000/api/dashboard/chef", { withCredentials: true });
         setStats(res.data);
       } catch (error) {
         setStats(null);
@@ -103,7 +103,7 @@ const Dashboard = () => {
             {(stats.recentItems || []).map(item => (
               <tr key={item._id}>
                 <td>
-                  <img src={`http://localhost:5000/uploads/${item.image}`} alt={item.name} width={50} />
+                  <img src={`http://localhost:3000/uploads/${item.image}`} alt={item.name} width={50} />
                 </td>
                 <td>{item.name}</td>
                 <td>{item.category_id?.name}</td>
