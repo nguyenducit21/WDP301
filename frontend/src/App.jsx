@@ -13,14 +13,6 @@ import { useLocation } from "react-router-dom";
 import CategoryProductManagement from "./pages/Chef/Cateogry/CategoryManagement";
 import { ToastContainer } from "react-toastify"; // Thêm ToastContainer
 import "react-toastify/dist/ReactToastify.css"; // Thêm CSS của react-toastify
-<<<<<<< HEAD
-import Login from "../src/pages/Login/Login"
-import Register from "./pages/Resgister/Resgister"
-import MenuItemManagement from "./pages/Chef/Food/MenuItemManagement";
-import DeletedMenuItems from "./pages/Chef/Food/DeletedMenuItems";
-import Dashboard from "./pages/Chef/Dashboard";
-=======
->>>>>>> parent of 70abfd8 (Merge branch 'feature-menuitems' into feature-HomePage)
 
 const App = () => {
   const location = useLocation();
