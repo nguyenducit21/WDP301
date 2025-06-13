@@ -14,7 +14,7 @@ const Menu = () => {
             setLoading(true);
             try {
                 const res = await axios.get("/menu-items");
-                setFoodList(res.data);
+                setFoodList(res.data?.data);
             } catch (err) {
                 alert("Lỗi khi tải thực đơn!");
             }
@@ -27,9 +27,19 @@ const Menu = () => {
         const fetchCategories = async () => {
             try {
                 const res = await axios.get("/categories");
-                setCategories(res.data);
+                console.log("Categories response:", res.data);
+                if (Array.isArray(res.data)) {
+                    setCategories(res.data);
+                } else if (Array.isArray(res.data?.data)) {
+                    setCategories(res.data.data);
+                } else {
+                    console.error("Invalid categories data format:", res.data);
+                    setCategories([]);
+                }
             } catch (err) {
+                console.error("Error fetching categories:", err);
                 alert("Lỗi khi tải danh mục!");
+                setCategories([]);
             }
         };
         fetchCategories();
