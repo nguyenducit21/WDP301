@@ -76,15 +76,15 @@ router.get('/featured/items', getFeaturedMenuItems);
 router.get('/category/:categoryId', getMenuItemsByCategory);
 
 // ROUTE CHEF
-router.post('/', authMiddleware, roleMiddleware(['chef', 'admin', 'customer']), upload.single('image'), createMenuItem);
-router.get('/deleted', authMiddleware, roleMiddleware(['chef', 'admin', 'customer']), (req, res, next) => {
+router.post('/', authMiddleware, roleMiddleware(['chef']), upload.single('image'), createMenuItem);
+router.get('/deleted', authMiddleware, roleMiddleware(['chef']), (req, res, next) => {
     req.query.deleted = 'true';
     next();
 }, getAllMenuItems);
-router.delete('/:id', authMiddleware, roleMiddleware(['chef', 'admin','customer']), deleteMenuItem);
-router.put('/:id', authMiddleware, roleMiddleware(['chef', 'admin', 'customer']), upload.single('image'), updateMenuItem);
-router.get('/:id', authMiddleware, roleMiddleware(['chef', 'admin', 'customer']), getMenuItemById);
-router.post('/delete-many', authMiddleware, roleMiddleware(['chef', 'admin', 'customer']), deleteMany);
-router.put('/:id/restore', authMiddleware, roleMiddleware(['chef', 'admin', 'customer']), restoreMenuItem);
+router.delete('/:id', authMiddleware, roleMiddleware(['chef']), deleteMenuItem);
+router.put('/:id', authMiddleware, roleMiddleware(['chef']), upload.single('image'), updateMenuItem);
+router.get('/:id', authMiddleware, roleMiddleware(['chef']), getMenuItemById);
+router.post('/delete-many', authMiddleware, roleMiddleware(['chef']), deleteMany);
+router.put('/:id/restore', authMiddleware, roleMiddleware(['chef']), restoreMenuItem);
 
 module.exports = router;
