@@ -14,7 +14,7 @@ import CategoryProductManagement from "./pages/Chef/Cateogry/CategoryManagement"
 import { ToastContainer } from "react-toastify"; // Thêm ToastContainer
 import "react-toastify/dist/ReactToastify.css"; // Thêm CSS của react-toastify
 import Login from "../src/pages/Login/Login"
-import Register from "../src/pages/Register/Register"
+import Register from "../src/pages/register/Register"
 import MenuItemManagement from "./pages/Chef/Food/MenuItemManagement";
 import DeletedMenuItems from "./pages/Chef/Food/DeletedMenuItems";
 import Dashboard from "./pages/Chef/Dashboard";
