@@ -65,8 +65,15 @@ const DeletedMenuItems = () => {
                     axios.get("/menu-items/deleted", { withCredentials: true }),
                     axios.get("/categories", { withCredentials: true }),
                 ]);
-                setMenuItems(menuRes.data);
-                setCategories(categoriesRes.data);
+                setMenuItems(menuRes.data?.data);
+                if (Array.isArray(categoriesRes.data)) {
+                    setCategories(categoriesRes.data);
+                } else if (Array.isArray(categoriesRes.data?.data)) {
+                    setCategories(categoriesRes.data.data);
+                } else {
+                    console.error("Invalid categories data format:", categoriesRes.data);
+                    setCategories([]);
+                }
             } catch (error) {
                 toast.error("Không thể tải dữ liệu", { autoClose: 3000 });
             }

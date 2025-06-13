@@ -22,8 +22,16 @@ const CategoryManagement = () => {
             setLoading(true);
             try {
                 const res = await axios.get("/categories");
-                setCategories(res.data?.data || []);
-            } catch {
+                if (Array.isArray(res.data)) {
+                    setCategories(res.data);
+                } else if (Array.isArray(res.data?.data)) {
+                    setCategories(res.data.data);
+                } else {
+                    console.error("Invalid categories data format:", res.data);
+                    setCategories([]);
+                }
+            } catch (err) {
+                console.error("Error fetching categories:", err);
                 toast.error("Không thể tải danh mục", { autoClose: 3000 });
             }
             setLoading(false);

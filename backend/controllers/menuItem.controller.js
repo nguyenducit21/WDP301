@@ -5,7 +5,7 @@ const fs = require('fs');
 const createMenuItem = async (req, res) => {
     try {
         const { name, category_id, price, description, ingredients, is_available, is_featured } = req.body;
-        
+
         // Handle image upload
         let imageUrl = "default.jpg";
         if (req.file) {
@@ -41,18 +41,21 @@ const createMenuItem = async (req, res) => {
         });
     } catch (error) {
         console.error("Create error:", error);
-        res.status(400).json({ 
+        res.status(400).json({
             success: false,
-            message: error.message 
+            message: error.message
         });
     }
 };
 
 const getAllMenuItems = async (req, res) => {
     try {
-        const menuItems = await MenuItem.find({ is_deleted: false })
+        const { deleted } = req.query;
+        const query = deleted === 'true' ? { is_deleted: true } : { is_deleted: false };
+
+        const menuItems = await MenuItem.find(query)
             .populate("category_id", "name")
-            .sort({ created_at: -1 });
+            .sort({ updated_at: -1 });
         res.status(200).json({
             success: true,
             data: menuItems
@@ -91,12 +94,12 @@ const updateMenuItem = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, category_id, price, description, ingredients, is_available, is_featured } = req.body;
-        
+
         const existingMenuItem = await MenuItem.findById(id);
         if (!existingMenuItem) {
-            return res.status(404).json({ 
+            return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy món ăn để cập nhật' 
+                message: 'Không tìm thấy món ăn để cập nhật'
             });
         }
 
@@ -135,9 +138,9 @@ const updateMenuItem = async (req, res) => {
         });
     } catch (error) {
         console.error("Update error:", error);
-        res.status(400).json({ 
+        res.status(400).json({
             success: false,
-            message: error.message 
+            message: error.message
         });
     }
 };

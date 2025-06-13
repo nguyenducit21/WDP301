@@ -27,7 +27,6 @@ const Menu = () => {
         const fetchCategories = async () => {
             try {
                 const res = await axios.get("/categories");
-                console.log("Categories response:", res.data);
                 if (Array.isArray(res.data)) {
                     setCategories(res.data);
                 } else if (Array.isArray(res.data?.data)) {

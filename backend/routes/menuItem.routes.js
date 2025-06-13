@@ -15,7 +15,7 @@ const {
     getMenuItemsByCategory,
     restoreMenuItem,
     deleteMany
-} = require('../controllers/menuitem.controller');
+} = require('../controllers/menuItem.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware');
 
@@ -72,16 +72,18 @@ router.post('/upload', upload.array("images"), async (req, res) => {
 
 // ROUTE PUBLIC (cho KH xem)
 router.get('/', getAllMenuItems);
-router.get('/:id', getMenuItemById);
-router.get('/category/:categoryId', getMenuItemsByCategory);
 router.get('/featured/items', getFeaturedMenuItems);
+router.get('/category/:categoryId', getMenuItemsByCategory);
 
-// ROUTE CẦN ĐĂNG NHẬP & PHÂN QUYỀN (dành cho chef/quản trị viên)
+// ROUTE CHEF
 router.post('/', authMiddleware, roleMiddleware(['chef']), upload.single('image'), createMenuItem);
-router.get('/deleted', authMiddleware, roleMiddleware(['chef']), getAllMenuItems);
-router.get('/:id', authMiddleware, roleMiddleware(['chef']), getMenuItemById);
-router.put('/:id', authMiddleware, roleMiddleware(['chef']), upload.single('image'), updateMenuItem);
+router.get('/deleted', authMiddleware, roleMiddleware(['chef']), (req, res, next) => {
+    req.query.deleted = 'true';
+    next();
+}, getAllMenuItems);
 router.delete('/:id', authMiddleware, roleMiddleware(['chef']), deleteMenuItem);
+router.put('/:id', authMiddleware, roleMiddleware(['chef']), upload.single('image'), updateMenuItem);
+router.get('/:id', authMiddleware, roleMiddleware(['chef']), getMenuItemById);
 router.post('/delete-many', authMiddleware, roleMiddleware(['chef']), deleteMany);
 router.put('/:id/restore', authMiddleware, roleMiddleware(['chef']), restoreMenuItem);
 
