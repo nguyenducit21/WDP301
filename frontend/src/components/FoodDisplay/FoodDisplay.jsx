@@ -15,9 +15,6 @@ const FoodDisplay = ({ category }) => {
       try {
         const res = await axios.get("/api/menuitems");
         let data = res.data;
-        // Lọc các món ăn có is_featured là true
-        data = data.filter((item) => item.is_featured === true);
-        // Lọc theo category nếu có
         if (category && category !== "All") {
           data = data.filter(
             (item) =>
@@ -25,7 +22,6 @@ const FoodDisplay = ({ category }) => {
               (item.category && item.category === category)
           );
         }
-        // Sắp xếp theo created_at (mới nhất trước) và giới hạn 10 món
         data = data
           .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
           .slice(0, 10);

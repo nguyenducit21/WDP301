@@ -7,8 +7,7 @@ const menuItemSchema = new mongoose.Schema({
         trim: true
     },
     category_id: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category',
+        type: String, // Nếu là ObjectId thì để: type: mongoose.Schema.Types.ObjectId, ref: 'Category'
         required: [true, 'Danh mục không được bỏ trống']
     },
     price: {
@@ -36,10 +35,6 @@ const menuItemSchema = new mongoose.Schema({
     is_available: {
         type: Boolean,
         default: true
-    },
-    is_deleted: { // Thêm trường is_deleted
-        type: Boolean,
-        default: false
     }
 }, {
     timestamps: {

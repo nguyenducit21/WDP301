@@ -13,11 +13,14 @@ import { useLocation } from "react-router-dom";
 import CategoryProductManagement from "./pages/Chef/Cateogry/CategoryManagement";
 import { ToastContainer } from "react-toastify"; // Thêm ToastContainer
 import "react-toastify/dist/ReactToastify.css"; // Thêm CSS của react-toastify
+<<<<<<< HEAD
 import Login from "../src/pages/Login/Login"
 import Register from "./pages/Resgister/Resgister"
 import MenuItemManagement from "./pages/Chef/Food/MenuItemManagement";
 import DeletedMenuItems from "./pages/Chef/Food/DeletedMenuItems";
 import Dashboard from "./pages/Chef/Dashboard";
+=======
+>>>>>>> parent of 70abfd8 (Merge branch 'feature-menuitems' into feature-HomePage)
 
 const App = () => {
   const location = useLocation();
@@ -33,16 +36,14 @@ const App = () => {
           <Route path="/menu" element={<Menu />} />
           <Route path="/service" element={<ServicePage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
           <Route path="/chef" element={<ChefLayout />}>
             {/* Thêm các route con */}
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="dashboard" element={<h2>Đây là màn hình: <span style={{ color: "#f4a70b" }}>Dashboard</span></h2>} />
             <Route path="manage-categories" element={<CategoryProductManagement />} />
-            <Route path="products" element={<MenuItemManagement/>} />
-            <Route path="deleted-menu-items" element={<DeletedMenuItems/>} />
+            <Route path="products" element={<h2>Đây là màn hình: <span style={{ color: "#f4a70b" }}>Sản phẩm</span></h2>} />
+            <Route path="trash" element={<h2>Đây là màn hình: <span style={{ color: "#f4a70b" }}>Sản phẩm tạm xóa</span></h2>} />
           </Route>
-          </Routes>
+        </Routes>
         {!isChefPage && <ScrollToTopButton />}
         {!isChefPage && <Footer />}
       </div>

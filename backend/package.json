@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "main": "server.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon ./server.js",
@@ -17,10 +17,14 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+<<<<<<< HEAD
     "http-errors": "^2.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.0",
     "multer": "^2.0.1"
+=======
+    "mongoose": "^8.15.0"
+>>>>>>> parent of 70abfd8 (Merge branch 'feature-menuitems' into feature-HomePage)
   },
   "devDependencies": {
     "nodemon": "^3.1.4"
