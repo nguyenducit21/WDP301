@@ -7,7 +7,6 @@ import ConfirmDelete from "./ConfirmDelete";
 import { AuthContext } from "../../../context/AuthContext";
 import axios from '../../../utils/axios.customize';
 
-// ===== HÀM BỎ DẤU TIẾNG VIỆT =====
 function removeVietnameseTones(str) {
     return str
         .normalize("NFD")
@@ -57,7 +56,7 @@ const MenuItemManagement = () => {
     useEffect(() => {
         if (user !== null && user !== undefined) {
             const userRole = safeGet(user, 'user.role') || safeGet(user, 'role');
-            const allowedRoles = ['chef'];
+            const allowedRoles = ['kitchen_staff'];
             if (!userRole || !allowedRoles.includes(userRole)) {
                 console.log('Unauthorized access, redirecting to login');
                 navigate('/login');

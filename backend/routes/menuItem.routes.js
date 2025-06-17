@@ -75,12 +75,12 @@ router.get('/featured/items', getFeaturedMenuItems);
 router.get('/category/:categoryId', getMenuItemsByCategory);
 
 // ROUTE CHEF
-router.post('/', authMiddleware, roleMiddleware(['chef']), upload.single('image'), createMenuItem);
-router.get('/deleted', authMiddleware, roleMiddleware(['chef']), getMenuItemDeleted);
-router.delete('/:id', authMiddleware, roleMiddleware(['chef']), deleteMenuItem);
-router.put('/:id', authMiddleware, roleMiddleware(['chef']), upload.single('image'), updateMenuItem);
-router.get('/:id', authMiddleware, roleMiddleware(['chef']), getMenuItemById);
-router.post('/delete-many', authMiddleware, roleMiddleware(['chef']), deleteMany);
-router.put('/:id/restore', authMiddleware, roleMiddleware(['chef']), restoreMenuItem);
+router.post('/', authMiddleware, roleMiddleware(['kitchen_staff', 'admin']), upload.single('image'), createMenuItem);
+router.get('/deleted', authMiddleware, roleMiddleware(['kitchen_staff', 'admin']), getMenuItemDeleted);
+router.delete('/:id', authMiddleware, roleMiddleware(['kitchen_staff', 'admin']), deleteMenuItem);
+router.put('/:id', authMiddleware, roleMiddleware(['kitchen_staff', 'admin']), upload.single('image'), updateMenuItem);
+router.get('/:id', authMiddleware, roleMiddleware(['kitchen_staff', 'admin']), getMenuItemById);
+router.post('/delete-many', authMiddleware, roleMiddleware(['kitchen_staff', 'admin']), deleteMany);
+router.put('/:id/restore', authMiddleware, roleMiddleware(['kitchen_staff', 'admin']), restoreMenuItem);
 
 module.exports = router;

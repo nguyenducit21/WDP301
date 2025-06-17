@@ -5,6 +5,6 @@ const dashboardController = require('../controllers/dashboard.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware');
 
-router.get('/chef', authMiddleware, roleMiddleware(['chef']), dashboardController.chefDashboard);
+router.get('/chef', authMiddleware, roleMiddleware(['kitchen_staff', 'admin']), dashboardController.chefDashboard);
 
 module.exports = router;
