@@ -1,4 +1,4 @@
-// controllers/recipe.controller.js
+// controllers/menuItemRecipe.controller.js
 const MenuItemRecipe = require('../models/menuItemRecipe.model');
 const Inventory = require('../models/inventory.model');
 const MenuItem = require('../models/menuItems.model');

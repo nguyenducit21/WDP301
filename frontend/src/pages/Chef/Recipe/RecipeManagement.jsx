@@ -65,21 +65,41 @@ const RecipeManagement = () => {
         }
     };
 
-    const checkAvailability = async (menuItemId) => {
-        try {
-            const res = await axios.get(`/recipes/menu-items/${menuItemId}/check`, { withCredentials: true });
-            if (res.data.success) {
-                const { can_prepare, availability } = res.data;
-                const message = can_prepare 
-                    ? 'Có thể chế biến món này!' 
-                    : `Không đủ nguyên liệu: ${availability.filter(a => !a.sufficient).map(a => a.ingredient_name).join(', ')}`;
-                
-                toast.info(message);
+    // RecipeManagement.jsx - Sửa function checkAvailability
+const checkAvailability = async (menuItemId) => {
+    try {
+        console.log('Checking availability for:', menuItemId); // Debug
+        
+        const res = await axios.get(`/recipes/menu-items/${menuItemId}/check`, { withCredentials: true });
+        console.log('Availability response:', res.data); // Debug
+        
+        if (res.data.success) {
+            const { can_prepare, availability } = res.data;
+            
+            if (availability.length === 0) {
+                toast.warning('Món này chưa có công thức!');
+                return;
             }
-        } catch (error) {
-            toast.error('Lỗi khi kiểm tra tình trạng');
+            
+            const message = can_prepare 
+                ? '✅ Có thể chế biến món này!' 
+                : `❌ Không đủ nguyên liệu: ${availability.filter(a => !a.sufficient).map(a => a.ingredient_name).join(', ')}`;
+            
+            // Hiển thị chi tiết hơn
+            const detailMessage = availability.map(item => 
+                `${item.ingredient_name}: Cần ${item.needed_quantity} ${item.unit}, Có ${item.available_quantity} ${item.unit} ${item.sufficient ? '✅' : '❌'}`
+            ).join('\n');
+            
+            toast.info(message + '\n\nChi tiết:\n' + detailMessage, {
+                autoClose: 8000
+            });
         }
-    };
+    } catch (error) {
+        console.error('Error checking availability:', error);
+        toast.error('Lỗi khi kiểm tra tình trạng: ' + (error.response?.data?.message || error.message));
+    }
+};
+
 
     const filteredMenuItems = menuItems.filter(item =>
         item.name.toLowerCase().includes(searchTerm.toLowerCase())

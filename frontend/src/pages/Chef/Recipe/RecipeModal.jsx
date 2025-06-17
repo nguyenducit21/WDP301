@@ -18,29 +18,38 @@ const RecipeModal = ({ isOpen, onClose, onSave, menuItem, inventories }) => {
         calculateTotalCost();
     }, [recipe]);
 
-    const fetchExistingRecipe = async () => {
-        setLoading(true);
-        try {
-            const res = await axios.get(`/recipes/menu-items/${menuItem._id}`, { withCredentials: true });
-            if (res.data.success && res.data.data.length > 0) {
-                const existingRecipe = res.data.data.map(item => ({
-                    inventory_id: item.inventory_id._id,
-                    inventory_name: item.inventory_id.name,
-                    quantity_needed: item.quantity_needed,
-                    unit: item.unit,
-                    cost_per_serving: item.cost_per_serving,
-                    is_main_ingredient: item.is_main_ingredient
-                }));
-                setRecipe(existingRecipe);
-            } else {
-                setRecipe([]);
-            }
-        } catch (error) {
-            console.error('Error fetching recipe:', error);
+    // Trong fetchExistingRecipe function
+const fetchExistingRecipe = async () => {
+    setLoading(true);
+    try {
+        console.log('Fetching recipe for:', menuItem._id); // Debug
+        
+        // Sửa endpoint này
+        const res = await axios.get(`/recipes/menu-items/${menuItem._id}`, { withCredentials: true });
+        console.log('Recipe response:', res.data); // Debug
+        
+        if (res.data.success && res.data.data.length > 0) {
+            const existingRecipe = res.data.data.map(item => ({
+                inventory_id: item.inventory_id._id,
+                inventory_name: item.inventory_id.name,
+                quantity_needed: item.quantity_needed,
+                unit: item.unit,
+                cost_per_serving: item.cost_per_serving,
+                is_main_ingredient: item.is_main_ingredient
+            }));
+            setRecipe(existingRecipe);
+        } else {
+            console.log('No existing recipe found');
             setRecipe([]);
         }
-        setLoading(false);
-    };
+    } catch (error) {
+        console.error('Error fetching recipe:', error);
+        console.error('Error details:', error.response?.data); // Debug chi tiết
+        setRecipe([]);
+    }
+    setLoading(false);
+};
+
 
     const calculateTotalCost = () => {
         const total = recipe.reduce((sum, ingredient) => {

@@ -17,7 +17,7 @@ const InventorySchema = new Schema({
     unit: {
         type: String,
         required: true,
-        enum: ['kg', 'g', 'lít', 'ml', 'cái', 'gói', 'lon', 'hộp', 'thùng']
+        enum: ['kg', 'lít', 'cái', 'gói']
     },
     current_stock: { 
         type: Number, 
