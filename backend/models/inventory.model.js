@@ -1,13 +1,57 @@
+// models/inventory.model.js
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const InventoryLogSchema = new Schema({
-    inventory_id: { type: Schema.Types.ObjectId, ref: 'Inventory', required: true },
-    type: { type: String, enum: ['import', 'export', 'adjust'], required: true },
-    quantity: { type: Number, required: true },
-    staff_id: { type: Schema.Types.ObjectId, ref: 'User' },
-    note: { type: String },
-    created_at: { type: Date, default: Date.now }
+const InventorySchema = new Schema({
+    name: { 
+        type: String, 
+        required: true, 
+        unique: true, 
+        trim: true 
+    },
+    category: {
+        type: String,
+        required: true,
+        enum: ['thịt', 'cá', 'rau_củ', 'gia_vị', 'đồ_khô', 'đồ_uống', 'khác']
+    },
+    unit: {
+        type: String,
+        required: true,
+        enum: ['kg', 'g', 'lít', 'ml', 'cái', 'gói', 'lon', 'hộp', 'thùng']
+    },
+    current_stock: { 
+        type: Number, 
+        required: true, 
+        min: 0, 
+        default: 0 
+    },
+    min_stock_level: { 
+        type: Number, 
+        required: true, 
+        min: 0, 
+        default: 10 
+    },
+    cost_per_unit: { 
+        type: Number, 
+        required: true, 
+        min: 0 
+    },
+    supplier: { 
+        type: String, 
+        required: true 
+    },
+    is_active: { 
+        type: Boolean, 
+        default: true 
+    },
+    created_at: { 
+        type: Date, 
+        default: Date.now 
+    },
+    updated_at: { 
+        type: Date, 
+        default: Date.now 
+    }
 });
 
-module.exports = mongoose.model('InventoryLog', InventoryLogSchema);
+module.exports = mongoose.model('Inventory', InventorySchema);
