@@ -13,6 +13,7 @@ function removeVietnameseTones(str) {
         .replace(/[\u0300-\u036f]/g, "")
         .replace(/đ/g, "d").replace(/Đ/g, "D");
 }
+
 function fuzzyMatch(text, pattern) {
     text = removeVietnameseTones(text).toLowerCase();
     pattern = removeVietnameseTones(pattern).toLowerCase();
@@ -47,6 +48,19 @@ const DeletedMenuItems = () => {
         }
     };
 
+    // Hàm xử lý hiển thị ảnh từ cloud hoặc local
+    const getImageUrl = (imagePath) => {
+        if (!imagePath) return '/default-image.png'; // Ảnh mặc định
+        
+        // Nếu là URL cloud (bắt đầu bằng http/https)
+        if (imagePath.startsWith('http')) {
+            return imagePath;
+        }
+        
+        // Nếu là đường dẫn local
+        return `/uploads/${imagePath}`;
+    };
+
     useEffect(() => {
         if (user !== null && user !== undefined) {
             const userRole = safeGet(user, 'user.role') || safeGet(user, 'role');
@@ -65,7 +79,10 @@ const DeletedMenuItems = () => {
                     axios.get("/menu-items/deleted", { withCredentials: true }),
                     axios.get("/categories", { withCredentials: true }),
                 ]);
-                setMenuItems(menuRes.data?.data);
+                
+                console.log('Menu items data:', menuRes.data?.data); // Debug log
+                setMenuItems(menuRes.data?.data || []);
+                
                 if (Array.isArray(categoriesRes.data)) {
                     setCategories(categoriesRes.data);
                 } else if (Array.isArray(categoriesRes.data?.data)) {
@@ -75,6 +92,7 @@ const DeletedMenuItems = () => {
                     setCategories([]);
                 }
             } catch (error) {
+                console.error('Fetch error:', error);
                 toast.error("Không thể tải dữ liệu", { autoClose: 3000 });
             }
             setLoading(false);
@@ -93,7 +111,6 @@ const DeletedMenuItems = () => {
                 item.category_id?._id === selectedCategory
             );
         }
-        // Món mới xóa gần nhất lên đầu
         return [...filtered].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
     }, [menuItems, searchText, selectedCategory]);
 
@@ -108,6 +125,7 @@ const DeletedMenuItems = () => {
         setSelected((prev) =>
             prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
         );
+    
     const handleSelectAll = (e) =>
         setSelected(e.target.checked ? currentItems.map((m) => m._id) : []);
 
@@ -127,6 +145,7 @@ const DeletedMenuItems = () => {
             closeRestore();
             toast.success("Khôi phục món ăn thành công!", { autoClose: 3000 });
         } catch (error) {
+            console.error('Restore error:', error);
             toast.error("Lỗi khi khôi phục.", { autoClose: 3000 });
         }
         setActionLoading(false);
@@ -164,6 +183,7 @@ const DeletedMenuItems = () => {
                     </div>
                 </div>
             </div>
+
             {loading ? (
                 <div className="loading">Đang tải...</div>
             ) : (
@@ -202,20 +222,29 @@ const DeletedMenuItems = () => {
                                     </td>
                                     <td>{startIndex + idx + 1}</td>
                                     <td>
-                                        {menuItem.image && (
-                                            <img
-                                                src={`/uploads/${menuItem.image}`}
-                                                alt={menuItem.name}
-                                                style={{ width: "110px", height: "95px" }}
-                                            />
-                                        )}
+                                        <img
+                                            src={getImageUrl(menuItem.image)}
+                                            alt={menuItem.name}
+                                            style={{ 
+                                                width: "110px", 
+                                                height: "95px",
+                                                objectFit: "cover",
+                                                borderRadius: "4px"
+                                            }}
+                                            onError={(e) => {
+                                                e.target.src = '/default-image.png';
+                                            }}
+                                            onLoad={() => {
+                                                console.log('Image loaded:', getImageUrl(menuItem.image));
+                                            }}
+                                        />
                                     </td>
                                     <td>{menuItem.name}</td>
                                     <td>{menuItem.category_id?.name || "-"}</td>
                                     <td>
                                         <span className="status-inactive">Ngừng kinh doanh</span>
                                     </td>
-                                    <td>{menuItem.price.toLocaleString()} VND</td>
+                                    <td>{menuItem.price?.toLocaleString() || 0} VND</td>
                                     <td>
                                         <button
                                             className="restore-btn"
@@ -229,6 +258,7 @@ const DeletedMenuItems = () => {
                             ))}
                         </tbody>
                     </table>
+
                     <div className="pagination">
                         <label>Số lượng mục</label>
                         <select
@@ -268,12 +298,14 @@ const DeletedMenuItems = () => {
                     </div>
                 </>
             )}
+
             <ConfirmDelete
                 open={restoreModal.open}
                 onClose={closeRestore}
                 onConfirm={handleRestore}
                 message="Bạn có chắc muốn khôi phục món ăn này không?"
             />
+            
             {actionLoading && <div className="loading-overlay">Đang xử lý...</div>}
         </div>
     );
