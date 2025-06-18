@@ -19,6 +19,8 @@ import DeletedMenuItems from "./pages/Chef/Food/DeletedMenuItems";
 import CategoryManagement from "./pages/Chef/Cateogry/CategoryManagement";
 import InventoryManagement from "./pages/Chef/Inventory/InventoryManagement";
 import RecipeManagement from "./pages/Chef/Recipe/RecipeManagement";
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from "react-toastify";
   
 const App = () => {
   const location = useLocation();
@@ -50,6 +52,17 @@ const App = () => {
         </Routes>
         {!isChefPage && <ScrollToTopButton />}
         {!isChefPage && <Footer />}
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
       </div>
     </>
   );
