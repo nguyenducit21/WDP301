@@ -199,10 +199,6 @@
     border-color: #52c41a;
 }
 
-.table-card.reserved {
-    border-color: #faad14;
-}
-
 .table-card.occupied {
     border-color: #fa8c16;
     background: #fff7e6;
@@ -215,11 +211,6 @@
 .table-status.available {
     background-color: #f6ffed;
     color: #52c41a;
-}
-
-.table-status.reserved {
-    background-color: #fffbe6;
-    color: #faad14;
 }
 
 .table-status.occupied {
@@ -292,11 +283,6 @@
 .status-badge.available {
     background-color: #f6ffed;
     color: #52c41a;
-}
-
-.status-badge.reserved {
-    background-color: #fffbe6;
-    color: #faad14;
 }
 
 .status-badge.occupied {
@@ -1803,9 +1789,9 @@
     background: #f6ffed;
 }
 
-.table-card.reserved {
-    border-color: #faad14;
-    background: #fffbe6;
+.table-card.occupied {
+    border-color: #fa8c16;
+    background: #fff7e6;
 }
 
 .table-card.selected {
@@ -1933,11 +1919,6 @@
 
 .status-badge.available {
     background: #52c41a;
-    color: white;
-}
-
-.status-badge.reserved {
-    background: #faad14;
     color: white;
 }
 
@@ -2211,4 +2192,14 @@
     font-weight: 500;
     border: 1px solid #91d5ff;
     display: inline-block;
+}
+
+/* Action button for Add Menu in reservations list */
+.action-button.add-menu {
+    background-color: #fa8c16;
+    color: white;
+}
+
+.action-button.add-menu:hover:not(:disabled) {
+    background-color: #d46b08;
 }

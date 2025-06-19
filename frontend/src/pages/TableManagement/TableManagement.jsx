@@ -65,7 +65,6 @@ const TableManagement = () => {
     const getTableStatusLabel = (status) => {
         const statusMap = {
             'available': 'Bàn trống',
-            'reserved': 'Đã đặt',
             'occupied': 'Đang phục vụ',
             'cleaning': 'Đang dọn',
             'maintenance': 'Bảo trì'
@@ -253,21 +252,34 @@ const TableManagement = () => {
 
             // Update table status based on reservations for selected date
             const tablesWithUpdatedStatus = filteredTables.map(table => {
-                const hasReservation = reservations.some(res =>
-                    (safeGet(res, 'table_id._id') || res.table_id) === table._id &&
-                    ['confirmed', 'pending', 'seated'].includes(res.status)
-                );
+                // Chỉ kiểm tra đơn hàng và đặt bàn cho ngày được chọn
+                const reservationsForSelectedDate = reservations.filter(res => {
+                    const resDate = new Date(res.date).toISOString().split('T')[0];
+                    return resDate === selectedDate;
+                });
 
+                const reservationIds = reservationsForSelectedDate
+                    .filter(res => (safeGet(res, 'table_id._id') || res.table_id) === table._id)
+                    .map(res => res._id);
+
+                // Chỉ lấy đơn hàng liên quan đến đặt bàn của ngày được chọn
                 const hasActiveOrder = orders.some(order =>
                     (safeGet(order, 'table_id._id') || order.table_id) === table._id &&
-                    ['pending', 'preparing', 'served'].includes(order.status)
+                    ['pending', 'preparing', 'served'].includes(order.status) &&
+                    (reservationIds.includes(order.reservation_id) ||
+                        reservationIds.includes(safeGet(order, 'reservation_id._id')))
                 );
 
-                let status = 'available';
-                if (hasActiveOrder) {
+                const hasConfirmedOrSeatedReservation = reservationsForSelectedDate.some(res =>
+                    (safeGet(res, 'table_id._id') || res.table_id) === table._id &&
+                    ['confirmed', 'seated'].includes(res.status)
+                );
+
+                let status = table.status;
+                if (hasConfirmedOrSeatedReservation || hasActiveOrder) {
                     status = 'occupied';
-                } else if (hasReservation) {
-                    status = 'reserved';
+                } else if (table.status !== 'cleaning' && table.status !== 'maintenance') {
+                    status = 'available';
                 }
 
                 return {
@@ -288,15 +300,16 @@ const TableManagement = () => {
                 setCurrentPage(totalPages);
             }
         }
-    }, [selectedArea, allTables, currentPage, reservations, orders]);
+    }, [selectedArea, allTables, currentPage, reservations, orders, selectedDate]);
 
     // Helper functions
     const hasActiveReservations = useCallback((tableId) => {
         return reservations.some(res =>
             (safeGet(res, 'table_id._id') || res.table_id) === tableId &&
-            ['confirmed', 'pending', 'seated'].includes(res.status)
+            ['confirmed', 'pending', 'seated'].includes(res.status) &&
+            new Date(res.date).toISOString().split('T')[0] === selectedDate
         );
-    }, [reservations]);
+    }, [reservations, selectedDate]);
 
     const getTableOrders = useCallback((tableId) => {
         if (!tableId || !orders.length) return [];
@@ -305,22 +318,32 @@ const TableManagement = () => {
         ).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     }, [orders]);
 
-    const hasActiveOrder = useCallback((tableId) => {
-        if (!tableId) return false;
-        const tableOrders = getTableOrders(tableId);
-        return tableOrders.some(order =>
-            ['pending', 'preparing', 'served'].includes(order.status)
-        );
-    }, [getTableOrders]);
-
     const getTableReservations = (tableId) => {
         if (!tableId || !Array.isArray(reservations)) return [];
+
         return reservations.filter(res =>
             res &&
             (safeGet(res, 'table_id._id') || res.table_id) === tableId &&
-            ['confirmed', 'pending', 'seated'].includes(res.status)
+            ['confirmed', 'pending', 'seated'].includes(res.status) &&
+            new Date(res.date).toISOString().split('T')[0] === selectedDate
         );
     };
+
+    const hasActiveOrder = useCallback((tableId) => {
+        if (!tableId) return false;
+
+        // Lấy các đặt bàn của ngày được chọn cho bàn này
+        const tableReservations = getTableReservations(tableId);
+        const reservationIds = tableReservations.map(res => res._id);
+
+        // Lọc các đơn hàng liên quan đến đặt bàn của ngày được chọn
+        const tableOrders = getTableOrders(tableId);
+        return tableOrders.some(order =>
+            ['pending', 'preparing', 'served'].includes(order.status) &&
+            (reservationIds.includes(order.reservation_id) ||
+                reservationIds.includes(safeGet(order, 'reservation_id._id')))
+        );
+    }, [getTableOrders, selectedDate, reservations]);
 
     const getAreaName = (areaId) => {
         if (!areaId || !Array.isArray(areas)) return 'N/A';
@@ -374,7 +397,7 @@ const TableManagement = () => {
         if (!table || !table._id) return;
         setSelectedTable(table);
 
-        if (['reserved', 'occupied'].includes(table.status)) {
+        if (table.status === 'occupied') {
             await loadTableDetails(table._id);
         }
     };
@@ -402,6 +425,15 @@ const TableManagement = () => {
                     loadAllTables(),
                     loadOrders()
                 ]);
+
+                // Find the confirmed reservation to update its table status
+                const confirmedReservation = reservations.find(res => res._id === reservationId);
+                if (confirmedReservation) {
+                    const tableId = safeGet(confirmedReservation, 'table_id._id') || confirmedReservation.table_id;
+                    // Update table status to occupied directly
+                    await axios.put(`/tables/${tableId}/status`, { status: 'occupied' });
+                    await loadAllTables();
+                }
             } else {
                 setError(response?.data?.message || 'Lỗi khi xác nhận đặt bàn');
             }
@@ -424,6 +456,15 @@ const TableManagement = () => {
                     loadAllTables(),
                     loadOrders()
                 ]);
+
+                // Find the seated reservation to update its table status
+                const seatedReservation = reservations.find(res => res._id === reservationId);
+                if (seatedReservation) {
+                    const tableId = safeGet(seatedReservation, 'table_id._id') || seatedReservation.table_id;
+                    // Ensure table status is occupied
+                    await axios.put(`/tables/${tableId}/status`, { status: 'occupied' });
+                    await loadAllTables();
+                }
             } else {
                 setError(response?.data?.message || 'Lỗi khi cập nhật trạng thái');
             }
@@ -527,7 +568,7 @@ const TableManagement = () => {
             // Lấy tất cả bàn trống từ tất cả khu vực, không chỉ khu vực hiện tại
             const availableTables = allTables.filter(table =>
                 table &&
-                table.status === 'available' &&
+                (table.status === 'available' || table.status === 'cleaning') &&
                 table._id !== (safeGet(item, 'table_id._id') || item.table_id)
             );
 
@@ -897,6 +938,12 @@ const TableManagement = () => {
                     });
 
                     if (response?.data?.success) {
+                        // Update old table status to available
+                        await axios.put(`/tables/${formData.table_id}/status`, { status: 'available' });
+
+                        // Update new table status to occupied
+                        await axios.put(`/tables/${formData.new_table_id}/status`, { status: 'occupied' });
+
                         alert('Chuyển bàn thành công');
                     } else {
                         setError(response?.data?.message || 'Lỗi khi chuyển bàn');
@@ -1311,7 +1358,7 @@ const TableManagement = () => {
                                                 Đặt bàn
                                             </button>
                                         )}
-                                        {(table.status === 'reserved' || table.status === 'occupied') && (
+                                        {(table.status === 'occupied') && (
                                             <button
                                                 className="btn-add-menu"
                                                 onClick={(e) => {
@@ -1385,7 +1432,7 @@ const TableManagement = () => {
                                     )}
                                 </div>
 
-                                {(selectedTable.status === 'reserved' || selectedTable.status === 'occupied') && (
+                                {(selectedTable.status === 'occupied') && (
                                     <div className="table-reservations">
                                         <h4>Thông tin đặt bàn (Ngày {new Date(selectedDate).toLocaleDateString()})</h4>
                                         {getTableReservations(selectedTable._id).map(res => (
@@ -1827,6 +1874,25 @@ const TableManagement = () => {
                                                             disabled={loading}
                                                         >
                                                             Hủy
+                                                        </button>
+                                                    )}
+
+                                                    {res.status === 'seated' && (
+                                                        <button
+                                                            className="action-button add-menu"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                // Get the table ID from the reservation
+                                                                const tableId = safeGet(res, 'table_id._id') || res.table_id;
+                                                                // Find the table object
+                                                                const table = allTables.find(t => t._id === tableId);
+                                                                if (table) {
+                                                                    openModal('addMenuItems', table);
+                                                                }
+                                                            }}
+                                                            disabled={loading}
+                                                        >
+                                                            Thêm món
                                                         </button>
                                                     )}
                                                 </div>
