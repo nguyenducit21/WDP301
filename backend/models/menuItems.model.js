@@ -1,7 +1,7 @@
 // models/menuItems.model.js - BỎ INGREDIENTS
 const mongoose = require('mongoose');
 
-const menuItemSchema = new mongoose.Schema({
+const menuItemsSchema = new mongoose.Schema({
     name: {
         type: String,
         required: [true, 'Tên món ăn không được bỏ trống'],
@@ -26,10 +26,7 @@ const menuItemSchema = new mongoose.Schema({
         required: [true, 'Mô tả không được bỏ trống'],
         trim: true
     },
-    // ✅ BỎ INGREDIENTS FIELD
-    // ingredients: [{ type: String, required: true }],
-    
-    // ✅ GIỮ LẠI CÁC FIELD KHÁC
+  
     total_ingredient_cost: { type: Number, default: 0, min: 0 },
     food_cost_percentage: { type: Number, default: 0, min: 0, max: 100 },
     can_prepare: { type: Boolean, default: true },
@@ -46,4 +43,4 @@ const menuItemSchema = new mongoose.Schema({
     updated_at: { type: Date, default: Date.now }
 }, { versionKey: false });
 
-module.exports = mongoose.model('menuItems', menuItemSchema);
+module.exports = mongoose.model('MenuItem', menuItemsSchema);

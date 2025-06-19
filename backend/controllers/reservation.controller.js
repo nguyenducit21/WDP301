@@ -196,6 +196,171 @@ const getAvailableTables = async (req, res) => {
     }
 };
 
+// Hàm validation thời gian đặt bàn
+const validateBookingTime = async (date, slot_id) => {
+    const now = new Date();
+    const bookingDate = new Date(date);
+    const BookingSlot = require('../models/BookingSlot');
+    const bookingSlot = await BookingSlot.findById(slot_id);
+
+    if (!bookingSlot) {
+        throw new Error('Không tìm thấy slot thời gian');
+    }
+
+    // Không cho đặt bàn trong quá khứ
+    if (bookingDate < now) {
+        throw new Error('Không thể đặt bàn cho thời gian trong quá khứ');
+    }
+
+    // Nếu đặt trong ngày, kiểm tra giờ
+    if (bookingDate.toDateString() === now.toDateString()) {
+        const [hours, minutes] = bookingSlot.start_time.split(':');
+        const slotTime = new Date(bookingDate);
+        slotTime.setHours(parseInt(hours), parseInt(minutes));
+
+        // Yêu cầu đặt bàn trước ít nhất 1 giờ
+        const minBookingTime = new Date(now.getTime() + 60 * 60 * 1000);
+        if (slotTime < minBookingTime) {
+            throw new Error('Vui lòng đặt bàn trước ít nhất 1 giờ so với thời gian bắt đầu');
+        }
+    }
+
+    // Kiểm tra giờ mở cửa (ví dụ: 6:00 - 22:00)
+    const [startHours, startMinutes] = bookingSlot.start_time.split(':');
+    const slotStartTime = new Date(bookingDate);
+    slotStartTime.setHours(parseInt(startHours), parseInt(startMinutes));
+
+    const [endHours, endMinutes] = bookingSlot.end_time.split(':');
+    const slotEndTime = new Date(bookingDate);
+    slotEndTime.setHours(parseInt(endHours), parseInt(endMinutes));
+
+    // Kiểm tra slot có trong giờ mở cửa không
+    const openingTime = new Date(bookingDate);
+    openingTime.setHours(6, 0, 0, 0); // 6:00 AM
+
+    const closingTime = new Date(bookingDate);
+    closingTime.setHours(22, 0, 0, 0); // 10:00 PM
+
+    if (slotStartTime < openingTime || slotEndTime > closingTime) {
+        throw new Error('Chỉ có thể đặt bàn trong giờ mở cửa (6:00 - 22:00)');
+    }
+};
+
+// Hàm gửi thông báo cho nhân viên
+const notifyStaff = async (reservation) => {
+    try {
+        const User = require('../models/user.model');
+        const sendmail = require('../helper/sendmail.helper');
+
+        // Lấy danh sách email của nhân viên
+        const staffUsers = await User.find({
+            role: { $in: ['admin', 'manager', 'waiter'] }
+        }).select('email full_name');
+
+        if (staffUsers.length === 0) {
+            console.log('Không tìm thấy nhân viên để gửi thông báo');
+            return;
+        }
+
+        const staffEmails = staffUsers.map(staff => staff.email).join(', ');
+
+        // Format thời gian
+        const reservationDate = new Date(reservation.date);
+        const formattedDate = reservationDate.toLocaleDateString('vi-VN', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+
+        const formattedTime = `${reservation.slot_start_time} - ${reservation.slot_end_time}`;
+
+        // Tạo nội dung email
+        const emailSubject = '🔔 Có đặt bàn mới - Thông báo khẩn';
+
+        const emailContent = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #e74c3c; text-align: center;">🔔 THÔNG BÁO ĐẶT BÀN MỚI</h2>
+
+                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <h3 style="color: #2c3e50; margin-top: 0;">📋 Thông tin đặt bàn:</h3>
+
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">👤 Khách hàng:</td>
+                            <td style="padding: 8px 0;">${reservation.contact_name}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">📞 Số điện thoại:</td>
+                            <td style="padding: 8px 0;">${reservation.contact_phone}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">📧 Email:</td>
+                            <td style="padding: 8px 0;">${reservation.contact_email || 'Không có'}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">📅 Ngày:</td>
+                            <td style="padding: 8px 0;">${formattedDate}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">⏰ Thời gian:</td>
+                            <td style="padding: 8px 0;">${formattedTime}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">👥 Số khách:</td>
+                            <td style="padding: 8px 0;">${reservation.guest_count} người</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">🪑 Bàn:</td>
+                            <td style="padding: 8px 0;">${reservation.table_id?.name || 'Chưa xác định'}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                ${reservation.pre_order_items && reservation.pre_order_items.length > 0 ? `
+                <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                    <h4 style="color: #856404; margin-top: 0;">🍽️ Món đặt trước:</h4>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        ${reservation.pre_order_items.map(item =>
+            `<li>${item.menu_item_id?.name || 'Món không xác định'} - ${item.quantity} phần</li>`
+        ).join('')}
+                    </ul>
+                </div>
+                ` : ''}
+
+                ${reservation.notes ? `
+                <div style="background-color: #d1ecf1; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #17a2b8;">
+                    <h4 style="color: #0c5460; margin-top: 0;">📝 Ghi chú:</h4>
+                    <p style="margin: 0;">${reservation.notes}</p>
+                </div>
+                ` : ''}
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <p style="color: #7f8c8d; font-size: 14px;">
+                        ⚠️ Vui lòng xác nhận đặt bàn này trong hệ thống quản lý
+                    </p>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 30px 0;">
+
+                <div style="text-align: center; color: #95a5a6; font-size: 12px;">
+                    <p>Email tự động từ hệ thống quản lý nhà hàng</p>
+                    <p>Thời gian gửi: ${new Date().toLocaleString('vi-VN')}</p>
+                </div>
+            </div>
+        `;
+
+        // Gửi email
+        sendmail.send(staffEmails, emailSubject, emailContent);
+
+        console.log(`Đã gửi thông báo đặt bàn mới cho ${staffUsers.length} nhân viên`);
+
+    } catch (error) {
+        console.error('Lỗi khi gửi thông báo cho nhân viên:', error);
+        // Không throw error để không ảnh hưởng đến quá trình đặt bàn
+    }
+};
+
 // Tạo đặt bàn mới
 const createReservation = async (req, res) => {
     try {
@@ -225,6 +390,16 @@ const createReservation = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Số khách phải lớn hơn 0'
+            });
+        }
+
+        // Validate thời gian đặt bàn
+        try {
+            await validateBookingTime(date, slot_id);
+        } catch (validationError) {
+            return res.status(400).json({
+                success: false,
+                message: validationError.message
             });
         }
 
@@ -358,6 +533,9 @@ const createReservation = async (req, res) => {
             console.log('Populate error (non-critical):', populateError);
         }
 
+        // Gửi thông báo cho nhân viên
+        await notifyStaff(reservation);
+
         res.status(201).json({
             success: true,
             message: inventoryWarning
@@ -382,6 +560,29 @@ const createReservation = async (req, res) => {
 const getCustomerReservations = async (req, res) => {
     try {
         const reservations = await Reservation.find({ customer_id: req.user._id })
+            .populate([
+                { path: 'table_id', populate: { path: 'area_id' } },
+                { path: 'pre_order_items.menu_item_id' }
+            ])
+            .sort({ date: -1, time: -1 });
+
+        res.status(200).json({
+            success: true,
+            data: reservations
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy danh sách đặt bàn',
+            error: error.message
+        });
+    }
+};
+
+// Lấy danh sách đặt bàn của khách hàng theo userId
+const getCustomerReservationsByUserId = async (req, res) => {
+    try {
+        const reservations = await Reservation.find({ customer_id: req.params.userId })
             .populate([
                 { path: 'table_id', populate: { path: 'area_id' } },
                 { path: 'pre_order_items.menu_item_id' }
@@ -1140,6 +1341,7 @@ module.exports = {
     cancelReservation,
     moveReservation,
     getCustomerReservations,
+    getCustomerReservationsByUserId,
     getInvoiceData,
     confirmReservation,
     seatCustomer,

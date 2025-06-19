@@ -7,6 +7,7 @@ const {
     updateReservation,
     cancelReservation,
     getCustomerReservations,
+    getCustomerReservationsByUserId,
     getReservations,
     moveReservation,
     getInvoiceData,
@@ -26,7 +27,10 @@ router.get('/', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'c
 router.get('/available-tables', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getAvailableTables);
 
 // Lấy danh sách đặt bàn của khách hàng
-router.get('/my-reservations', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getCustomerReservations);
+router.get('/my-reservations', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getCustomerReservationsByUserId);
+
+// Lấy danh sách đặt bàn của khách hàng
+router.get('/my-reservations/:userId', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getCustomerReservations);
 
 // Lấy chi tiết một đặt bàn
 router.get('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getReservationById);

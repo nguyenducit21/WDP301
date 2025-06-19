@@ -1,0 +1,95 @@
+.reservation-page {
+    background: #f5f6fa;
+    min-height: 100vh;
+    padding: 0;
+}
+
+.reservation-header {
+    background: linear-gradient(135deg, #7a6c2f 0%, #f7b731 100%);
+    color: white;
+    text-align: center;
+    padding: 48px 24px;
+    margin-bottom: 32px;
+}
+
+.reservation-header h1 {
+    margin: 0 0 12px 0;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.reservation-header p {
+    margin: 0;
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+.reservation-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 32px;
+    padding: 0 24px;
+}
+
+.tab-btn {
+    background: white;
+    border: 2px solid #e9ecef;
+    border-radius: 12px;
+    padding: 16px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tab-btn:hover {
+    border-color: #7a6c2f;
+    color: #7a6c2f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.tab-btn.active {
+    background: #7a6c2f;
+    border-color: #7a6c2f;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(122, 108, 47, 0.3);
+}
+
+.reservation-content {
+    padding: 0 24px 32px 24px;
+}
+
+@media (max-width: 768px) {
+    .reservation-header {
+        padding: 32px 16px;
+    }
+
+    .reservation-header h1 {
+        font-size: 2rem;
+    }
+
+    .reservation-header p {
+        font-size: 1rem;
+    }
+
+    .reservation-tabs {
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        padding: 0 16px;
+    }
+
+    .tab-btn {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .reservation-content {
+        padding: 0 16px 24px 16px;
+    }
+}
