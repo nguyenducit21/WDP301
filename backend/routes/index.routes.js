@@ -8,6 +8,7 @@ const areaRouter = require("./area.routes");
 const reservationRouter = require("./reservation.routes");
 const paymentRouter = require("./payment.routes");
 const orderRoutes = require("./order.routes");
+const bookingSlotRouter = require("./bookingSlot.routes");
 
 router.use("/user", userRouter);
 router.use("/menu-items", menuItemRouter);
@@ -17,5 +18,6 @@ router.use("/areas", areaRouter);
 router.use("/reservations", reservationRouter);
 router.use("/payment", paymentRouter);
 router.use('/orders', orderRoutes);
+router.use('/booking-slots', bookingSlotRouter);
 
 module.exports = router;
