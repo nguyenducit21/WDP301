@@ -12,7 +12,9 @@ const {
     getInvoiceData,
     confirmReservation,
     seatCustomer,
-    completeReservation
+    completeReservation,
+    updatePaymentStatus,
+    checkoutTable
 } = require('../controllers/reservation.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware')
@@ -49,5 +51,8 @@ router.patch('/:id/seat', authMiddleware, roleMiddleware(['admin', 'manager', 's
 
 router.patch('/:id/complete', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), completeReservation);
 
+router.patch('/:id/payment-status', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), updatePaymentStatus);
+
+router.patch('/:id/checkout', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), checkoutTable)
 
 module.exports = router;

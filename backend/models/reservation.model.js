@@ -5,7 +5,10 @@ const ReservationSchema = new Schema({
     customer_id: { type: Schema.Types.ObjectId, ref: 'User' },
     table_id: { type: Schema.Types.ObjectId, ref: 'Table', required: true },
     date: { type: Date, required: true },
-    time: { type: String, required: true },
+    // time: { type: String, required: true },
+    slot_id: { type: Schema.Types.ObjectId, ref: 'BookingSlot', required: true }, // mới
+    slot_start_time: { type: String, required: true }, // "07:00", chốt theo slot lúc đặt
+    slot_end_time: { type: String, required: true },   // "09:00", chốt theo slot lúc đặt
     guest_count: { type: Number },
     contact_name: { type: String, required: true },
     contact_phone: { type: String, required: true },

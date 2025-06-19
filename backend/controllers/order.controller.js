@@ -116,14 +116,14 @@ const createOrder = async (req, res) => {
             });
         }
 
-        // FIXED: Tự động tìm reservation_id nếu bàn có đặt bàn active
+        // Tự động tìm reservation_id nếu bàn có đặt bàn active
         let finalReservationId = reservation_id;
         let finalCustomerId = customer_id;
 
-        if (!finalReservationId && table.status === 'reserved') {
+        if (!finalReservationId) {
             const activeReservation = await Reservation.findOne({
                 table_id: table_id,
-                status: { $in: ['pending', 'confirmed'] }
+                status: { $in: ['pending', 'confirmed', 'seated'] }
             }).sort({ created_at: -1 });
 
             if (activeReservation) {
@@ -131,6 +131,26 @@ const createOrder = async (req, res) => {
                 // Lấy customer_id từ reservation nếu không có
                 if (!finalCustomerId && activeReservation.customer_id) {
                     finalCustomerId = activeReservation.customer_id;
+                }
+            }
+        } else {
+            // Kiểm tra nếu reservation_id được cung cấp, đảm bảo nó là đặt bàn đang active
+            const reservationCheck = await Reservation.findById(finalReservationId);
+            if (!reservationCheck || !['pending', 'confirmed', 'seated'].includes(reservationCheck.status)) {
+                // Nếu không phải đặt bàn active, tìm đặt bàn active khác cho bàn này
+                const activeReservation = await Reservation.findOne({
+                    table_id: table_id,
+                    status: { $in: ['pending', 'confirmed', 'seated'] }
+                }).sort({ created_at: -1 });
+
+                if (activeReservation) {
+                    finalReservationId = activeReservation._id;
+                    if (!finalCustomerId && activeReservation.customer_id) {
+                        finalCustomerId = activeReservation.customer_id;
+                    }
+                } else {
+                    // Nếu không có đặt bàn active nào, không sử dụng reservation_id
+                    finalReservationId = null;
                 }
             }
         }
@@ -172,7 +192,7 @@ const createOrder = async (req, res) => {
             updated_at: new Date()
         };
 
-        // FIXED: Thêm reservation_id và customer_id nếu có
+        // Thêm reservation_id và customer_id nếu có
         if (finalReservationId) {
             orderData.reservation_id = finalReservationId;
         }
@@ -183,23 +203,17 @@ const createOrder = async (req, res) => {
         const order = new Order(orderData);
         await order.save();
 
-        // FIXED: Populate đầy đủ thông tin
+        // Cập nhật trạng thái bàn thành occupied nếu chưa
+        if (table.status !== 'occupied') {
+            await Table.findByIdAndUpdate(table_id, { status: 'occupied' });
+        }
+
         await order.populate([
-            {
-                path: 'table_id',
-                select: 'name capacity area_id',
-                populate: { path: 'area_id', select: 'name' }
-            },
+            { path: 'table_id', select: 'name capacity area_id' },
             { path: 'customer_id', select: 'username full_name email phone' },
             { path: 'staff_id', select: 'username full_name' },
-            {
-                path: 'reservation_id',
-                select: 'contact_name contact_phone date time guest_count'
-            },
-            {
-                path: 'order_items.menu_item_id',
-                select: 'name price category_id description'
-            }
+            { path: 'reservation_id', select: 'contact_name contact_phone date time' },
+            { path: 'order_items.menu_item_id', select: 'name price category_id' }
         ]);
 
         res.status(201).json({
@@ -208,7 +222,6 @@ const createOrder = async (req, res) => {
             data: order
         });
     } catch (error) {
-        console.error('Error in createOrder:', error);
         res.status(500).json({
             success: false,
             message: 'Lỗi khi tạo đơn hàng',
@@ -336,10 +349,17 @@ const updateOrderStatus = async (req, res) => {
     }
 };
 
-// Cập nhật thanh toán (sử dụng status completed)
+// Cập nhật trạng thái thanh toán
 const updateOrderPayment = async (req, res) => {
     try {
         const { payment_method, status } = req.body;
+
+        if (!payment_method) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thiếu thông tin phương thức thanh toán'
+            });
+        }
 
         const order = await Order.findById(req.params.id);
         if (!order) {
@@ -349,24 +369,40 @@ const updateOrderPayment = async (req, res) => {
             });
         }
 
-        // Cập nhật trạng thái thành completed khi thanh toán
+        // Cập nhật trạng thái thanh toán
+        order.paid = true;
+        order.payment_method = payment_method;
         order.status = status || 'completed';
+        order.payment_date = new Date();
         order.updated_at = new Date();
-
-        // Có thể thêm trường payment_method vào note hoặc mở rộng model
-        if (payment_method) {
-            order.note = order.note ?
-                `${order.note} | Thanh toán: ${payment_method}` :
-                `Thanh toán: ${payment_method}`;
-        }
-
         await order.save();
 
-        // Populate thông tin
+        // Cập nhật trạng thái đặt bàn thành hoàn thành nếu có
+        if (order.reservation_id) {
+            const reservation = await Reservation.findById(order.reservation_id);
+            if (reservation && ['confirmed', 'seated'].includes(reservation.status)) {
+                reservation.status = 'completed';
+                reservation.payment_status = 'paid';
+                reservation.updated_at = new Date();
+                await reservation.save();
+            }
+        }
+
+        // Cập nhật trạng thái bàn thành cleaning
+        await Table.findByIdAndUpdate(
+            order.table_id,
+            {
+                status: 'cleaning',
+                updated_at: new Date()
+            }
+        );
+
         await order.populate([
             { path: 'table_id', select: 'name capacity area_id' },
             { path: 'customer_id', select: 'username full_name email phone' },
-            { path: 'staff_id', select: 'username full_name' }
+            { path: 'staff_id', select: 'username full_name' },
+            { path: 'reservation_id', select: 'contact_name contact_phone date time' },
+            { path: 'order_items.menu_item_id', select: 'name price category_id' }
         ]);
 
         res.status(200).json({

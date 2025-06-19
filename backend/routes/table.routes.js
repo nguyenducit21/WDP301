@@ -6,7 +6,8 @@ const {
     createTable,
     updateTable,
     deleteTable,
-    updateTableStatus
+    updateTableStatus,
+    cleaningCompleted
 } = require('../controllers/table.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware')
@@ -28,5 +29,7 @@ router.put('/:id/status', authMiddleware, roleMiddleware(['admin', 'manager', 'w
 
 // Xóa bàn
 router.delete('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), deleteTable);
+
+router.patch('/:id/cleaning-completed', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), cleaningCompleted)
 
 module.exports = router;
