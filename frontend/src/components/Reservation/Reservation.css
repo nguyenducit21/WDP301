@@ -1,0 +1,118 @@
+/* .reservation-form-wrapper .navbar {
+    position: unset;
+} */
+
+body.reservation-form-open .navbar {
+    position: unset !important;
+}
+
+.step1-page {
+    min-height: 70vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f7f8fa;
+}
+
+.step1-page .reservation-card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.08);
+    padding: 36px 32px 28px 32px;
+    max-width: 420px;
+    width: 100%;
+    margin: 32px 0;
+}
+
+.step1-page .reservation-title {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    color: #1a1a1a;
+}
+
+.step1-page .reservation-form-group {
+    margin-bottom: 18px;
+    display: flex;
+    flex-direction: column;
+}
+
+.step1-page .reservation-form-group label {
+    font-weight: 500;
+    margin-bottom: 6px;
+    color: #222;
+}
+
+.step1-page .required {
+    color: #e44d26;
+    font-size: 1.1em;
+}
+
+.step1-page .reservation-input {
+    padding: 12px 14px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1rem;
+    outline: none;
+    transition: border 0.2s;
+    background: #fafbfc;
+}
+
+.step1-page .reservation-input:focus {
+    border: 1.5px solid #e44d26;
+    background: #fff;
+}
+
+.step1-page .reservation-row {
+    display: flex;
+    gap: 16px;
+}
+
+.step1-page .reservation-error {
+    color: #fff;
+    background: #e44d26;
+    padding: 10px 0;
+    border-radius: 6px;
+    text-align: center;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.step1-page .reservation-loading {
+    color: #e44d26;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.step1-page .reservation-btn {
+    width: 100%;
+    background: linear-gradient(90deg, #ff9800 0%, #e44d26 100%);
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 0;
+    margin-top: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px 0 rgba(228, 77, 38, 0.08);
+    transition: background 0.2s, box-shadow 0.2s;
+}
+
+.step1-page .reservation-btn:hover {
+    background: linear-gradient(90deg, #e44d26 0%, #ff9800 100%);
+    box-shadow: 0 4px 16px 0 rgba(228, 77, 38, 0.13);
+}
+
+@media (max-width: 600px) {
+    .step1-page .reservation-card {
+        padding: 18px 6vw 18px 6vw;
+        max-width: 98vw;
+    }
+
+    .step1-page .reservation-row {
+        flex-direction: column;
+        gap: 0;
+    }
+}

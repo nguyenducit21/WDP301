@@ -82,3 +82,7 @@
 # dotenv (uncomment to ignore env files)
 **/.env
 **/.env.*.local
+
+#DS_Store
+**/.DS_Store
+

@@ -1,0 +1,131 @@
+header {
+  height: 34vw;
+  position: relative;
+  border-radius: 0 !important;
+  margin: 0;
+  overflow: hidden;
+  background-size: cover;
+  color: white;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.header-contents {
+  position: absolute;
+  bottom: 10%;
+  left: 6vw;
+  right: 6vw;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3vw;
+  color: white;
+  text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.67);
+  animation: fadeIn 3s;
+}
+
+.header-text {
+  flex: 1 1 50%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5vw;
+}
+
+.header-text h1 {
+  font-weight: 700;
+  font-size: max(3.9vw, 30px);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.header-text p {
+  font-size: 1vw;
+  margin: 0;
+  text-align: justify;
+  max-width: 80%;
+}
+
+.header-text button {
+  border-radius: 50px;
+  color: var(--gray);
+  font-weight: 700;
+  font-size: max(1vw, 14px);
+  padding: 1vw 3vw;
+  background-color: #f69e1e;
+  border: none;
+  cursor: pointer;
+  width: fit-content;
+  transition: background-color 0.3s ease;
+}
+
+.header-text button:hover {
+  background-color: #d68015;
+}
+
+.header-image {
+  flex: 0 0 40%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.header-image img {
+  width: 100%;
+  max-width: 350px;
+  border-radius: 50%;
+  animation: spin 20s linear infinite;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 1050px) {
+  header {
+    height: auto;
+    border-radius: 16px;
+    padding: 40px 20px;
+  }
+  .header-contents {
+    flex-direction: column;
+    align-items: flex-start;
+    bottom: 5%;
+    left: 5%;
+    right: 5%;
+    gap: 2vw;
+  }
+  .header-text {
+    max-width: 100%;
+    padding-right: 0;
+    margin-bottom: 30px;
+  }
+  .header-text h1 {
+    font-size: 7vw;
+  }
+  .header-text p {
+    font-size: 3.5vw;
+  }
+  .header-text button {
+    font-size: 3.5vw;
+    padding: 15px 30px;
+  }
+  .header-image img {
+    max-width: 70vw;
+    border-radius: 24px;
+    animation: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .header-text p {
+    display: none;
+  }
+  .header-text button {
+    padding: 2vw 3.5vw;
+  }
+}
