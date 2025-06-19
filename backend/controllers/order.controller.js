@@ -1,6 +1,6 @@
 const Order = require('../models/order.model');
 const Table = require('../models/table.model');
-const MenuItem = require('../models/menuItem.model');
+const MenuItem = require('../models/menuItems.model');
 const Reservation = require('../models/reservation.model');
 
 // Lấy tất cả đơn hàng
