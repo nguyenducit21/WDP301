@@ -89,23 +89,25 @@ const getReservationById = async (req, res) => {
 // Lấy danh sách bàn có sẵn theo khu vực và thời gian
 const getAvailableTables = async (req, res) => {
     try {
-        const { area_id, date, time, guest_count, type } = req.query;
+        const { area_id, date, time, end_time, guest_count, type } = req.query;
 
-        if (!date || !time) {
+        if (!date || !time || !end_time) {
             return res.status(400).json({
                 success: false,
-                message: 'Vui lòng cung cấp ngày và giờ đặt bàn'
+                message: 'Vui lòng cung cấp ngày, giờ bắt đầu và giờ kết thúc đặt bàn'
             });
         }
 
-        // Tạo thời gian đặt bàn
-        const reservationDateTime = new Date(`${date}T${time}`);
-
-        // Tìm các bàn đã được đặt trong khoảng thời gian này
+        // Tìm các bàn đã được đặt trùng khung giờ
         const existingReservations = await Reservation.find({
             date: date,
-            time: time,
-            status: { $in: ['pending', 'confirmed'] }
+            status: { $in: ['pending', 'confirmed'] },
+            $expr: {
+                $and: [
+                    { $lt: ["$time", end_time] }, // reservation.time < new end_time
+                    { $gt: ["$end_time", time] }  // reservation.end_time > new time
+                ]
+            }
         }).select('table_id');
 
         const reservedTableIds = existingReservations.map(r => r.table_id);
@@ -152,6 +154,7 @@ const createReservation = async (req, res) => {
             table_id,
             date,
             time,
+            end_time,
             guest_count,
             contact_name,
             contact_phone,
@@ -161,7 +164,7 @@ const createReservation = async (req, res) => {
         } = req.body;
 
         // Kiểm tra thông tin bắt buộc
-        if (!table_id || !date || !time || !contact_name || !contact_phone) {
+        if (!table_id || !date || !time || !end_time || !contact_name || !contact_phone) {
             return res.status(400).json({
                 success: false,
                 message: 'Thiếu thông tin bắt buộc'
@@ -177,18 +180,23 @@ const createReservation = async (req, res) => {
             });
         }
 
-        // Kiểm tra bàn có bị đặt trùng không
-        const existingReservation = await Reservation.findOne({
+        // Kiểm tra bàn có bị đặt trùng khung giờ không
+        const overlapReservation = await Reservation.findOne({
             table_id,
             date,
-            time,
-            status: { $in: ['pending', 'confirmed'] }
+            status: { $in: ['pending', 'confirmed'] },
+            $expr: {
+                $and: [
+                    { $lt: ["$time", end_time] }, // reservation.time < new end_time
+                    { $gt: ["$end_time", time] }  // reservation.end_time > new time
+                ]
+            }
         });
 
-        if (existingReservation) {
+        if (overlapReservation) {
             return res.status(400).json({
                 success: false,
-                message: 'Bàn đã được đặt trong thời gian này'
+                message: 'Bàn đã được đặt trong khung giờ này'
             });
         }
 
@@ -211,6 +219,7 @@ const createReservation = async (req, res) => {
             table_id,
             date,
             time,
+            end_time,
             guest_count,
             contact_name,
             contact_phone,

@@ -11,6 +11,7 @@ const TableSchema = new Schema({
         enum: ['available', 'reserved', 'occupied', 'cleaning', 'maintenance'],
         default: 'available'
     },
+    image: { type: String }, // link ảnh bàn
     description: { type: String },
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }

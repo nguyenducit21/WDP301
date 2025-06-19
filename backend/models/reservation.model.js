@@ -6,6 +6,7 @@ const ReservationSchema = new Schema({
     table_id: { type: Schema.Types.ObjectId, ref: 'Table', required: true },
     date: { type: Date, required: true },
     time: { type: String, required: true },
+    end_time: { type: String },
     guest_count: { type: Number },
     contact_name: { type: String, required: true },
     contact_phone: { type: String, required: true },
