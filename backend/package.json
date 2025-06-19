@@ -5,7 +5,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon ./server.js",
-    "start": "nodemon ./server.js"
+    "start": "nodemon ./server.js",
+    "migrate": "node scripts/migrate-menu-to-inventory.js",
+    "migrate:inventory": "node scripts/migrate-menu-to-inventory.js"
   },
   "keywords": [],
   "author": "",

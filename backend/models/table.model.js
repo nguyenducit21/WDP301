@@ -8,7 +8,8 @@ const TableSchema = new Schema({
     capacity: { type: Number },
     status: {
         type: String,
-        enum: ['available', 'reserved', 'occupied', 'cleaning', 'maintenance'],
+        // enum: ['available', 'reserved', 'occupied', 'cleaning', 'maintenance'],
+        enum: ['available', 'occupied', 'cleaning', 'maintenance'],
         default: 'available'
     },
     image: { type: String }, // link ảnh bàn

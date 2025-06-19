@@ -20,9 +20,7 @@ const ChefLayout = () => {
           padding: "20px",
         }}
       >
-        {/* Điều hướng mặc định đến /chef/dashboard nếu truy cập /chef */}
         {window.location.pathname === "/chef" && <Navigate to="/chef/dashboard" replace />}
-        {/* Render các route con */}
         <Outlet />
       </div>
     </div>

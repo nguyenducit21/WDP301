@@ -17,12 +17,19 @@ import ChefLayout from "./pages/Chef/ChefLayout";
 import MenuItemManagement from "./pages/Chef/Food/MenuItemManagement";
 import DeletedMenuItems from "./pages/Chef/Food/DeletedMenuItems";
 import CategoryManagement from "./pages/Chef/Cateogry/CategoryManagement";
-  
-const App = () => {
+import RecipeManagement from "./pages/Chef/Recipe/RecipeManagement";
+import ImportReceiptList from "./pages/Chef/ImportReceipt/ImportReceiptList";
+import ImportReceiptCreate from "./pages/Chef/ImportReceipt/ImportReceiptCreate";
+import ImportReceiptDetail from "./pages/Chef/ImportReceipt/ImportReceiptDetail";
+import InventoryList from "./pages/Chef/Inventory/InventoryList";
+import StockCheck from './pages/Chef/Inventory/StockCheck';
+import InventoryDetail from './pages/Chef/Inventory/InventoryDetail';
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from "react-toastify";
 
+const App = () => {
   const location = useLocation();
   const isChefPage = location.pathname.includes("/chef");
-
 
   return (
     <>
@@ -40,16 +47,32 @@ const App = () => {
           <Route path="/dashboard/tables" element={<TableManagement />} />
           <Route path="/table-booking" element={<Reservation />} />
           <Route path="/chef" element={<ChefLayout />}>
-            {/* Thêm các route con */}
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="products" element={<MenuItemManagement/>} />
-            <Route path="manage-categories" element={<CategoryManagement/>} />
-            <Route path="deleted-menu-items" element={<DeletedMenuItems/>} />
+            <Route path="products" element={<MenuItemManagement />} />
+            <Route path="manage-categories" element={<CategoryManagement />} />
+            <Route path="deleted-menu-items" element={<DeletedMenuItems />} />
+            <Route path="recipes" element={<RecipeManagement />} />
+            <Route path="import-receipts" element={<ImportReceiptList />} />
+            <Route path="import-receipts/create" element={<ImportReceiptCreate />} />
+            <Route path="import-receipts/:id" element={<ImportReceiptDetail />} />
+            <Route path="inventory-list" element={<InventoryList />} />
+            <Route path="stock-check" element={<StockCheck />} />
+            <Route path="inventory/:id" element={<InventoryDetail />} />
           </Route>
         </Routes>
         {!isChefPage && <ScrollToTopButton />}
         {!isChefPage && <Footer />}
-       
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
       </div>
     </>
   );

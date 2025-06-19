@@ -2,11 +2,13 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const ReservationSchema = new Schema({
-    customer_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    customer_id: { type: Schema.Types.ObjectId, ref: 'User' },
     table_id: { type: Schema.Types.ObjectId, ref: 'Table', required: true },
     date: { type: Date, required: true },
-    time: { type: String, required: true },
-    end_time: { type: String },
+    // time: { type: String, required: true },
+    slot_id: { type: Schema.Types.ObjectId, ref: 'BookingSlot', required: true }, // mới
+    slot_start_time: { type: String, required: true }, // "07:00", chốt theo slot lúc đặt
+    slot_end_time: { type: String, required: true },   // "09:00", chốt theo slot lúc đặt
     guest_count: { type: Number },
     contact_name: { type: String, required: true },
     contact_phone: { type: String, required: true },
@@ -18,7 +20,7 @@ const ReservationSchema = new Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'confirmed', 'cancelled', 'no_show', 'completed'],
+        enum: ['pending', 'confirmed', 'seated', 'cancelled', 'no_show', 'completed'],
         default: 'pending'
     },
     pre_order_items: [{
@@ -28,7 +30,7 @@ const ReservationSchema = new Schema({
     deposit_amount: { type: Number },
     payment_status: {
         type: String,
-        enum: ['pending', 'paid', 'refunded'],
+        enum: ['pending', 'partial', 'paid', 'refunded'],
         default: 'pending'
     },
     notes: { type: String },

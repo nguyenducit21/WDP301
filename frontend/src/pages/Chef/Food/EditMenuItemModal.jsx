@@ -1,16 +1,14 @@
-// src/pages/Chef/MenuItem/EditMenuItemModal.jsx
+// src/pages/Chef/MenuItem/EditMenuItemModal.jsx - BỎ INGREDIENTS
 import React, { useState, useEffect } from "react";
 import axios from "../../../utils/axios.customize";
 
 const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
-
     const [form, setForm] = useState({
         name: "",
         category_id: "",
         price: "",
         image: null,
         description: "",
-        ingredients: [""],
         is_available: true,
         is_featured: false,
     });
@@ -26,7 +24,6 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
                 price: menuItem.price || "",
                 image: null,
                 description: menuItem.description || "",
-                ingredients: menuItem.ingredients || [""],
                 is_available: menuItem.is_available !== false,
                 is_featured: menuItem.is_featured || false,
             });
@@ -38,7 +35,6 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
                 price: "",
                 image: null,
                 description: "",
-                ingredients: [""],
                 is_available: true,
                 is_featured: false,
             });
@@ -74,25 +70,6 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
         };
     }, [imagePreview]);
 
-    const handleIngredientsChange = (idx, value) => {
-        setForm((f) => {
-            const newIngredients = [...f.ingredients];
-            newIngredients[idx] = value;
-            return { ...f, ingredients: newIngredients };
-        });
-    };
-
-    const addIngredient = () => {
-        setForm((f) => ({ ...f, ingredients: [...f.ingredients, ""] }));
-    };
-
-    const removeIngredient = (idx) => {
-        setForm((f) => ({
-            ...f,
-            ingredients: f.ingredients.filter((_, i) => i !== idx),
-        }));
-    };
-
     const handleToggleAvailable = () => {
         setForm((f) => ({ ...f, is_available: !f.is_available }));
     };
@@ -103,21 +80,19 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const filteredIngredients = form.ingredients.filter((i) => i.trim() !== "");
+        
+        // ✅ BỎ VALIDATION CHO INGREDIENTS
         if (
             !form.name ||
             !form.category_id ||
             !form.price ||
             (!form.image && !menuItem) ||
-            !form.description ||
-            filteredIngredients.length === 0
+            !form.description
         ) {
             setError(
                 !form.image && !menuItem
                     ? "Vui lòng chọn ảnh món ăn"
-                    : filteredIngredients.length === 0
-                        ? "Vui lòng nhập ít nhất một nguyên liệu"
-                        : "Các trường bắt buộc không được để trống"
+                    : "Các trường bắt buộc không được để trống"
             );
             return;
         }
@@ -141,13 +116,12 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
                 }
             }
 
-            // Prepare the menu item data
+            // ✅ PREPARE DATA KHÔNG CÓ INGREDIENTS
             const data = new FormData();
             data.append("name", form.name);
             data.append("category_id", form.category_id);
             data.append("price", form.price);
             data.append("description", form.description);
-            filteredIngredients.forEach((ingredient, idx) => data.append(`ingredients[${idx}]`, ingredient));
             data.append("is_available", form.is_available);
             data.append("is_featured", form.is_featured);
             if (imageUrl) {
@@ -214,7 +188,6 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
                             name="image"
                             onChange={handleChange}
                             accept="image/*"
-                            multiple
                         />
                         <small className="form-text text-muted">
                             {menuItem ? "Để trống nếu không muốn thay đổi ảnh" : "Chọn ảnh món ăn"}
@@ -224,25 +197,9 @@ const EditMenuItemModal = ({ open, onClose, menuItem, categories, onSave }) => {
                         <label>Mô tả</label>
                         <textarea name="description" value={form.description} onChange={handleChange} />
                     </div>
-                    <div className="form-group">
-                        <label>Nguyên liệu</label>
-                        {form.ingredients.map((ingredient, idx) => (
-                            <div key={idx} style={{ display: "flex", gap: "10px", marginBottom: "5px" }}>
-                                <input
-                                    type="text"
-                                    value={ingredient}
-                                    onChange={(e) => handleIngredientsChange(idx, e.target.value)}
-                                    style={{ flex: 1 }}
-                                />
-                                <button type="button" onClick={() => removeIngredient(idx)} style={{ padding: "0 10px" }}>
-                                    Xóa
-                                </button>
-                            </div>
-                        ))}
-                        <button type="button" onClick={addIngredient} className="btn btn-primary" style={{ marginTop: "5px" }}>
-                            Thêm nguyên liệu
-                        </button>
-                    </div>
+                    
+                    {/* ✅ BỎ HOÀN TOÀN PHẦN INGREDIENTS */}
+                    
                     <div className="form-group">
                         <label>Trạng thái</label>
                         <div className="toggle-switch" onClick={handleToggleAvailable}>
