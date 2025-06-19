@@ -33,6 +33,7 @@ const getReservations = async (req, res) => {
         const reservations = await Reservation.find(filter)
             .populate('customer_id', 'username full_name email phone')
             .populate('table_id', 'name capacity area_id')
+            .populate('table_ids', 'name capacity area_id')
             .populate('created_by_staff', 'username full_name')
             .populate('slot_id', 'name start_time end_time')
             .populate({
@@ -72,6 +73,7 @@ const getReservationById = async (req, res) => {
         const reservation = await Reservation.findById(req.params.id)
             .populate('customer_id', 'username full_name email phone')
             .populate('table_id', 'name capacity area_id')
+            .populate('table_ids', 'name capacity area_id')
             .populate('pre_order_items.menu_item_id', 'name price category')
             .populate({
                 path: 'pre_order_items.menu_item_id',
@@ -156,10 +158,17 @@ const getAvailableTables = async (req, res) => {
             },
             slot_id,
             status: { $in: ['pending', 'confirmed', 'seated'] }
-        }).select('table_id');
+        }).select('table_id table_ids');
 
         // Lấy danh sách ID bàn đã được đặt trong slot
-        const reservedTableIds = reservationsInSlot.map(r => r.table_id);
+        const reservedTableIds = [];
+        reservationsInSlot.forEach(reservation => {
+            if (reservation.table_ids && reservation.table_ids.length > 0) {
+                reservedTableIds.push(...reservation.table_ids);
+            } else if (reservation.table_id) {
+                reservedTableIds.push(reservation.table_id);
+            }
+        });
 
         // Tìm các bàn có sẵn
         let query = {
@@ -171,10 +180,6 @@ const getAvailableTables = async (req, res) => {
             query.area_id = area_id;
         }
 
-        if (guest_count) {
-            query.capacity = { $gte: parseInt(guest_count) };
-        }
-
         if (type) {
             query.type = type;
         }
@@ -183,9 +188,51 @@ const getAvailableTables = async (req, res) => {
             .populate('area_id', 'name description')
             .sort({ capacity: 1 });
 
+        // Nếu có yêu cầu về số lượng khách, tìm các combination có thể
+        let tableCombinations = [];
+        if (guest_count && parseInt(guest_count) >= 6) {
+            const targetGuestCount = parseInt(guest_count);
+
+            // Single table options
+            const singleTables = availableTables.filter(table => table.capacity >= targetGuestCount);
+
+            // Multiple table combinations
+            const combinations2 = [];
+            const combinations3 = [];
+
+            // Find combinations of 2 tables
+            for (let i = 0; i < availableTables.length; i++) {
+                for (let j = i + 1; j < availableTables.length; j++) {
+                    const totalCapacity = availableTables[i].capacity + availableTables[j].capacity;
+                    if (totalCapacity >= targetGuestCount) {
+                        combinations2.push([availableTables[i], availableTables[j]]);
+                    }
+                }
+            }
+
+            // Find combinations of 3 tables
+            for (let i = 0; i < availableTables.length; i++) {
+                for (let j = i + 1; j < availableTables.length; j++) {
+                    for (let k = j + 1; k < availableTables.length; k++) {
+                        const totalCapacity = availableTables[i].capacity + availableTables[j].capacity + availableTables[k].capacity;
+                        if (totalCapacity >= targetGuestCount) {
+                            combinations3.push([availableTables[i], availableTables[j], availableTables[k]]);
+                        }
+                    }
+                }
+            }
+
+            tableCombinations = {
+                single: singleTables.slice(0, 5), // Limit to top 5
+                double: combinations2.slice(0, 3), // Limit to top 3
+                triple: combinations3.slice(0, 2)  // Limit to top 2
+            };
+        }
+
         res.status(200).json({
             success: true,
-            data: availableTables
+            data: availableTables,
+            combinations: tableCombinations
         });
     } catch (error) {
         res.status(500).json({
@@ -366,7 +413,8 @@ const createReservation = async (req, res) => {
     try {
         const {
             customer_id,
-            table_id,
+            table_id, // For backward compatibility
+            table_ids, // New field for multiple tables
             date,
             slot_id,
             guest_count,
@@ -377,8 +425,21 @@ const createReservation = async (req, res) => {
             notes
         } = req.body;
 
+        // Determine which tables to use
+        let tablesToReserve = [];
+        if (table_ids && Array.isArray(table_ids) && table_ids.length > 0) {
+            tablesToReserve = table_ids;
+        } else if (table_id) {
+            tablesToReserve = [table_id];
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Thiếu thông tin bàn'
+            });
+        }
+
         // Kiểm tra thông tin bắt buộc
-        if (!table_id || !date || !slot_id || !contact_name || !contact_phone) {
+        if (!date || !slot_id || !contact_name || !contact_phone) {
             return res.status(400).json({
                 success: false,
                 message: 'Thiếu thông tin bắt buộc'
@@ -390,6 +451,15 @@ const createReservation = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: 'Số khách phải lớn hơn 0'
+            });
+        }
+
+        // Check maximum capacity limit for online booking
+        const MAX_ONLINE_CAPACITY = 23;
+        if (guest_count > MAX_ONLINE_CAPACITY) {
+            return res.status(400).json({
+                success: false,
+                message: `Đặt bàn trực tuyến chỉ hỗ trợ tối đa ${MAX_ONLINE_CAPACITY} người. Vui lòng liên hệ trực tiếp để đặt bàn số lượng lớn.`
             });
         }
 
@@ -414,18 +484,20 @@ const createReservation = async (req, res) => {
             });
         }
 
-        const table = await Table.findById(table_id);
-        if (!table) {
+        // Kiểm tra tất cả các bàn có tồn tại và tính tổng sức chứa
+        const tables = await Table.find({ _id: { $in: tablesToReserve } });
+        if (tables.length !== tablesToReserve.length) {
             return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy bàn'
+                message: 'Một số bàn không tồn tại'
             });
         }
 
-        if (guest_count > table.capacity) {
+        const totalCapacity = tables.reduce((sum, table) => sum + table.capacity, 0);
+        if (guest_count > totalCapacity) {
             return res.status(400).json({
                 success: false,
-                message: `Bàn chỉ có thể chứa tối đa ${table.capacity} người`
+                message: `Các bàn chỉ có thể chứa tối đa ${totalCapacity} người`
             });
         }
 
@@ -436,9 +508,12 @@ const createReservation = async (req, res) => {
         const endOfDay = new Date(reservationDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        // Kiểm tra bàn đã được đặt trong slot này chưa
-        const existingReservation = await Reservation.findOne({
-            table_id,
+        // Kiểm tra các bàn đã được đặt trong slot này chưa
+        const existingReservations = await Reservation.find({
+            $or: [
+                { table_id: { $in: tablesToReserve } },
+                { table_ids: { $in: tablesToReserve } }
+            ],
             date: {
                 $gte: startOfDay,
                 $lte: endOfDay
@@ -447,10 +522,17 @@ const createReservation = async (req, res) => {
             status: { $in: ['pending', 'confirmed', 'seated'] }
         });
 
-        if (existingReservation) {
+        if (existingReservations.length > 0) {
+            const reservedTables = existingReservations.map(r =>
+                r.table_id || (r.table_ids && r.table_ids[0])
+            ).filter(Boolean);
+            const conflictingTables = tablesToReserve.filter(id =>
+                reservedTables.some(reservedId => reservedId.toString() === id.toString())
+            );
+
             return res.status(400).json({
                 success: false,
-                message: 'Bàn đã được đặt trong khung giờ này'
+                message: `Các bàn sau đã được đặt trong khung giờ này: ${conflictingTables.join(', ')}`
             });
         }
 
@@ -483,7 +565,8 @@ const createReservation = async (req, res) => {
 
         // Tạo đặt bàn mới
         const reservationData = {
-            table_id,
+            table_ids: tablesToReserve,
+            table_id: tablesToReserve[0], // For backward compatibility
             date: reservationDate,
             slot_id,
             slot_start_time: bookingSlot.start_time,
@@ -520,6 +603,7 @@ const createReservation = async (req, res) => {
 
         try {
             await reservation.populate([
+                { path: 'table_ids', select: 'name capacity area_id' },
                 { path: 'table_id', select: 'name capacity area_id' },
                 { path: 'customer_id', select: 'username full_name email phone' },
                 { path: 'created_by_staff', select: 'username full_name' },
@@ -562,6 +646,7 @@ const getCustomerReservations = async (req, res) => {
         const reservations = await Reservation.find({ customer_id: req.user._id })
             .populate([
                 { path: 'table_id', populate: { path: 'area_id' } },
+                { path: 'table_ids', populate: { path: 'area_id' } },
                 { path: 'pre_order_items.menu_item_id' }
             ])
             .sort({ date: -1, time: -1 });
@@ -585,6 +670,7 @@ const getCustomerReservationsByUserId = async (req, res) => {
         const reservations = await Reservation.find({ customer_id: req.params.userId })
             .populate([
                 { path: 'table_id', populate: { path: 'area_id' } },
+                { path: 'table_ids', populate: { path: 'area_id' } },
                 { path: 'pre_order_items.menu_item_id' }
             ])
             .sort({ date: -1, time: -1 });
@@ -697,20 +783,14 @@ const updateReservation = async (req, res) => {
             }
 
             //  Kiểm tra trùng thời gian với bàn mới theo ngày cụ thể
-            const reservationDate = date ? new Date(date) : reservation.date;
             const reservationTime = time || reservation.time;
-
-            const startOfDay = new Date(reservationDate);
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date(reservationDate);
-            endOfDay.setHours(23, 59, 59, 999);
 
             const existingReservation = await Reservation.findOne({
                 _id: { $ne: req.params.id },
                 table_id: table_id,
                 date: {
-                    $gte: startOfDay,
-                    $lte: endOfDay
+                    $gte: date ? new Date(date) : reservation.date,
+                    $lte: date ? new Date(date) : reservation.date
                 },
                 time: reservationTime,
                 status: { $in: ['confirmed', 'pending', 'seated'] }

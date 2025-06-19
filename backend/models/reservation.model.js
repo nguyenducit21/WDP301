@@ -3,7 +3,9 @@ const Schema = mongoose.Schema;
 
 const ReservationSchema = new Schema({
     customer_id: { type: Schema.Types.ObjectId, ref: 'User' },
-    table_id: { type: Schema.Types.ObjectId, ref: 'Table', required: true },
+    // Support both single table (backward compatibility) and multiple tables
+    table_id: { type: Schema.Types.ObjectId, ref: 'Table' }, // For backward compatibility
+    table_ids: [{ type: Schema.Types.ObjectId, ref: 'Table' }], // New field for multiple tables
     date: { type: Date, required: true },
     // time: { type: String, required: true },
     slot_id: { type: Schema.Types.ObjectId, ref: 'BookingSlot', required: true }, // mới
@@ -37,5 +39,14 @@ const ReservationSchema = new Schema({
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now }
 });
+
+// Virtual getter for backward compatibility
+ReservationSchema.virtual('primaryTable').get(function () {
+    return this.table_ids && this.table_ids.length > 0 ? this.table_ids[0] : this.table_id;
+});
+
+// Ensure virtuals are serialized
+ReservationSchema.set('toJSON', { virtuals: true });
+ReservationSchema.set('toObject', { virtuals: true });
 
 module.exports = mongoose.model('Reservation', ReservationSchema);

@@ -52,7 +52,7 @@ export default function ReservationForm() {
   const [areas, setAreas] = useState([]);
   const [selectedArea, setSelectedArea] = useState(null);
   const [tables, setTables] = useState([]);
-  const [selectedTable, setSelectedTable] = useState(null);
+  const [selectedTables, setSelectedTables] = useState([]);
   const [loadingAreas, setLoadingAreas] = useState(false);
   const [loadingTables, setLoadingTables] = useState(false);
   const [loadingMenu, setLoadingMenu] = useState(false);
@@ -76,6 +76,7 @@ export default function ReservationForm() {
   const [availableTables, setAvailableTables] = useState([]);
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [tableCombinations, setTableCombinations] = useState({});
   const timeSlots = getTimeSlots();
 
   // Sử dụng hook booking slots
@@ -88,6 +89,150 @@ export default function ReservationForm() {
 
   // Ngày hôm nay (yyyy-mm-dd)
   const todayStr = new Date().toISOString().split("T")[0];
+
+  // Calculate total capacity of selected tables
+  const getTotalCapacity = () => {
+    return selectedTables.reduce((total, table) => total + table.capacity, 0);
+  };
+
+  // Check if selected tables can accommodate the guest count
+  const isTableSelectionValid = () => {
+    if (selectedTables.length === 0) return false;
+    const totalCapacity = getTotalCapacity();
+    return totalCapacity >= form.guest_count;
+  };
+
+  // Check if guest count exceeds all available tables capacity
+  const isGuestCountExceeded = () => {
+    const MAX_CAPACITY = 23; // Fixed maximum capacity
+    return form.guest_count >= MAX_CAPACITY;
+  };
+
+  // Get maximum possible capacity from all available tables
+  const getMaxPossibleCapacity = () => {
+    const MAX_CAPACITY = 23; // Fixed maximum capacity
+    return MAX_CAPACITY;
+  };
+
+  // Get suggested table combinations
+  const getSuggestedCombinations = () => {
+    const combinations = [];
+    const guestCount = form.guest_count;
+
+    // Use API combinations if available
+    if (tableCombinations.single && tableCombinations.single.length > 0) {
+      combinations.push({
+        type: 'single',
+        tables: tableCombinations.single,
+        description: 'Bàn đơn'
+      });
+    }
+
+    if (tableCombinations.double && tableCombinations.double.length > 0) {
+      combinations.push({
+        type: 'double',
+        tables: tableCombinations.double,
+        description: 'Ghép 2 bàn'
+      });
+    }
+
+    if (tableCombinations.triple && tableCombinations.triple.length > 0) {
+      combinations.push({
+        type: 'triple',
+        tables: tableCombinations.triple,
+        description: 'Ghép 3 bàn'
+      });
+    }
+
+    // Fallback to local calculation if no API combinations
+    if (combinations.length === 0) {
+      // Single table options
+      const singleTables = availableTables.filter(table => table.capacity >= guestCount);
+      if (singleTables.length > 0) {
+        combinations.push({
+          type: 'single',
+          tables: singleTables.slice(0, 3), // Show top 3 options
+          description: 'Bàn đơn'
+        });
+      }
+
+      // Multiple table combinations - only for 6+ guests
+      if (guestCount >= 6) {
+        const combinations2 = [];
+        const combinations3 = [];
+
+        // Find combinations of 2 tables
+        for (let i = 0; i < availableTables.length; i++) {
+          for (let j = i + 1; j < availableTables.length; j++) {
+            const totalCapacity = availableTables[i].capacity + availableTables[j].capacity;
+            if (totalCapacity >= guestCount) {
+              combinations2.push([availableTables[i], availableTables[j]]);
+            }
+          }
+        }
+
+        // Find combinations of 3 tables
+        for (let i = 0; i < availableTables.length; i++) {
+          for (let j = i + 1; j < availableTables.length; j++) {
+            for (let k = j + 1; k < availableTables.length; k++) {
+              const totalCapacity = availableTables[i].capacity + availableTables[j].capacity + availableTables[k].capacity;
+              if (totalCapacity >= guestCount) {
+                combinations3.push([availableTables[i], availableTables[j], availableTables[k]]);
+              }
+            }
+          }
+        }
+
+        if (combinations2.length > 0) {
+          combinations.push({
+            type: 'double',
+            tables: combinations2.slice(0, 2), // Show top 2 combinations
+            description: 'Ghép 2 bàn'
+          });
+        }
+
+        if (combinations3.length > 0) {
+          combinations.push({
+            type: 'triple',
+            tables: combinations3.slice(0, 1), // Show top 1 combination
+            description: 'Ghép 3 bàn'
+          });
+        }
+      }
+    }
+
+    return combinations;
+  };
+
+  // Handle table selection
+  const handleTableSelect = (table) => {
+    setSelectedTables(prev => {
+      const isSelected = prev.find(t => t._id === table._id);
+      if (isSelected) {
+        // Remove table if already selected
+        return prev.filter(t => t._id !== table._id);
+      } else {
+        // Add table to selection
+        return [...prev, table];
+      }
+    });
+  };
+
+  // Handle combination selection
+  const handleCombinationSelect = (tables) => {
+    setSelectedTables(tables);
+  };
+
+  // Check if a table is selected
+  const isTableSelected = (table) => {
+    return selectedTables.find(t => t._id === table._id) !== undefined;
+  };
+
+  // Check if a combination is selected
+  const isCombinationSelected = (tables) => {
+    if (selectedTables.length !== tables.length) return false;
+    return tables.every(table => selectedTables.find(t => t._id === table._id));
+  };
 
   // Fetch areas on mount
   useEffect(() => {
@@ -154,7 +299,7 @@ export default function ReservationForm() {
   useEffect(() => {
     if (!selectedArea || !form.date || !form.slot_id || !form.guest_count || validationError) {
       setAvailableTables([]);
-      setSelectedTable(null);
+      setSelectedTables([]);
       return;
     }
     setLoadingTables(true);
@@ -170,11 +315,13 @@ export default function ReservationForm() {
       })
       .then((res) => {
         setAvailableTables(res.data.data || []);
-        setSelectedTable(null);
+        setTableCombinations(res.data.combinations || {});
+        setSelectedTables([]);
       })
       .catch((err) => {
         setError(err?.response?.data?.message || "Không lấy được danh sách bàn trống");
         setAvailableTables([]);
+        setTableCombinations({});
       })
       .finally(() => setLoadingTables(false));
   }, [selectedArea, form.date, form.slot_id, form.guest_count, validationError]);
@@ -185,7 +332,7 @@ export default function ReservationForm() {
 
   const handleAreaSelect = (area) => {
     setSelectedArea(area);
-    setSelectedTable(null);
+    setSelectedTables([]);
   };
 
   const handleSlotChange = (e) => {
@@ -235,7 +382,7 @@ export default function ReservationForm() {
       !form.phone ||
       !form.date ||
       !form.slot_id ||
-      !selectedTable
+      !isTableSelectionValid()
     ) {
       setError("Vui lòng nhập đầy đủ thông tin và chọn bàn!");
       return;
@@ -246,10 +393,16 @@ export default function ReservationForm() {
       return;
     }
 
+    // Check if guest count exceeds available capacity
+    if (isGuestCountExceeded()) {
+      setError("Số lượng khách vượt quá giới hạn đặt bàn trực tuyến (tối đa 23 người). Vui lòng liên hệ trực tiếp để đặt bàn số lượng lớn.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const reservationData = {
-        table_id: selectedTable._id,
+        table_ids: selectedTables.map(table => table._id),
         date: form.date,
         slot_id: form.slot_id,
         guest_count: form.guest_count,
@@ -277,7 +430,7 @@ export default function ReservationForm() {
         note: "",
         pre_order_items: []
       });
-      setSelectedTable(null);
+      setSelectedTables([]);
       setEndTime("");
       setValidationError("");
     } catch (err) {
@@ -343,7 +496,7 @@ export default function ReservationForm() {
               <img src={selectedArea.image} alt={selectedArea.name} />
             )}
             <div className="area-desc">
-              <h3>{selectedArea.name}</h3>
+              {/* <h3>{selectedArea.name}</h3> */}
               <p>{selectedArea.description}</p>
             </div>
           </div>
@@ -355,21 +508,149 @@ export default function ReservationForm() {
           ) : validationError ? (
             <div className="validation-error">{validationError}</div>
           ) : (
-            <div className="tables">
+            <div className="tables-section">
               {availableTables.length === 0 ? (
-                <span>Không có bàn trống phù hợp</span>
-              ) : (
-                availableTables.map((table) => (
-                  <div
-                    key={table._id}
-                    className={`table-card ${selectedTable?._id === table._id ? "selected" : ""
-                      }`}
-                    onClick={() => setSelectedTable(table)}
-                  >
-                    <div>{table.name}</div>
-                    <div>({table.capacity} người)</div>
+                <span>Hãy điền thông tin đặt bàn để xem bàn hiện có</span>
+              ) : isGuestCountExceeded() ? (
+                <div className="large-group-booking">
+                  <div className="large-group-info">
+                    <h5>📞 Đặt bàn số lượng lớn</h5>
+                    <p>
+                      Với {form.guest_count} người, vượt quá giới hạn đặt bàn trực tuyến (tối đa 23 người).
+                    </p>
+                    <p>
+                      Vui lòng liên hệ trực tiếp để được tư vấn và sắp xếp phù hợp:
+                    </p>
+                    <div className="contact-info">
+                      <div className="contact-item">
+                        <span className="contact-label">📞 Hotline:</span>
+                        <span className="contact-value">0123 456 789</span>
+                      </div>
+                      <div className="contact-item">
+                        <span className="contact-label">📧 Email:</span>
+                        <span className="contact-value">booking@nhahang.com</span>
+                      </div>
+                      <div className="contact-item">
+                        <span className="contact-label">⏰ Giờ làm việc:</span>
+                        <span className="contact-value">6:00 - 22:00 (Hàng ngày)</span>
+                      </div>
+                    </div>
+                    <div className="contact-actions">
+                      <button
+                        type="button"
+                        className="call-btn"
+                        onClick={() => window.open('tel:0123456789')}
+                      >
+                        📞 Gọi ngay
+                      </button>
+                      <button
+                        type="button"
+                        className="whatsapp-btn"
+                        onClick={() => window.open('https://wa.me/84123456789?text=Tôi muốn đặt bàn cho ' + form.guest_count + ' người')}
+                      >
+                        💬 WhatsApp
+                      </button>
+                    </div>
                   </div>
-                ))
+                </div>
+              ) : (
+                <>
+                  {/* Selected tables summary */}
+                  {selectedTables.length > 0 && (
+                    <div className="selected-tables-summary">
+                      <h5>Bàn đã chọn ({selectedTables.length} bàn):</h5>
+                      <div className="selected-tables-list">
+                        {selectedTables.map(table => (
+                          <div key={table._id} className="selected-table-item">
+                            <span>{table.name} ({table.capacity} người)</span>
+                            <button
+                              className="remove-table-btn"
+                              onClick={() => handleTableSelect(table)}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="capacity-info">
+                        Tổng sức chứa: <strong>{getTotalCapacity()}</strong> người
+                        {getTotalCapacity() < form.guest_count && (
+                          <span className="capacity-warning">
+                            ⚠️ Cần thêm bàn để đủ {form.guest_count} người
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Suggested combinations */}
+                  {getSuggestedCombinations().length > 0 && (
+                    <div className="table-combinations">
+                      <h5>Gợi ý chọn bàn:</h5>
+                      {getSuggestedCombinations().map((combination, index) => (
+                        <div key={index} className="combination-group">
+                          <h6>{combination.description}</h6>
+                          <div className="combination-options">
+                            {combination.tables.map((tableOption, tableIndex) => {
+                              if (Array.isArray(tableOption)) {
+                                // Multiple table combination
+                                const totalCapacity = tableOption.reduce((sum, t) => sum + t.capacity, 0);
+                                const isSelected = isCombinationSelected(tableOption);
+                                return (
+                                  <div
+                                    key={tableIndex}
+                                    className={`combination-card ${isSelected ? 'selected' : ''}`}
+                                    onClick={() => handleCombinationSelect(tableOption)}
+                                  >
+                                    <div className="combination-tables">
+                                      {tableOption.map(table => (
+                                        <span key={table._id} className="table-name">
+                                          {table.name}
+                                        </span>
+                                      ))}
+                                    </div>
+                                    <div className="combination-capacity">
+                                      Tổng: {totalCapacity} người
+                                    </div>
+                                  </div>
+                                );
+                              } else {
+                                // Single table
+                                return (
+                                  <div
+                                    key={tableOption._id}
+                                    className={`table-card ${isTableSelected(tableOption) ? "selected" : ""}`}
+                                    onClick={() => handleTableSelect(tableOption)}
+                                  >
+                                    <div>{tableOption.name}</div>
+                                    <div>({tableOption.capacity} người)</div>
+                                  </div>
+                                );
+                              }
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Manual table selection */}
+                  {/* <div className="manual-selection">
+                    <h5>{getSuggestedCombinations().length > 0 ? "Chọn bàn thủ công:" : "Chọn bàn:"}</h5>
+                    <div className="tables">
+                      {availableTables.map((table) => (
+                        <div
+                          key={table._id}
+                          className={`table-card ${isTableSelected(table) ? "selected" : ""}`}
+                          onClick={() => handleTableSelect(table)}
+                        >
+                          <div>{table.name}</div>
+                          <div>({table.capacity} người)</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div> */}
+                </>
               )}
             </div>
           )}
@@ -411,9 +692,14 @@ export default function ReservationForm() {
             name="guest_count"
             onChange={handleInput}
             min={1}
-            max={selectedTable?.capacity || 20}
+            max={getMaxPossibleCapacity()}
             required
           />
+          {form.guest_count >= 6 && (
+            <div className="combination-note">
+              💡 Từ 6 người trở lên, hệ thống sẽ gợi ý ghép bàn
+            </div>
+          )}
           <label>Ngày*</label>
           <input
             type="date"
@@ -468,8 +754,8 @@ export default function ReservationForm() {
               Đặt bàn thành công! Chúng tôi sẽ liên hệ xác nhận sớm nhất.
             </div>
           )}
-          <button type="submit" disabled={submitting || !!validationError}>
-            {submitting ? "Đang gửi..." : "Đặt bàn"}
+          <button type="submit" disabled={submitting || !!validationError || isGuestCountExceeded()}>
+            {submitting ? "Đang gửi..." : isGuestCountExceeded() ? "Vượt quá sức chứa" : "Đặt bàn"}
           </button>
         </form>
       </div>

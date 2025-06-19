@@ -210,12 +210,22 @@ body.reservation-form-open .navbar {
     color: #7a6c2f;
     border: 2px solid transparent;
     transition: background 0.2s, color 0.2s, border 0.2s;
+    position: relative;
 }
 
 .table-card.selected {
     background: #7a6c2f;
     color: #fff;
     border: 2px solid #f7b731;
+}
+
+.table-card:hover {
+    background: #e0e0e0;
+    border-color: #7a6c2f;
+}
+
+.table-card.selected:hover {
+    background: #6a5c1f;
 }
 
 .reservation-right h3 {
@@ -660,4 +670,378 @@ body.reservation-form-open .navbar {
     border: 1px solid #c3e6cb;
     margin-top: 8px;
     font-size: 0.9rem;
+}
+
+/* Table selection improvements */
+.tables-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.selected-tables-summary {
+    background: #f8f6f1;
+    border: 2px solid #7a6c2f;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+.selected-tables-summary h5 {
+    margin: 0 0 12px 0;
+    color: #7a6c2f;
+    font-size: 1rem;
+}
+
+.selected-tables-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.selected-table-item {
+    background: #7a6c2f;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.remove-table-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.remove-table-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.capacity-info {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.capacity-warning {
+    color: #e44d26;
+    margin-left: 8px;
+    font-weight: 500;
+}
+
+.table-combinations {
+    margin-bottom: 20px;
+}
+
+.table-combinations h5 {
+    margin: 0 0 12px 0;
+    color: #7a6c2f;
+    font-size: 1rem;
+}
+
+.combination-group {
+    margin-bottom: 16px;
+}
+
+.combination-group h6 {
+    margin: 0 0 8px 0;
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.combination-options {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.combination-card {
+    background: #f8f6f1;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    min-width: 120px;
+    text-align: center;
+    transition: all 0.2s;
+}
+
+.combination-card:hover {
+    border-color: #7a6c2f;
+    background: #f0ede6;
+}
+
+.combination-card.selected {
+    background: #7a6c2f;
+    color: white;
+    border-color: #f7b731;
+}
+
+.combination-tables {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 8px;
+}
+
+.table-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.combination-capacity {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.manual-selection h5 {
+    margin: 0 0 12px 0;
+    color: #7a6c2f;
+    font-size: 1rem;
+}
+
+/* Responsive improvements */
+@media (max-width: 900px) {
+    .combination-options {
+        flex-direction: column;
+    }
+
+    .combination-card {
+        min-width: unset;
+    }
+
+    .selected-tables-list {
+        flex-direction: column;
+    }
+
+    .selected-table-item {
+        justify-content: space-between;
+    }
+
+    .multiple-tables,
+    .multiple-areas {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+
+    .contact-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .call-btn,
+    .whatsapp-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .contact-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .contact-label {
+        font-size: 0.9rem;
+    }
+
+    .contact-value {
+        font-size: 1rem;
+    }
+
+    .status-tabs {
+        gap: 4px;
+        padding-bottom: 4px;
+    }
+
+    .tab-btn {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        border-radius: 16px;
+    }
+}
+
+/* Multiple tables display */
+.multiple-tables,
+.multiple-areas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.table-name {
+    background: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.multiple-areas {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Combination note */
+.combination-note {
+    background: #e3f2fd;
+    border: 1px solid #2196f3;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 8px 0;
+    font-size: 0.85rem;
+    color: #1976d2;
+    text-align: center;
+}
+
+/* Large group booking */
+.large-group-booking {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+}
+
+.large-group-info h5 {
+    color: #856404;
+    margin: 0 0 16px 0;
+    font-size: 1.2rem;
+}
+
+.large-group-info p {
+    color: #856404;
+    margin: 8px 0;
+    line-height: 1.5;
+}
+
+.contact-info {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    margin: 16px 0;
+    text-align: left;
+}
+
+.contact-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.contact-item:last-child {
+    border-bottom: none;
+}
+
+.contact-label {
+    font-weight: 500;
+    color: #333;
+}
+
+.contact-value {
+    color: #007bff;
+    font-weight: 500;
+}
+
+.contact-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+.call-btn,
+.whatsapp-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.call-btn {
+    background: #28a745;
+    color: white;
+}
+
+.call-btn:hover {
+    background: #218838;
+    transform: translateY(-2px);
+}
+
+.whatsapp-btn {
+    background: #25d366;
+    color: white;
+}
+
+.whatsapp-btn:hover {
+    background: #1ea952;
+    transform: translateY(-2px);
+}
+
+/* Status tabs */
+.status-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #f1f3f5;
+}
+
+.tab-btn {
+    background: #f8f9fa;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    min-width: fit-content;
+}
+
+.tab-btn:hover {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.tab-btn.active {
+    background: #7a6c2f;
+    color: white;
+    border-color: #f7b731;
+}
+
+.no-reservations-in-tab {
+    text-align: center;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    color: #666;
 }

@@ -22,6 +22,7 @@ export default function UserReservations({ userId, userName = "Khách hàng" }) 
     const [reservations, setReservations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [activeTab, setActiveTab] = useState('all'); // all, pending, confirmed, seated, completed, cancelled
 
     useEffect(() => {
         if (userId) {
@@ -37,7 +38,11 @@ export default function UserReservations({ userId, userName = "Khách hàng" }) 
             const response = await customFetch.get(`/reservations/user/${userId}`);
 
             if (response?.data?.success) {
-                setReservations(response.data.data || []);
+                // Sắp xếp theo thời gian mới nhất trước
+                const sortedReservations = (response.data.data || []).sort((a, b) => {
+                    return new Date(b.created_at) - new Date(a.created_at);
+                });
+                setReservations(sortedReservations);
             } else {
                 setError('Không thể tải danh sách đặt bàn');
             }
@@ -46,6 +51,22 @@ export default function UserReservations({ userId, userName = "Khách hàng" }) 
         } finally {
             setLoading(false);
         }
+    };
+
+    // Lọc reservations theo tab hiện tại
+    const getFilteredReservations = () => {
+        if (activeTab === 'all') {
+            return reservations;
+        }
+        return reservations.filter(reservation => reservation.status === activeTab);
+    };
+
+    // Đếm số lượng theo từng trạng thái
+    const getStatusCount = (status) => {
+        if (status === 'all') {
+            return reservations.length;
+        }
+        return reservations.filter(reservation => reservation.status === status).length;
     };
 
     const handleCancelReservation = async (reservationId) => {
@@ -109,90 +130,167 @@ export default function UserReservations({ userId, userName = "Khách hàng" }) 
                     <p>{userName} chưa có đặt bàn nào.</p>
                 </div>
             ) : (
-                <div className="reservations-list">
-                    {reservations.map(reservation => (
-                        <div key={reservation._id} className="reservation-card">
-                            <div className="reservation-header">
-                                <div className="reservation-info">
-                                    <h3>Đặt bàn #{reservation._id.slice(-6)}</h3>
-                                    <div className="reservation-meta">
-                                        <span className="date">
-                                            📅 {formatDate(reservation.date)}
-                                        </span>
-                                        <span className="time">
-                                            ⏰ {formatTime(reservation.slot_start_time)} - {formatTime(reservation.slot_end_time)}
-                                        </span>
-                                        <span className="guests">
-                                            👥 {reservation.guest_count} người
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="reservation-status">
-                                    <span
-                                        className="status-badge"
-                                        style={{ backgroundColor: STATUS_COLORS[reservation.status] }}
-                                    >
-                                        {STATUS_LABELS[reservation.status]}
-                                    </span>
-                                </div>
-                            </div>
+                <>
+                    {/* Status Tabs */}
+                    <div className="status-tabs">
+                        <button
+                            className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('all')}
+                        >
+                            Tất cả ({getStatusCount('all')})
+                        </button>
+                        <button
+                            className={`tab-btn ${activeTab === 'pending' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('pending')}
+                        >
+                            Chờ xác nhận ({getStatusCount('pending')})
+                        </button>
+                        <button
+                            className={`tab-btn ${activeTab === 'confirmed' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('confirmed')}
+                        >
+                            Đã xác nhận ({getStatusCount('confirmed')})
+                        </button>
+                        <button
+                            className={`tab-btn ${activeTab === 'seated' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('seated')}
+                        >
+                            Đã vào bàn ({getStatusCount('seated')})
+                        </button>
+                        <button
+                            className={`tab-btn ${activeTab === 'completed' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('completed')}
+                        >
+                            Hoàn thành ({getStatusCount('completed')})
+                        </button>
+                        <button
+                            className={`tab-btn ${activeTab === 'cancelled' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('cancelled')}
+                        >
+                            Đã hủy ({getStatusCount('cancelled')})
+                        </button>
+                    </div>
 
-                            <div className="reservation-details">
-                                <div className="detail-row">
-                                    <span className="label">Bàn:</span>
-                                    <span className="value">{reservation.table_id?.name}</span>
-                                </div>
-                                <div className="detail-row">
-                                    <span className="label">Khu vực:</span>
-                                    <span className="value">{reservation.table_id?.area_id?.name}</span>
-                                </div>
-                                <div className="detail-row">
-                                    <span className="label">Liên hệ:</span>
-                                    <span className="value">{reservation.contact_name} - {reservation.contact_phone}</span>
-                                </div>
-                                {reservation.notes && (
-                                    <div className="detail-row">
-                                        <span className="label">Ghi chú:</span>
-                                        <span className="value">{reservation.notes}</span>
-                                    </div>
-                                )}
-                                {reservation.pre_order_items && reservation.pre_order_items.length > 0 && (
-                                    <div className="pre-order-items">
-                                        <span className="label">Món đặt trước:</span>
-                                        <div className="items-list">
-                                            {reservation.pre_order_items.map((item, index) => (
-                                                <div key={index} className="item">
-                                                    {item.menu_item_id?.name} - {item.quantity} phần
-                                                </div>
-                                            ))}
+                    {/* Reservations List */}
+                    <div className="reservations-list">
+                        {getFilteredReservations().length === 0 ? (
+                            <div className="no-reservations-in-tab">
+                                <p>Không có đặt bàn nào ở trạng thái này.</p>
+                            </div>
+                        ) : (
+                            getFilteredReservations().map(reservation => (
+                                <div key={reservation._id} className="reservation-card">
+                                    <div className="reservation-header">
+                                        <div className="reservation-info">
+                                            <h3>Đặt bàn #{reservation._id.slice(-6)}</h3>
+                                            <div className="reservation-meta">
+                                                <span className="date">
+                                                    📅 {formatDate(reservation.date)}
+                                                </span>
+                                                <span className="time">
+                                                    ⏰ {formatTime(reservation.slot_start_time)} - {formatTime(reservation.slot_end_time)}
+                                                </span>
+                                                <span className="guests">
+                                                    👥 {reservation.guest_count} người
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="reservation-status">
+                                            <span
+                                                className="status-badge"
+                                                style={{ backgroundColor: STATUS_COLORS[reservation.status] }}
+                                            >
+                                                {STATUS_LABELS[reservation.status]}
+                                            </span>
                                         </div>
                                     </div>
-                                )}
-                            </div>
 
-                            <div className="reservation-actions">
-                                {reservation.status === 'pending' && (
-                                    <button
-                                        className="cancel-btn"
-                                        onClick={() => handleCancelReservation(reservation._id)}
-                                    >
-                                        Hủy đặt bàn
-                                    </button>
-                                )}
-                                {reservation.status === 'confirmed' && (
-                                    <div className="confirmed-info">
-                                        ✅ Đặt bàn đã được xác nhận
+                                    <div className="reservation-details">
+                                        <div className="detail-row">
+                                            <span className="label">Bàn:</span>
+                                            <span className="value">
+                                                {reservation.table_ids && reservation.table_ids.length > 1 ? (
+                                                    <div className="multiple-tables">
+                                                        {reservation.table_ids.map((table, index) => (
+                                                            <span key={table._id || table} className="table-name">
+                                                                {typeof table === 'object' && table.name ? table.name : (table._id || table)}
+                                                                {index < reservation.table_ids.length - 1 && ' + '}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    (reservation.table_id && typeof reservation.table_id === 'object' && reservation.table_id.name) ||
+                                                    (reservation.table_ids && reservation.table_ids[0] && typeof reservation.table_ids[0] === 'object' && reservation.table_ids[0].name) ||
+                                                    (reservation.table_id || reservation.table_ids?.[0] || 'N/A')
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="detail-row">
+                                            <span className="label">Khu vực:</span>
+                                            <span className="value">
+                                                {reservation.table_ids && reservation.table_ids.length > 1 ? (
+                                                    <div className="multiple-areas">
+                                                        {[...new Set(reservation.table_ids.map(table =>
+                                                            typeof table === 'object' && table.area_id && typeof table.area_id === 'object' ?
+                                                                table.area_id.name : 'N/A'
+                                                        ))].join(', ')}
+                                                    </div>
+                                                ) : (
+                                                    (reservation.table_id && typeof reservation.table_id === 'object' && reservation.table_id.area_id && typeof reservation.table_id.area_id === 'object' && reservation.table_id.area_id.name) ||
+                                                    (reservation.table_ids && reservation.table_ids[0] && typeof reservation.table_ids[0] === 'object' && reservation.table_ids[0].area_id && typeof reservation.table_ids[0].area_id === 'object' && reservation.table_ids[0].area_id.name) ||
+                                                    'N/A'
+                                                )}
+                                            </span>
+                                        </div>
+                                        <div className="detail-row">
+                                            <span className="label">Liên hệ:</span>
+                                            <span className="value">{reservation.contact_name} - {reservation.contact_phone}</span>
+                                        </div>
+                                        {reservation.notes && (
+                                            <div className="detail-row">
+                                                <span className="label">Ghi chú:</span>
+                                                <span className="value">{reservation.notes}</span>
+                                            </div>
+                                        )}
+                                        {reservation.pre_order_items && reservation.pre_order_items.length > 0 && (
+                                            <div className="pre-order-items">
+                                                <span className="label">Món đặt trước:</span>
+                                                <div className="items-list">
+                                                    {reservation.pre_order_items.map((item, index) => (
+                                                        <div key={index} className="item">
+                                                            {item.menu_item_id?.name} - {item.quantity} phần
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                                {reservation.status === 'seated' && (
-                                    <div className="seated-info">
-                                        🍽️ Khách đang được phục vụ
+
+                                    <div className="reservation-actions">
+                                        {reservation.status === 'pending' && (
+                                            <button
+                                                className="cancel-btn"
+                                                onClick={() => handleCancelReservation(reservation._id)}
+                                            >
+                                                Hủy đặt bàn
+                                            </button>
+                                        )}
+                                        {reservation.status === 'confirmed' && (
+                                            <div className="confirmed-info">
+                                                ✅ Đặt bàn đã được xác nhận
+                                            </div>
+                                        )}
+                                        {reservation.status === 'seated' && (
+                                            <div className="seated-info">
+                                                🍽️ Khách đang được phục vụ
+                                            </div>
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </>
             )}
 
             <style jsx>{`
