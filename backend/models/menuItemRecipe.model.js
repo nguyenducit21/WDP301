@@ -1,13 +1,9 @@
-// models/menuItemRecipe.model.js
+// models/menuItemRecipe.model.js - SỬA THÀNH ARRAY
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const MenuItemRecipeSchema = new Schema({
-    menu_item_id: { 
-        type: Schema.Types.ObjectId, 
-        ref: 'menuItems', 
-        required: true 
-    },
+// ✅ SUB-SCHEMA cho từng nguyên liệu
+const IngredientItemSchema = new Schema({
     inventory_id: { 
         type: Schema.Types.ObjectId, 
         ref: 'Inventory', 
@@ -21,16 +17,18 @@ const MenuItemRecipeSchema = new Schema({
     unit: { 
         type: String, 
         required: true 
+    }
+}, { _id: false }); // Không tạo _id cho sub-document
+
+// ✅ MAIN SCHEMA - 1 record cho 1 món ăn
+const MenuItemRecipeSchema = new Schema({
+    menu_item_id: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'menuItems', 
+        required: true,
+        unique: true // ✅ ĐẢM BẢO CHỈ 1 RECORD CHO 1 MÓN ĂN
     },
-    cost_per_serving: { 
-        type: Number, 
-        required: true, 
-        min: 0 
-    },
-    is_main_ingredient: { 
-        type: Boolean, 
-        default: false 
-    },
+    ingredients: [IngredientItemSchema], // ✅ ARRAY CÁC NGUYÊN LIỆU
     created_at: { 
         type: Date, 
         default: Date.now 
@@ -40,8 +38,5 @@ const MenuItemRecipeSchema = new Schema({
         default: Date.now 
     }
 });
-
-// Đảm bảo mỗi món chỉ có 1 record cho 1 nguyên liệu
-MenuItemRecipeSchema.index({ menu_item_id: 1, inventory_id: 1 }, { unique: true });
 
 module.exports = mongoose.model('MenuItemRecipe', MenuItemRecipeSchema);

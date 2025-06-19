@@ -1,4 +1,4 @@
-// models/menuItems.model.js (cập nhật)
+// models/menuItems.model.js - BỎ INGREDIENTS
 const mongoose = require('mongoose');
 
 const menuItemSchema = new mongoose.Schema({
@@ -26,16 +26,14 @@ const menuItemSchema = new mongoose.Schema({
         required: [true, 'Mô tả không được bỏ trống'],
         trim: true
     },
-    // Giữ lại để backward compatibility
-    ingredients: [{
-        type: String,
-        required: true
-    }],
-    // Thêm các field mới cho cost management
+    // ✅ BỎ INGREDIENTS FIELD
+    // ingredients: [{ type: String, required: true }],
+    
+    // ✅ GIỮ LẠI CÁC FIELD KHÁC
     total_ingredient_cost: { type: Number, default: 0, min: 0 },
     food_cost_percentage: { type: Number, default: 0, min: 0, max: 100 },
     can_prepare: { type: Boolean, default: true },
-    preparation_time: { type: Number, default: 15 }, // phút
+    preparation_time: { type: Number, default: 15 },
     difficulty_level: { 
         type: String, 
         enum: ['easy', 'medium', 'hard'], 
