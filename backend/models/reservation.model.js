@@ -28,9 +28,13 @@ const ReservationSchema = new Schema({
         quantity: { type: Number }
     }],
     deposit_amount: { type: Number },
+    total_amount: { type: Number }, // Total amount of pre-order items
+    payment_order_id: { type: String }, // Payment gateway order ID
+    payment_method: { type: String, enum: ['vnpay', 'momo', 'cash', 'credit_card'] },
+    payment_date: { type: Date },
     payment_status: {
         type: String,
-        enum: ['pending', 'partial', 'paid', 'refunded'],
+        enum: ['pending', 'pending_deposit', 'partial', 'paid', 'refunded'],
         default: 'pending'
     },
     notes: { type: String },

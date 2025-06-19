@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import customFetch from "../../utils/axios.customize";
 import { useBookingSlots } from "./BookingSlotManager";
+import { useNavigate } from "react-router-dom";
 import "./Reservation.css";
 
 const OPEN_HOUR = 6; // 6:00 AM
@@ -76,7 +77,14 @@ export default function ReservationForm() {
   const [availableTables, setAvailableTables] = useState([]);
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
+<<<<<<< Updated upstream
+=======
+  const [tableCombinations, setTableCombinations] = useState({});
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+>>>>>>> Stashed changes
   const timeSlots = getTimeSlots();
+  const navigate = useNavigate();
 
   // Sử dụng hook booking slots
   const { slots, getSlotIdFromTime, getTimeFromSlotId } = useBookingSlots();
@@ -129,6 +137,21 @@ export default function ReservationForm() {
     };
 
     fetchMenuData();
+  }, []);
+
+  // Check authentication status
+  useEffect(() => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        setIsAuthenticated(!!(user.user?.id || user.id || user._id));
+      } catch (e) {
+        setIsAuthenticated(false);
+      }
+    } else {
+      setIsAuthenticated(false);
+    }
   }, []);
 
   // Khi chọn slot, tự động tính end_time và validate
@@ -224,11 +247,122 @@ export default function ReservationForm() {
     }, 0);
   };
 
+  // Calculate deposit amount (50% of pre-order total)
+  const calculateDepositAmount = () => {
+    const total = calculatePreOrderTotal();
+    return Math.ceil(total * 0.5); // 50% deposit, rounded up
+  };
+
+  // Handle payment for deposit
+  const handlePayment = async () => {
+    if (!isAuthenticated) {
+      setError('Vui lòng đăng nhập để đặt bàn!');
+      setTimeout(() => {
+        navigate('/login', { state: { from: '/reservation' } });
+      }, 2000);
+      return;
+    }
+
+    if (!form.name || !form.phone || !form.date || !form.slot_id || !isTableSelectionValid()) {
+      setError('Vui lòng điền đầy đủ thông tin bắt buộc!');
+      return;
+    }
+
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    if (isGuestCountExceeded()) {
+      setError("Số lượng khách vượt quá giới hạn đặt bàn trực tuyến (tối đa 23 người). Vui lòng liên hệ trực tiếp để đặt bàn số lượng lớn.");
+      return;
+    }
+
+    setPaymentLoading(true);
+    setError('');
+
+    try {
+      const depositAmount = calculateDepositAmount();
+
+      if (depositAmount > 0) {
+        // Create payment URL for deposit
+        const paymentResponse = await customFetch.post('/payment/create_payment_url', {
+          amount: depositAmount,
+          orderDescription: `Đặt cọc đặt bàn ngày ${new Date(form.date).toLocaleDateString('vi-VN')} - ${form.slot_id ? getSlotDisplayText(form.slot_id) : ''}`,
+          orderType: 'reservation_deposit',
+          language: 'vn'
+        });
+
+        if (paymentResponse?.data?.paymentUrl && paymentResponse?.data?.orderId) {
+          // Create reservation with payment info
+          const reservationData = {
+            table_ids: selectedTables.map(table => table._id),
+            date: form.date,
+            slot_id: form.slot_id,
+            guest_count: form.guest_count,
+            contact_name: form.name,
+            contact_phone: form.phone,
+            contact_email: form.email,
+            pre_order_items: form.pre_order_items.filter(item => item.quantity > 0),
+            notes: form.note,
+            payment_order_id: paymentResponse.data.orderId,
+            deposit_amount: depositAmount,
+            total_amount: calculatePreOrderTotal(),
+            payment_status: 'pending_deposit',
+            status: 'pending'
+          };
+
+          const reservationResponse = await customFetch.post('/reservations', reservationData);
+
+          if (reservationResponse?.data?.success) {
+            // Open payment URL in new window
+            window.open(paymentResponse.data.paymentUrl, '_blank');
+            // Show success message
+            setSuccess(true);
+            setForm({
+              name: "",
+              phone: "",
+              email: "",
+              guest_count: 1,
+              date: "",
+              slot_id: "",
+              note: "",
+              pre_order_items: []
+            });
+            setSelectedTables([]);
+            setEndTime("");
+            setValidationError("");
+          } else {
+            throw new Error('Không thể tạo đơn đặt bàn');
+          }
+        } else {
+          throw new Error('Không thể tạo URL thanh toán');
+        }
+      }
+    } catch (error) {
+      console.error('Lỗi xử lý thanh toán:', error);
+      setError(error.response?.data?.message || error.message || 'Có lỗi xảy ra khi xử lý thanh toán');
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess(false);
 
+    // Check if user has pre-order items and needs to pay deposit
+    const hasPreOrderItems = form.pre_order_items && form.pre_order_items.length > 0 &&
+      form.pre_order_items.some(item => item.quantity > 0);
+
+    if (hasPreOrderItems) {
+      // If has pre-order items, require payment
+      await handlePayment();
+      return;
+    }
+
+    // Regular reservation without pre-order items
     // Validation
     if (
       !form.name ||
@@ -259,10 +393,6 @@ export default function ReservationForm() {
         notes: form.note,
         payment_status: 'pending'
       };
-
-      if (form.pre_order_items && form.pre_order_items.length > 0) {
-        reservationData.pre_order_items = form.pre_order_items.filter(item => item.quantity > 0);
-      }
 
       await customFetch.post("/reservations", reservationData);
 
@@ -457,7 +587,13 @@ export default function ReservationForm() {
             </button>
             {form.pre_order_items && form.pre_order_items.length > 0 && (
               <div className="pre-order-summary">
-                <span>Tổng tiền: <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong></span>
+                <div className="pre-order-details">
+                  <span>Tổng tiền: <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong></span>
+                  <span>Đặt cọc (50%): <strong className="deposit-amount">{calculateDepositAmount().toLocaleString()}đ</strong></span>
+                </div>
+                <div className="deposit-notice">
+                  💳 <strong>Lưu ý:</strong> Khi chọn món đặt trước, bạn cần đặt cọc 50% để xác nhận đơn hàng
+                </div>
               </div>
             )}
           </div>
@@ -468,8 +604,20 @@ export default function ReservationForm() {
               Đặt bàn thành công! Chúng tôi sẽ liên hệ xác nhận sớm nhất.
             </div>
           )}
+<<<<<<< Updated upstream
           <button type="submit" disabled={submitting || !!validationError}>
             {submitting ? "Đang gửi..." : "Đặt bàn"}
+=======
+          <button
+            type="submit"
+            disabled={submitting || paymentLoading || !!validationError || isGuestCountExceeded()}
+          >
+            {submitting || paymentLoading ? "Đang xử lý..." :
+              isGuestCountExceeded() ? "Vượt quá sức chứa" :
+                form.pre_order_items && form.pre_order_items.length > 0 && form.pre_order_items.some(item => item.quantity > 0) ?
+                  `Đặt bàn & Thanh toán cọc (${calculateDepositAmount().toLocaleString()}đ)` :
+                  "Đặt bàn"}
+>>>>>>> Stashed changes
           </button>
         </form>
       </div>

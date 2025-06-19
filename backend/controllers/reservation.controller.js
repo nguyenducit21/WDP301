@@ -374,7 +374,11 @@ const createReservation = async (req, res) => {
             contact_phone,
             contact_email,
             pre_order_items,
-            notes
+            notes,
+            deposit_amount,
+            total_amount,
+            payment_order_id,
+            payment_status
         } = req.body;
 
         // Kiểm tra thông tin bắt buộc
@@ -499,6 +503,20 @@ const createReservation = async (req, res) => {
             created_at: new Date(),
             updated_at: new Date()
         };
+
+        // Add payment-related fields if provided
+        if (deposit_amount) {
+            reservationData.deposit_amount = deposit_amount;
+        }
+        if (total_amount) {
+            reservationData.total_amount = total_amount;
+        }
+        if (payment_order_id) {
+            reservationData.payment_order_id = payment_order_id;
+        }
+        if (payment_status) {
+            reservationData.payment_status = payment_status;
+        }
 
         if (customer_id) {
             try {

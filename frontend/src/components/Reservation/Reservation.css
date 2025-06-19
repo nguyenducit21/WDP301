@@ -296,16 +296,42 @@ body.reservation-form-open .navbar {
 }
 
 .pre-order-summary {
-    background: #f8f6f1;
-    padding: 8px 12px;
-    border-radius: 6px;
-    text-align: center;
-    border: 1px solid #e0e0e0;
+    margin-top: 12px;
+    padding: 12px;
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
     font-size: 0.9rem;
 }
 
 .pre-order-summary strong {
     color: #e44d26;
+}
+
+.pre-order-details {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+.deposit-amount {
+    color: #e44d26 !important;
+    font-size: 1.1em;
+}
+
+.deposit-notice {
+    background: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: #1976d2;
+    margin-top: 8px;
+}
+
+.deposit-notice strong {
+    color: #1976d2;
 }
 
 /* Menu Modal Styles */
