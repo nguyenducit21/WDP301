@@ -1,11 +1,12 @@
 const Table = require('../models/table.model');
 const Area = require('../models/area.model');
 const Reservation = require('../models/reservation.model');
+const Order = require('../models/order.model');
 
 // Lấy tất cả bàn theo khu vực
 const getTables = async (req, res) => {
     try {
-        const { area_id, page = 1, limit = 18 } = req.query;
+        const { area_id, date, page = 1, limit = 18 } = req.query;
 
         let filter = {};
         if (area_id) {
@@ -18,12 +19,41 @@ const getTables = async (req, res) => {
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
+        //  Nếu có ngày được chọn, kiểm tra trạng thái reservation cho ngày đó
+        let tablesWithStatus = tables;
+        if (date) {
+            const startDate = new Date(date);
+            startDate.setHours(0, 0, 0, 0);
+            const endDate = new Date(date);
+            endDate.setHours(23, 59, 59, 999);
+
+            // Lấy tất cả reservation của ngày được chọn
+            const reservations = await Reservation.find({
+                date: { $gte: startDate, $lte: endDate },
+                status: { $in: ['pending', 'confirmed', 'seated'] }
+            }).select('table_id');
+
+            const reservedTableIds = new Set(reservations.map(r => r.table_id.toString()));
+
+            // Thêm trạng thái isReserved cho từng bàn
+            tablesWithStatus = tables.map(table => ({
+                ...table.toObject(),
+                isReserved: reservedTableIds.has(table._id.toString())
+            }));
+        } else {
+            // Nếu không có ngày, trả về trạng thái bàn hiện tại
+            tablesWithStatus = tables.map(table => ({
+                ...table.toObject(),
+                isReserved: false // Mặc định không có reservation
+            }));
+        }
+
         const total = await Table.countDocuments(filter);
         const totalPages = Math.ceil(total / limit);
 
         res.status(200).json({
             success: true,
-            data: tables,
+            data: tablesWithStatus,
             pagination: {
                 currentPage: parseInt(page),
                 totalPages,
@@ -40,6 +70,7 @@ const getTables = async (req, res) => {
         });
     }
 };
+
 
 // Lấy chi tiết một bàn
 const getTableById = async (req, res) => {
@@ -214,16 +245,20 @@ const deleteTable = async (req, res) => {
             });
         }
 
-        // Kiểm tra có đặt bàn đang hoạt động không
-        const activeReservations = await Reservation.find({
+        //  Chỉ kiểm tra đặt bàn từ hôm nay trở đi
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const futureReservations = await Reservation.find({
             table_id: req.params.id,
-            status: { $in: ['confirmed', 'pending'] }
+            date: { $gte: today },
+            status: { $in: ['confirmed', 'pending', 'seated'] }
         });
 
-        if (activeReservations.length > 0) {
+        if (futureReservations.length > 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Không thể xóa bàn vì có đặt bàn đang hoạt động'
+                message: 'Không thể xóa bàn vì có đặt bàn trong tương lai'
             });
         }
 
@@ -242,6 +277,44 @@ const deleteTable = async (req, res) => {
     }
 };
 
+const cleaningCompleted = async (req, res) => {
+    try {
+        const table = await Table.findById(req.params.id);
+        if (!table) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy bàn'
+            });
+        }
+
+        if (table.status !== 'cleaning') {
+            return res.status(400).json({
+                success: false,
+                message: 'Bàn không đang trong trạng thái dọn dẹp'
+            });
+        }
+
+        // Cập nhật trạng thái về available
+        table.status = 'available';
+        table.updated_at = new Date();
+        await table.save();
+
+        await table.populate('area_id', 'name');
+
+        res.status(200).json({
+            success: true,
+            message: 'Đã hoàn thành dọn bàn',
+            data: table
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi cập nhật trạng thái bàn',
+            error: error.message
+        });
+    }
+};
+
 // Cập nhật trạng thái bàn
 const updateTableStatus = async (req, res) => {
     try {
@@ -250,14 +323,17 @@ const updateTableStatus = async (req, res) => {
         if (!['available', 'reserved', 'occupied', 'cleaning', 'maintenance'].includes(status)) {
             return res.status(400).json({
                 success: false,
-                message: 'Trạng thái không hợp lệ'
+                message: 'Trạng thái bàn không hợp lệ'
             });
         }
 
         const table = await Table.findByIdAndUpdate(
             req.params.id,
-            { status, updated_at: new Date() },
-            { new: true, runValidators: true }
+            {
+                status,
+                updated_at: new Date()
+            },
+            { new: true }
         ).populate('area_id', 'name');
 
         if (!table) {
@@ -287,5 +363,6 @@ module.exports = {
     createTable,
     updateTable,
     deleteTable,
-    updateTableStatus
+    updateTableStatus,
+    cleaningCompleted
 };

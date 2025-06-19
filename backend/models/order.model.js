@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const OrderSchema = new Schema({
     reservation_id: { type: Schema.Types.ObjectId, ref: 'Reservation' },
     table_id: { type: Schema.Types.ObjectId, ref: 'Table', required: true },
-    customer_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    customer_id: { type: Schema.Types.ObjectId, ref: 'User' },
     staff_id: { type: Schema.Types.ObjectId, ref: 'User' },
     order_items: [{
         menu_item_id: { type: Schema.Types.ObjectId, ref: 'MenuItem', required: true },

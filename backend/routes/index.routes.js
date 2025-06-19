@@ -13,6 +13,8 @@ const recipeRoutes = require('./menuItemRecipe.routes');
 const importReceiptRoutes = require('./importReceipt.routes');
 
 
+const orderRoutes = require("./order.routes");
+const bookingSlotRouter = require("./bookingSlot.routes");
 
 router.use("/user", userRouter);
 router.use("/menu-items", menuItemRouter);
@@ -27,5 +29,7 @@ router.use('/recipes', recipeRoutes);
 router.use('/import-receipt', importReceiptRoutes);
 
 
+router.use('/orders', orderRoutes);
+router.use('/booking-slots', bookingSlotRouter);
 
 module.exports = router;

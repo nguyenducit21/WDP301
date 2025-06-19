@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../../components/Sidebar';
 import { AuthContext } from '../../context/AuthContext';
+import InvoicePrint from '../../components/InvoicePrint/InvoicePrint';
 import './TableManagement.css';
 import axios from '../../utils/axios.customize';
 
@@ -25,8 +26,19 @@ const TableManagement = () => {
     const [totalPages, setTotalPages] = useState(1);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [menuItems, setMenuItems] = useState([]);
+    const [orders, setOrders] = useState([]);
+    const [showInvoice, setShowInvoice] = useState(false);
+    const [invoiceData, setInvoiceData] = useState(null);
+    const [bookingSlots, setBookingSlots] = useState([]); // Thêm state cho booking slots
 
-    const tablesPerPage = 18;
+    //Date selector state
+    const [selectedDate, setSelectedDate] = useState(() => {
+        const today = new Date();
+        return today.toISOString().slice(0, 10);
+    });
+
+    const tablesPerPage = 10;
 
     // Utility function for safe object access
     const safeGet = (obj, path, defaultValue = null) => {
@@ -36,6 +48,47 @@ const TableManagement = () => {
             return defaultValue;
         }
     };
+
+    // Status mapping functions
+    const getReservationStatusLabel = (status) => {
+        const statusMap = {
+            'pending': 'Chờ xác nhận',
+            'confirmed': 'Đã xác nhận',
+            'seated': 'Đã vào bàn',
+            'cancelled': 'Đã hủy',
+            'no_show': 'Không đến',
+            'completed': 'Đã hoàn thành'
+        };
+        return statusMap[status] || status;
+    };
+
+    const getTableStatusLabel = (status) => {
+        const statusMap = {
+            'available': 'Bàn trống',
+            'reserved': 'Đã đặt',
+            'occupied': 'Đang phục vụ',
+            'cleaning': 'Đang dọn',
+            'maintenance': 'Bảo trì'
+        };
+        return statusMap[status] || status;
+    };
+
+    const getPaymentStatusLabel = (paymentStatus) => {
+        const statusMap = {
+            'pending': 'Chưa thanh toán',
+            'partial': 'Đã cọc',
+            'paid': 'Đã thanh toán',
+            'refunded': 'Đã hoàn tiền'
+        };
+        return statusMap[paymentStatus] || paymentStatus;
+    };
+
+    // Debug user context
+    useEffect(() => {
+        console.log('Current user context:', user);
+        console.log('User ID for orders:', user?.userId || user?.user?._id || user?._id);
+        console.log('User role:', safeGet(user, 'user.role') || safeGet(user, 'role'));
+    }, [user]);
 
     // Check authorization
     useEffect(() => {
@@ -89,10 +142,17 @@ const TableManagement = () => {
         }
     }, []);
 
+    // NEW: Load reservations with date filter
     const loadReservations = useCallback(async () => {
         try {
             setLoading(true);
-            const response = await axios.get('/reservations?limit=1000&sort=-created_at');
+            const params = new URLSearchParams({
+                limit: '1000',
+                sort: '-created_at',
+                date: selectedDate
+            });
+
+            const response = await axios.get(`/reservations?${params}`);
             if (response?.data?.success && Array.isArray(response.data.data)) {
                 const validReservations = response.data.data.filter(res =>
                     res &&
@@ -106,6 +166,33 @@ const TableManagement = () => {
             console.error('Error loading reservations:', error);
         } finally {
             setLoading(false);
+        }
+    }, [selectedDate]);
+
+    const loadMenuItems = useCallback(async () => {
+        try {
+            const response = await axios.get('/menu-items');
+            if (response?.data?.success && Array.isArray(response.data.data)) {
+                setMenuItems(response.data.data);
+            }
+        } catch (error) {
+            console.error('Error loading menu items:', error);
+        }
+    }, []);
+
+    const loadOrders = useCallback(async () => {
+        try {
+            const response = await axios.get('/orders?limit=1000&sort=-created_at');
+            if (response?.data?.success && Array.isArray(response.data.data)) {
+                const validOrders = response.data.data.filter(order =>
+                    order &&
+                    order._id &&
+                    order.table_id
+                );
+                setOrders(validOrders);
+            }
+        } catch (error) {
+            console.error('Error loading orders:', error);
         }
     }, []);
 
@@ -123,19 +210,38 @@ const TableManagement = () => {
         }
     }, []);
 
+    // Thêm hàm load booking slots
+    const loadBookingSlots = useCallback(async () => {
+        try {
+            const response = await axios.get('/booking-slots');
+            if (response?.data?.success && Array.isArray(response.data.data)) {
+                setBookingSlots(response.data.data);
+            }
+        } catch (error) {
+            console.error('Error loading booking slots:', error);
+        }
+    }, []);
+
     // Load initial data
     useEffect(() => {
         const initializeData = async () => {
             await Promise.all([
                 loadAreas(),
                 loadAllTables(),
-                loadReservations()
+                loadMenuItems(),
+                loadOrders(),
+                loadBookingSlots() // Thêm load booking slots
             ]);
         };
         initializeData();
-    }, [loadAreas, loadAllTables, loadReservations]);
+    }, [loadAreas, loadAllTables, loadMenuItems, loadOrders, loadBookingSlots]);
 
-    // Filter tables by area
+    // Load reservations when date changes
+    useEffect(() => {
+        loadReservations();
+    }, [loadReservations]);
+
+    // Filter tables by area and update status based on reservations
     useEffect(() => {
         if (selectedArea && allTables.length > 0) {
             const filteredTables = allTables.filter(table => {
@@ -145,10 +251,35 @@ const TableManagement = () => {
                 return tableAreaId === selectedArea;
             });
 
-            const totalPages = Math.max(1, Math.ceil(filteredTables.length / tablesPerPage));
+            // Update table status based on reservations for selected date
+            const tablesWithUpdatedStatus = filteredTables.map(table => {
+                const hasReservation = reservations.some(res =>
+                    (safeGet(res, 'table_id._id') || res.table_id) === table._id &&
+                    ['confirmed', 'pending', 'seated'].includes(res.status)
+                );
+
+                const hasActiveOrder = orders.some(order =>
+                    (safeGet(order, 'table_id._id') || order.table_id) === table._id &&
+                    ['pending', 'preparing', 'served'].includes(order.status)
+                );
+
+                let status = 'available';
+                if (hasActiveOrder) {
+                    status = 'occupied';
+                } else if (hasReservation) {
+                    status = 'reserved';
+                }
+
+                return {
+                    ...table,
+                    status: status
+                };
+            });
+
+            const totalPages = Math.max(1, Math.ceil(tablesWithUpdatedStatus.length / tablesPerPage));
             const startIndex = (currentPage - 1) * tablesPerPage;
             const endIndex = startIndex + tablesPerPage;
-            const currentTables = filteredTables.slice(startIndex, endIndex);
+            const currentTables = tablesWithUpdatedStatus.slice(startIndex, endIndex);
 
             setTables(currentTables);
             setTotalPages(totalPages);
@@ -157,15 +288,65 @@ const TableManagement = () => {
                 setCurrentPage(totalPages);
             }
         }
-    }, [selectedArea, allTables, currentPage]);
+    }, [selectedArea, allTables, currentPage, reservations, orders]);
 
-    // Check if table has active reservations
+    // Helper functions
     const hasActiveReservations = useCallback((tableId) => {
         return reservations.some(res =>
             (safeGet(res, 'table_id._id') || res.table_id) === tableId &&
-            ['confirmed', 'pending'].includes(res.status)
+            ['confirmed', 'pending', 'seated'].includes(res.status)
         );
     }, [reservations]);
+
+    const getTableOrders = useCallback((tableId) => {
+        if (!tableId || !orders.length) return [];
+        return orders.filter(order =>
+            (safeGet(order, 'table_id._id') || order.table_id) === tableId
+        ).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    }, [orders]);
+
+    const hasActiveOrder = useCallback((tableId) => {
+        if (!tableId) return false;
+        const tableOrders = getTableOrders(tableId);
+        return tableOrders.some(order =>
+            ['pending', 'preparing', 'served'].includes(order.status)
+        );
+    }, [getTableOrders]);
+
+    const getTableReservations = (tableId) => {
+        if (!tableId || !Array.isArray(reservations)) return [];
+        return reservations.filter(res =>
+            res &&
+            (safeGet(res, 'table_id._id') || res.table_id) === tableId &&
+            ['confirmed', 'pending', 'seated'].includes(res.status)
+        );
+    };
+
+    const getAreaName = (areaId) => {
+        if (!areaId || !Array.isArray(areas)) return 'N/A';
+        const area = areas.find(a => a && a._id === areaId);
+        return area?.name || 'N/A';
+    };
+
+    const getStaffName = (reservation) => {
+        if (!reservation) return 'N/A';
+
+        const createdByStaff = reservation.created_by_staff;
+        if (!createdByStaff) {
+            return 'Khách tự đặt';
+        }
+
+        const staffName = safeGet(createdByStaff, 'full_name') ||
+            safeGet(createdByStaff, 'username') ||
+            'Nhân viên';
+
+        return `Nhân viên: ${staffName}`;
+    };
+
+    const getTableById = (id) => {
+        if (!id || !Array.isArray(allTables)) return {};
+        return allTables.find(table => table && table._id === id) || {};
+    };
 
     // Event Handlers
     const handleTabChange = (tab) => {
@@ -176,6 +357,14 @@ const TableManagement = () => {
 
     const handleAreaChange = (areaId) => {
         setSelectedArea(areaId);
+        setCurrentPage(1);
+        setSelectedTable(null);
+        setError('');
+    };
+
+    // NEW: Handle date change
+    const handleDateChange = (date) => {
+        setSelectedDate(date);
         setCurrentPage(1);
         setSelectedTable(null);
         setError('');
@@ -195,30 +384,121 @@ const TableManagement = () => {
         setSelectedReservation(reservation);
     };
 
+    const handlePageChange = (pageNumber) => {
+        if (pageNumber >= 1 && pageNumber <= totalPages) {
+            setCurrentPage(pageNumber);
+        }
+    };
+
+    // Status change handlers
+    const handleConfirmReservation = async (reservationId) => {
+        try {
+            setLoading(true);
+            const response = await axios.patch(`/reservations/${reservationId}/confirm`);
+            if (response?.data?.success) {
+                alert('Xác nhận đặt bàn thành công');
+                await Promise.all([
+                    loadReservations(),
+                    loadAllTables(),
+                    loadOrders()
+                ]);
+            } else {
+                setError(response?.data?.message || 'Lỗi khi xác nhận đặt bàn');
+            }
+        } catch (error) {
+            console.error('Error confirming reservation:', error);
+            setError('Lỗi khi xác nhận đặt bàn');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSeatCustomer = async (reservationId) => {
+        try {
+            setLoading(true);
+            const response = await axios.patch(`/reservations/${reservationId}/seat`);
+            if (response?.data?.success) {
+                alert('Khách đã vào bàn');
+                await Promise.all([
+                    loadReservations(),
+                    loadAllTables(),
+                    loadOrders()
+                ]);
+            } else {
+                setError(response?.data?.message || 'Lỗi khi cập nhật trạng thái');
+            }
+        } catch (error) {
+            console.error('Error seating customer:', error);
+            setError('Lỗi khi cập nhật trạng thái');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCompleteReservation = async (reservationId) => {
+        try {
+            setLoading(true);
+            const response = await axios.patch(`/reservations/${reservationId}/complete`);
+            if (response?.data?.success) {
+                alert('Đặt bàn đã hoàn thành');
+                await Promise.all([
+                    loadReservations(),
+                    loadAllTables(),
+                    loadOrders()
+                ]);
+            } else {
+                setError(response?.data?.message || 'Lỗi khi hoàn thành đặt bàn');
+            }
+        } catch (error) {
+            console.error('Error completing reservation:', error);
+            setError('Lỗi khi hoàn thành đặt bàn');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Open invoice
+    const openInvoice = async (reservation) => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`/reservations/${reservation._id}/invoice`);
+            if (response?.data?.success) {
+                setInvoiceData(response.data.data);
+                setShowInvoice(true);
+            } else {
+                setError('Lỗi khi tải thông tin hóa đơn');
+            }
+        } catch (error) {
+            console.error('Error loading invoice:', error);
+            setError('Lỗi khi tải thông tin hóa đơn');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const openModal = async (type, item = null) => {
         setModalType(type);
         setError('');
 
         if (type === 'add') {
-            // Load tất cả bàn available để chọn
-            const availableTables = allTables.filter(table =>
-                table && table.status === 'available'
-            );
-
             setFormData({
-                table_id: selectedTable?._id || '',
+                date: selectedDate,
+                slot_id: '',
+                table_id: '',
                 contact_name: '',
                 contact_phone: '',
                 contact_email: '',
-                date: new Date().toISOString().slice(0, 10),
-                time: '',
-                guest_count: 1,
+                guest_count: 2,
                 status: 'pending',
+                payment_status: 'pending',
                 notes: '',
-                availableTables: availableTables
+                pre_order_items: [],
+                availableTables: [],
+                bookingSlots: bookingSlots, // Sử dụng booking slots từ state
+                isCheckingInventory: false,
+                inventoryStatus: null
             });
         } else if (type === 'edit' && item) {
-            // FIXED: Khi edit reservation, hiển thị bàn hiện tại + những bàn available khác
             const currentTableId = safeGet(item, 'table_id._id') || item.table_id;
             const availableTablesForEdit = allTables.filter(table =>
                 table && (
@@ -228,19 +508,23 @@ const TableManagement = () => {
             );
 
             setFormData({
-                id: item._id,
+                _id: item._id,
                 table_id: currentTableId,
                 contact_name: item.contact_name || '',
                 contact_phone: item.contact_phone || '',
                 contact_email: item.contact_email || '',
-                date: item.date ? new Date(item.date).toISOString().slice(0, 10) : '',
-                time: item.time || '',
+                date: item.date ? new Date(item.date).toISOString().split('T')[0] : '',
+                slot_id: safeGet(item, 'slot_id._id') || item.slot_id || '',
                 guest_count: item.guest_count || 1,
                 status: item.status || 'pending',
+                payment_status: item.payment_status || 'pending',
                 notes: item.notes || '',
-                availableTables: availableTablesForEdit
+                pre_order_items: item.pre_order_items || [],
+                availableTables: availableTablesForEdit,
+                bookingSlots: bookingSlots // Sử dụng booking slots từ state
             });
         } else if (type === 'move' && item) {
+            // Lấy tất cả bàn trống từ tất cả khu vực, không chỉ khu vực hiện tại
             const availableTables = allTables.filter(table =>
                 table &&
                 table.status === 'available' &&
@@ -248,43 +532,144 @@ const TableManagement = () => {
             );
 
             setFormData({
-                id: item._id,
+                _id: item._id,
                 table_id: safeGet(item, 'table_id._id') || item.table_id,
                 new_table_id: '',
                 contact_name: item.contact_name || '',
+                current_status: item.status,
                 availableTables: availableTables
             });
         } else if (type === 'delete' && item) {
             setFormData({
-                id: item._id,
+                _id: item._id,
                 contact_name: item.contact_name || '',
                 table_id: safeGet(item, 'table_id._id') || item.table_id,
                 date: item.date,
                 time: item.time
             });
+        } else if (type === 'updatePayment' && item) {
+            setFormData({
+                _id: item._id,
+                contact_name: item.contact_name || '',
+                current_payment_status: item.payment_status || 'pending',
+                payment_status: item.payment_status || 'pending',
+                payment_method: 'bank_transfer',
+                payment_note: ''
+            });
+        } else if (type === 'addMenuItems' && item) {
+            // Tìm đặt bàn hiện tại của bàn này (chỉ lấy đặt bàn chưa hoàn thành)
+            const tableReservations = getTableReservations(item._id);
+            const currentReservation = tableReservations.length > 0 ? tableReservations[0] : null;
+
+            // Chỉ lấy đơn hàng liên quan đến đặt bàn hiện tại
+            let currentOrders = [];
+            if (currentReservation) {
+                currentOrders = orders.filter(order =>
+                    order.reservation_id === currentReservation._id ||
+                    safeGet(order, 'reservation_id._id') === currentReservation._id
+                );
+            } else {
+                // Nếu không có đặt bàn, lấy đơn hàng của bàn không có reservation_id
+                currentOrders = orders.filter(order =>
+                    order.table_id === item._id &&
+                    !order.reservation_id
+                );
+            }
+
+            const currentOrder = currentOrders.length > 0 ? currentOrders[0] : null;
+
+            let orderItems = [];
+            if (currentOrder && currentOrder.order_items) {
+                orderItems = currentOrder.order_items.map(orderItem => ({
+                    menu_item_id: safeGet(orderItem, 'menu_item_id._id') || orderItem.menu_item_id,
+                    quantity: orderItem.quantity,
+                    price: orderItem.price
+                }));
+            }
+
+            setFormData({
+                table_id: item._id,
+                table_name: item.name,
+                order_id: currentOrder ? currentOrder._id : null,
+                reservation_id: currentReservation ? currentReservation._id : null,
+                customer_id: currentReservation?.customer_id || null,
+                order_items: orderItems,
+                status: currentOrder ? currentOrder.status : 'pending',
+                paid: currentOrder ? currentOrder.paid : false,
+                note: currentOrder ? currentOrder.note : ''
+            });
+        } else if (type === 'payment' && item) {
+            const currentOrders = getTableOrders(item._id);
+            const currentOrder = currentOrders.length > 0 ? currentOrders[0] : null;
+
+            if (!currentOrder) {
+                setError('Không tìm thấy đơn hàng cho bàn này');
+                return;
+            }
+
+            let orderItems = [];
+            if (currentOrder.order_items) {
+                orderItems = currentOrder.order_items.map(orderItem => ({
+                    menu_item_id: safeGet(orderItem, 'menu_item_id._id') || orderItem.menu_item_id,
+                    quantity: orderItem.quantity,
+                    price: orderItem.price
+                }));
+            }
+
+            const tableReservations = getTableReservations(item._id);
+            const currentReservation = tableReservations.length > 0 ? tableReservations[0] : null;
+
+            const preOrderTotal = currentReservation?.pre_order_items ?
+                currentReservation.pre_order_items.reduce((total, item) => {
+                    if (!item || !item.menu_item_id) return total;
+                    const menuItem = typeof item.menu_item_id === 'object' ? item.menu_item_id :
+                        menuItems.find(m => m && m._id === item.menu_item_id);
+                    const price = menuItem ? menuItem.price : 0;
+                    return total + (price * item.quantity);
+                }, 0) : 0;
+
+            const orderItemsTotal = calculateOrderTotal(orderItems);
+            const grandTotal = preOrderTotal + orderItemsTotal;
+
+            setFormData({
+                order_id: currentOrder._id,
+                table_id: item._id,
+                table_name: item.name,
+                reservation_id: currentReservation?._id,
+                order_items: orderItems,
+                status: currentOrder.status,
+                paid: currentOrder.paid || false,
+                pre_order_total: preOrderTotal,
+                order_items_total: orderItemsTotal,
+                total_amount: grandTotal,
+                payment_method: 'cash'
+            });
         } else if (type === 'createTable') {
             setFormData({
-                area_id: selectedArea || '',
                 name: '',
-                type: '',
+                area_id: selectedArea,
                 capacity: 4,
+                type: 'standard',
+                status: 'available',
                 description: ''
             });
         } else if (type === 'editTable' && item) {
             setFormData({
-                id: item._id,
+                _id: item._id,
                 name: item.name || '',
-                type: item.type || '',
+                area_id: safeGet(item, 'area_id._id') || item.area_id,
                 capacity: item.capacity || 4,
+                type: item.type || 'standard',
+                status: item.status || 'available',
                 description: item.description || ''
             });
         } else if (type === 'deleteTable' && item) {
             setFormData({
-                id: item._id,
-                name: item.name || '',
-                capacity: item.capacity || 0
+                _id: item._id,
+                name: item.name || ''
             });
         }
+
         setIsModalOpen(true);
     };
 
@@ -295,12 +680,150 @@ const TableManagement = () => {
         setFormData({});
     };
 
-    const handleInputChange = (e) => {
+    // Thêm hàm chuyển đổi slot thời gian sang định dạng API
+    const convertTimeSlotToApiFormat = (timeSlot) => {
+        if (!timeSlot) return '';
+        // Lấy thời gian bắt đầu từ slot (ví dụ: "07:00-09:00" -> "07:00")
+        return timeSlot.split('-')[0];
+    };
+
+    const handleInputChange = async (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value
-        }));
+
+        // Xử lý đặc biệt khi thay đổi ngày hoặc giờ trong form đặt bàn
+        if (modalType === 'add' || modalType === 'edit') {
+            if (name === 'slot_id' && value && formData.date) {
+                // Khi chọn slot, lấy danh sách bàn trống
+                try {
+                    setLoading(true);
+                    const response = await axios.get(`/reservations/available-tables?date=${formData.date}&slot_id=${value}`);
+                    if (response?.data?.success) {
+                        // Tìm slot đã chọn để lưu thông tin
+                        const selectedSlot = bookingSlots.find(slot => slot._id === value);
+
+                        setFormData({
+                            ...formData,
+                            [name]: value,
+                            availableTables: response.data.data,
+                            table_id: '', // Reset bàn đã chọn
+                            selectedSlotInfo: selectedSlot // Lưu thông tin slot đã chọn
+                        });
+                    } else {
+                        setError('Không thể lấy danh sách bàn trống');
+                    }
+                    setLoading(false);
+                } catch (error) {
+                    console.error('Error fetching available tables:', error);
+                    setError('Lỗi khi lấy danh sách bàn trống');
+                    setLoading(false);
+                }
+                return;
+            }
+
+            if (name === 'date') {
+                // Khi thay đổi ngày, reset slot, bàn đã chọn
+                setFormData({
+                    ...formData,
+                    [name]: value,
+                    slot_id: '',
+                    table_id: '',
+                    availableTables: []
+                });
+                return;
+            }
+
+            if (name === 'table_id' && value) {
+                // Khi chọn bàn, lấy thông tin sức chứa của bàn
+                const selectedTable = formData.availableTables.find(table => table._id === value);
+                if (selectedTable) {
+                    setFormData({
+                        ...formData,
+                        [name]: value,
+                        guest_count: Math.min(formData.guest_count || 1, selectedTable.capacity)
+                    });
+                } else {
+                    setFormData({
+                        ...formData,
+                        [name]: value
+                    });
+                }
+                return;
+            }
+        }
+
+        // Xử lý mặc định cho các trường khác
+        setFormData({ ...formData, [name]: value });
+    };
+
+    // Handle pre-order menu item changes
+    const handleMenuItemChange = (menuItemId, quantity) => {
+        const currentItems = formData.pre_order_items || [];
+        let updatedItems = currentItems.filter(item => item.menu_item_id !== menuItemId);
+
+        if (quantity > 0) {
+            updatedItems.push({
+                menu_item_id: menuItemId,
+                quantity: quantity
+            });
+        }
+
+        setFormData({
+            ...formData,
+            pre_order_items: updatedItems
+        });
+    };
+
+    // Handle order item changes
+    const handleOrderItemChange = (menuItemId, quantity) => {
+        const currentItems = formData.order_items || [];
+        let updatedItems = currentItems.filter(item => item.menu_item_id !== menuItemId);
+
+        if (quantity > 0) {
+            const menuItem = menuItems.find(m => m && m._id === menuItemId);
+            const price = menuItem ? menuItem.price : 0;
+
+            updatedItems.push({
+                menu_item_id: menuItemId,
+                quantity: quantity,
+                price: price
+            });
+        }
+
+        setFormData({
+            ...formData,
+            order_items: updatedItems
+        });
+    };
+
+    // Calculate pre-order total
+    const calculatePreOrderTotal = () => {
+        if (!formData.pre_order_items || !formData.pre_order_items.length || !menuItems.length) return 0;
+
+        return formData.pre_order_items.reduce((total, item) => {
+            if (!item || !item.menu_item_id) return total;
+            const menuItem = menuItems.find(m => m && m._id === item.menu_item_id);
+            if (menuItem) {
+                return total + ((menuItem.price || 0) * item.quantity);
+            }
+            return total;
+        }, 0);
+    };
+
+    // Calculate order total
+    const calculateOrderTotal = (orderItems) => {
+        if (!orderItems || !orderItems.length) return 0;
+
+        return orderItems.reduce((total, item) => {
+            if (!item) return total;
+            if (item.price) {
+                return total + (item.price * item.quantity);
+            }
+            const menuItem = menuItems.find(m => m && m._id === item.menu_item_id);
+            if (menuItem) {
+                return total + ((menuItem.price || 0) * item.quantity);
+            }
+            return total;
+        }, 0);
     };
 
     const handleSubmit = async (e) => {
@@ -313,103 +836,276 @@ const TableManagement = () => {
 
             switch (modalType) {
                 case 'add':
-                    response = await axios.post('/reservations', formData);
-                    alert('Đặt bàn thành công');
+                    const reservationData = {
+                        table_id: formData.table_id,
+                        contact_name: formData.contact_name,
+                        contact_phone: formData.contact_phone,
+                        contact_email: formData.contact_email,
+                        date: formData.date,
+                        slot_id: formData.slot_id, // Sử dụng slot_id thay vì time
+                        guest_count: parseInt(formData.guest_count),
+                        notes: formData.notes,
+                        payment_status: 'pending'
+                    };
+
+                    if (formData.pre_order_items && formData.pre_order_items.length > 0) {
+                        reservationData.pre_order_items = formData.pre_order_items.filter(item => item.quantity > 0);
+                    }
+
+                    response = await axios.post('/reservations', reservationData);
+                    if (response?.data?.success) {
+                        alert('Đặt bàn thành công');
+                    } else {
+                        setError(response?.data?.message || 'Lỗi khi tạo đặt bàn');
+                        return;
+                    }
                     break;
 
                 case 'edit':
-                    response = await axios.put(`/reservations/${formData.id}`, formData);
-                    alert('Cập nhật đặt bàn thành công');
+                    const updateData = {
+                        table_id: formData.table_id,
+                        contact_name: formData.contact_name,
+                        contact_phone: formData.contact_phone,
+                        contact_email: formData.contact_email,
+                        date: formData.date,
+                        slot_id: formData.slot_id, // Sử dụng slot_id thay vì time
+                        guest_count: parseInt(formData.guest_count),
+                        status: formData.status,
+                        payment_status: formData.payment_status,
+                        notes: formData.notes
+                    };
+
+                    if (formData.pre_order_items && formData.pre_order_items.length > 0) {
+                        updateData.pre_order_items = formData.pre_order_items.filter(item => item.quantity > 0);
+                    }
+
+                    response = await axios.put(`/reservations/${formData._id}`, updateData);
+                    if (response?.data?.success) {
+                        alert('Cập nhật đặt bàn thành công');
+                    } else {
+                        setError(response?.data?.message || 'Lỗi khi cập nhật đặt bàn');
+                        return;
+                    }
                     break;
 
                 case 'move':
-                    response = await axios.patch(`/reservations/${formData.id}/move`, {
-                        new_table_id: formData.new_table_id
+                    // Chuyển bàn và đơn hàng liên quan
+                    response = await axios.patch(`/reservations/${formData._id}/move`, {
+                        new_table_id: formData.new_table_id,
+                        transfer_orders: true, // Thêm flag để chuyển cả đơn hàng
+                        update_table_status: true // Thêm flag để cập nhật trạng thái bàn
                     });
-                    alert('Chuyển bàn thành công');
+
+                    if (response?.data?.success) {
+                        alert('Chuyển bàn thành công');
+                    } else {
+                        setError(response?.data?.message || 'Lỗi khi chuyển bàn');
+                        return;
+                    }
                     break;
 
                 case 'delete':
-                    response = await axios.patch(`/reservations/${formData.id}/cancel`);
-                    alert('Hủy đặt bàn thành công');
+                    response = await axios.patch(`/reservations/${formData._id}/cancel`);
+                    if (response?.data?.success) {
+                        alert('Hủy đặt bàn thành công');
+                    } else {
+                        setError(response?.data?.message || 'Lỗi khi hủy đặt bàn');
+                        return;
+                    }
+                    break;
+
+                case 'updatePayment':
+                    response = await axios.patch(`/reservations/${formData._id}/payment-status`, {
+                        payment_status: formData.payment_status,
+                        payment_method: formData.payment_method,
+                        payment_note: formData.payment_note
+                    });
+                    if (response?.data?.success) {
+                        // Nếu thanh toán đầy đủ, tự động cập nhật trạng thái đặt bàn thành hoàn thành
+                        if (formData.payment_status === 'paid') {
+                            try {
+                                // Cập nhật trạng thái đặt bàn thành hoàn thành
+                                await axios.patch(`/reservations/${formData._id}/complete`);
+
+                                // Tìm đơn hàng liên quan đến đặt bàn và cập nhật trạng thái thành completed
+                                const relatedOrders = orders.filter(order =>
+                                    order.reservation_id === formData._id ||
+                                    safeGet(order, 'reservation_id._id') === formData._id
+                                );
+
+                                if (relatedOrders.length > 0) {
+                                    // Cập nhật trạng thái đơn hàng thành completed
+                                    await Promise.all(relatedOrders.map(order =>
+                                        axios.put(`/orders/${order._id}/payment`, {
+                                            payment_method: formData.payment_method,
+                                            status: 'completed'
+                                        })
+                                    ));
+                                }
+
+                                alert('Cập nhật trạng thái thanh toán và hoàn thành đặt bàn thành công');
+                            } catch (completeError) {
+                                console.error('Error completing reservation:', completeError);
+                                alert('Cập nhật trạng thái thanh toán thành công nhưng không thể hoàn thành đặt bàn');
+                            }
+                        } else {
+                            alert('Cập nhật trạng thái thanh toán thành công');
+                        }
+                    } else {
+                        setError(response?.data?.message || 'Lỗi khi cập nhật trạng thái thanh toán');
+                        return;
+                    }
+                    break;
+
+                case 'addMenuItems':
+                    const orderItems = formData.order_items.filter(item => item.quantity > 0);
+
+                    if (orderItems.length === 0) {
+                        setError('Vui lòng chọn ít nhất một món');
+                        return;
+                    }
+
+                    if (formData.order_id) {
+                        const orderData = {
+                            order_items: orderItems,
+                            status: formData.status,
+                            note: formData.note
+                        };
+                        response = await axios.put(`/orders/${formData.order_id}`, orderData);
+                    } else {
+                        const orderData = {
+                            table_id: formData.table_id,
+                            order_items: orderItems,
+                            note: formData.note
+                        };
+
+                        if (formData.reservation_id) {
+                            orderData.reservation_id = formData.reservation_id;
+                        }
+
+                        if (formData.customer_id) {
+                            orderData.customer_id = formData.customer_id;
+                        } else {
+                            const potentialCustomerId = user?.userId || user?.user?._id || user?._id;
+                            const userRole = safeGet(user, 'user.role') || safeGet(user, 'role');
+
+                            if (potentialCustomerId && userRole === 'customer') {
+                                orderData.customer_id = potentialCustomerId;
+                            }
+                        }
+
+                        console.log('Order data being sent:', orderData);
+                        response = await axios.post('/orders', orderData);
+                    }
+
+                    if (response?.data?.success) {
+                        alert('Thêm món thành công');
+                    } else {
+                        setError(response?.data?.message || 'Lỗi khi thêm món');
+                        return;
+                    }
+                    break;
+
+                case 'payment':
+                    const paymentData = {
+                        payment_method: formData.payment_method,
+                        status: 'completed'
+                    };
+
+                    response = await axios.put(`/orders/${formData.order_id}/payment`, paymentData);
+
+                    if (response?.data?.success) {
+                        // Tự động hoàn thành đặt bàn khi thanh toán
+                        if (formData.reservation_id) {
+                            try {
+                                await axios.patch(`/reservations/${formData.reservation_id}/complete`);
+                            } catch (completeError) {
+                                console.error('Error completing reservation:', completeError);
+                            }
+                        }
+
+                        closeModal();
+
+                        await Promise.all([
+                            loadReservations(),
+                            loadAllTables(),
+                            loadOrders()
+                        ]);
+
+                        alert('Thanh toán thành công');
+
+                        const tableReservations = getTableReservations(formData.table_id);
+                        const currentReservation = tableReservations.length > 0 ? tableReservations[0] : null;
+
+                        if (currentReservation) {
+                            await openInvoice(currentReservation);
+                        }
+                    } else {
+                        setError(response?.data?.message || 'Lỗi khi thanh toán');
+                        return;
+                    }
                     break;
 
                 case 'createTable':
-                    response = await axios.post('/tables', formData);
-                    alert('Tạo bàn thành công');
+                    response = await axios.post('/tables', {
+                        name: formData.name,
+                        area_id: formData.area_id,
+                        capacity: parseInt(formData.capacity),
+                        type: formData.type,
+                        description: formData.description
+                    });
+                    if (response?.data?.success) {
+                        alert('Tạo bàn thành công');
+                    } else {
+                        setError(response?.data?.message || 'Lỗi khi tạo bàn mới');
+                        return;
+                    }
                     break;
 
                 case 'editTable':
-                    response = await axios.put(`/tables/${formData.id}`, formData);
-                    alert('Cập nhật bàn thành công');
+                    response = await axios.put(`/tables/${formData._id}`, {
+                        name: formData.name,
+                        capacity: parseInt(formData.capacity),
+                        type: formData.type,
+                        description: formData.description
+                    });
+                    if (response?.data?.success) {
+                        alert('Cập nhật bàn thành công');
+                    } else {
+                        setError(response?.data?.message || 'Lỗi khi cập nhật bàn');
+                        return;
+                    }
                     break;
 
                 case 'deleteTable':
-                    response = await axios.delete(`/tables/${formData.id}`);
-                    alert('Xóa bàn thành công');
-                    setSelectedTable(null);
+                    response = await axios.delete(`/tables/${formData._id}`);
+                    if (response?.data?.success) {
+                        alert('Xóa bàn thành công');
+                        setSelectedTable(null);
+                    } else {
+                        setError(response?.data?.message || 'Lỗi khi xóa bàn');
+                        return;
+                    }
                     break;
 
                 default:
                     break;
             }
 
-            // Refresh data after successful operation
-            await Promise.all([
-                loadReservations(),
-                loadAllTables()
-            ]);
-
-            closeModal();
+            if (modalType !== 'payment') {
+                await Promise.all([
+                    loadReservations(),
+                    loadAllTables(),
+                    loadOrders()
+                ]);
+                closeModal();
+            }
         } catch (error) {
             console.error('Error submitting form:', error);
-            setError(error.response?.data?.message || 'Có lỗi xảy ra');
+            setError(error.response?.data?.message || 'Có lỗi xảy ra khi xử lý yêu cầu');
         } finally {
             setLoading(false);
         }
-    };
-
-    const handlePageChange = (pageNumber) => {
-        if (pageNumber >= 1 && pageNumber <= totalPages) {
-            setCurrentPage(pageNumber);
-        }
-    };
-
-    // Utility functions with null safety
-    const getTableById = (id) => {
-        if (!id || !Array.isArray(allTables)) return {};
-        return allTables.find(table => table && table._id === id) || {};
-    };
-
-    const getTableReservations = (tableId) => {
-        if (!tableId || !Array.isArray(reservations)) return [];
-        return reservations.filter(res =>
-            res &&
-            (safeGet(res, 'table_id._id') || res.table_id) === tableId &&
-            ['confirmed', 'pending'].includes(res.status)
-        );
-    };
-
-    const getAreaName = (areaId) => {
-        if (!areaId || !Array.isArray(areas)) return 'N/A';
-        const area = areas.find(a => a && a._id === areaId);
-        return area?.name || 'N/A';
-    };
-
-    // Get staff name safely
-    const getStaffName = (reservation) => {
-        if (!reservation) return 'N/A';
-
-        const createdByStaff = reservation.created_by_staff;
-        if (!createdByStaff) {
-            return 'Khách tự đặt';
-        }
-
-        const staffName = safeGet(createdByStaff, 'full_name') ||
-            safeGet(createdByStaff, 'username') ||
-            'Nhân viên';
-
-        return `Nhân viên: ${staffName}`;
     };
 
     if (loading && areas.length === 0) {
@@ -426,12 +1122,79 @@ const TableManagement = () => {
         );
     }
 
+    // Thêm hàm hiển thị slot thời gian dễ đọc
+    const getDisplayTimeSlot = (timeSlot) => {
+        if (!timeSlot) return '';
+
+        // Nếu timeSlot đã có định dạng "XX:XX-YY:YY", trả về nguyên dạng
+        if (timeSlot.includes('-')) {
+            return timeSlot;
+        }
+
+        // Nếu chỉ là thời gian bắt đầu, tính thời gian kết thúc (2 giờ sau)
+        const [hours, minutes] = timeSlot.split(':').map(Number);
+        let endHours = hours + 2;
+
+        // Format lại giờ kết thúc
+        const formattedEndHours = endHours.toString().padStart(2, '0');
+        const formattedMinutes = minutes.toString().padStart(2, '0');
+
+        return `${timeSlot}-${formattedEndHours}:${formattedMinutes}`;
+    };
+
+    // Thêm hàm hiển thị slot thời gian
+    const getSlotDisplayText = (slot_id) => {
+        if (!slot_id || !bookingSlots.length) return '';
+
+        const slot = bookingSlots.find(s => s._id === slot_id);
+        if (!slot) return '';
+
+        return slot.name ?
+            `${slot.name} (${slot.start_time}-${slot.end_time})` :
+            `${slot.start_time}-${slot.end_time}`;
+    };
+
+    // Thêm hàm tính tổng số món của đặt bàn (bao gồm cả pre-order và order)
+    const getTotalOrderedItems = (reservation) => {
+        if (!reservation) return 0;
+
+        // Tính số lượng món đặt trước
+        const preOrderCount = (reservation.pre_order_items || []).reduce((total, item) => {
+            if (!item || !item.quantity) return total;
+            return total + item.quantity;
+        }, 0);
+
+        // Tìm đơn hàng liên quan đến đặt bàn này
+        const relatedOrders = orders.filter(order =>
+            order.reservation_id === reservation._id ||
+            (safeGet(order, 'reservation_id._id') === reservation._id)
+        );
+
+        // Tính số lượng món đã gọi thêm
+        const orderCount = relatedOrders.reduce((total, order) => {
+            return total + (order.order_items || []).reduce((itemTotal, item) => {
+                return itemTotal + (item.quantity || 0);
+            }, 0);
+        }, 0);
+
+        return preOrderCount + orderCount;
+    };
+
+    // Thêm hàm kiểm tra đơn hàng liên quan đến đặt bàn
+    const hasRelatedOrders = (reservation) => {
+        if (!reservation || !reservation._id) return false;
+        return orders.some(order =>
+            order.reservation_id === reservation._id ||
+            safeGet(order, 'reservation_id._id') === reservation._id
+        );
+    };
+
     return (
         <div className="table-management">
             <Sidebar />
             <div className="table-management-content">
                 <div className="table-management-header">
-                    <h1>Quản lý đặt bàn</h1>
+                    <h1>Quản lý bàn ăn</h1>
                     <div className="tab-navigation">
                         <button
                             className={`tab-button ${activeTab === 'areas' ? 'active' : ''}`}
@@ -454,6 +1217,26 @@ const TableManagement = () => {
                     </div>
                 </div>
 
+                {/* NEW: Date Selector */}
+                <div className="date-selector-container">
+                    <div className="date-selector">
+                        <label>Chọn ngày:</label>
+                        <input
+                            type="date"
+                            value={selectedDate}
+                            onChange={(e) => handleDateChange(e.target.value)}
+                            className="date-input"
+                        />
+                    </div>
+                    <button
+                        className="btn-add-table"
+                        onClick={() => openModal('createTable')}
+                        disabled={loading}
+                    >
+                        Thêm bàn ăn
+                    </button>
+                </div>
+
                 {error && (
                     <div className="error-message">
                         {error}
@@ -464,16 +1247,6 @@ const TableManagement = () => {
                 {activeTab === 'tables' && (
                     <div className="tables-view">
                         <div className="area-selector">
-                            <div className="area-selector-header">
-                                <h3>Khu vực</h3>
-                                <button
-                                    className="action-button add-reservation"
-                                    onClick={() => openModal('createTable')}
-                                    disabled={loading}
-                                >
-                                    Tạo bàn mới
-                                </button>
-                            </div>
                             <div className="area-buttons">
                                 {areas.map(area => (
                                     <button
@@ -481,7 +1254,7 @@ const TableManagement = () => {
                                         className={`area-button ${selectedArea === area._id ? 'active' : ''}`}
                                         onClick={() => handleAreaChange(area._id)}
                                     >
-                                        {area.name} ({area.tableCount || 0})
+                                        {area.name}
                                     </button>
                                 ))}
                             </div>
@@ -496,18 +1269,72 @@ const TableManagement = () => {
                                         onClick={() => handleTableClick(table)}
                                     >
                                         <div className="table-number">
-                                            {table.name.match(/\d+/)?.[0] || table.number || '?'}
+                                            {table.name.match(/\d+/)?.[0] || table.name}
                                         </div>
-                                        <div className="table-name">{table.name}</div>
-                                        <div className="table-info">
-                                            <span className="table-capacity">{table.capacity} người</span>
-                                            <span className={`table-status ${table.status}`}>
-                                                {table.status === 'available' && 'Trống'}
-                                                {table.status === 'reserved' && 'Đã đặt'}
-                                                {table.status === 'occupied' && 'Đang phục vụ'}
-                                                {table.status === 'cleaning' && 'Đang dọn'}
-                                            </span>
+                                        <div className="table-status-text">
+                                            {getTableStatusLabel(table.status)}
                                         </div>
+                                        <div className="table-capacity">
+                                            Sức chứa: {table.capacity} người
+                                        </div>
+                                        <div className="table-actions">
+                                            <button
+                                                className="btn-action btn-edit"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openModal('editTable', table);
+                                                }}
+                                                disabled={loading || hasActiveReservations(table._id) || table.status === 'occupied'}
+                                            >
+                                                Sửa
+                                            </button>
+                                            <button
+                                                className="btn-action btn-delete"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openModal('deleteTable', table);
+                                                }}
+                                                disabled={loading || hasActiveReservations(table._id) || table.status === 'occupied'}
+                                            >
+                                                Xóa
+                                            </button>
+                                        </div>
+                                        {(table.status === 'available' || table.status === 'cleaning') && (
+                                            <button
+                                                className="btn-reserve"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openModal('add', table);
+                                                }}
+                                                disabled={loading}
+                                            >
+                                                Đặt bàn
+                                            </button>
+                                        )}
+                                        {(table.status === 'reserved' || table.status === 'occupied') && (
+                                            <button
+                                                className="btn-add-menu"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openModal('addMenuItems', table);
+                                                }}
+                                                disabled={loading}
+                                            >
+                                                Thêm món
+                                            </button>
+                                        )}
+                                        {table.status === 'occupied' && hasActiveOrder(table._id) && (
+                                            <button
+                                                className="btn-payment"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openModal('payment', table);
+                                                }}
+                                                disabled={loading}
+                                            >
+                                                Thanh toán
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -550,10 +1377,7 @@ const TableManagement = () => {
                                     <p><strong>Khu vực:</strong> {getAreaName(safeGet(selectedTable, 'area_id._id') || selectedTable.area_id)}</p>
                                     <p><strong>Trạng thái:</strong>
                                         <span className={`status-badge ${selectedTable.status}`}>
-                                            {selectedTable.status === 'available' && 'Trống'}
-                                            {selectedTable.status === 'reserved' && 'Đã đặt'}
-                                            {selectedTable.status === 'occupied' && 'Đang phục vụ'}
-                                            {selectedTable.status === 'cleaning' && 'Đang dọn'}
+                                            {getTableStatusLabel(selectedTable.status)}
                                         </span>
                                     </p>
                                     {selectedTable.description && (
@@ -561,58 +1385,74 @@ const TableManagement = () => {
                                     )}
                                 </div>
 
-                                <div className="table-actions">
-                                    <button
-                                        className="action-button edit"
-                                        onClick={() => openModal('editTable', selectedTable)}
-                                        disabled={loading || hasActiveReservations(selectedTable._id)}
-                                        title={hasActiveReservations(selectedTable._id) ? 'Không thể sửa bàn đang có đặt bàn' : ''}
-                                    >
-                                        Sửa
-                                    </button>
-                                    <button
-                                        className="action-button delete"
-                                        onClick={() => openModal('deleteTable', selectedTable)}
-                                        disabled={loading || hasActiveReservations(selectedTable._id)}
-                                        title={hasActiveReservations(selectedTable._id) ? 'Không thể xóa bàn đang có đặt bàn' : ''}
-                                    >
-                                        Xóa
-                                    </button>
-                                    {selectedTable.status === 'available' && (
-                                        <button
-                                            className="action-button add-reservation"
-                                            onClick={() => openModal('add')}
-                                            disabled={loading}
-                                        >
-                                            Đặt bàn mới
-                                        </button>
-                                    )}
-                                </div>
-
-                                {/* Warning message for tables with active reservations */}
-                                {hasActiveReservations(selectedTable._id) && (
-                                    <div className="warning-message">
-                                        ⚠️ Bàn này đang có đặt bàn hoạt động, không thể sửa hoặc xóa
-                                    </div>
-                                )}
-
                                 {(selectedTable.status === 'reserved' || selectedTable.status === 'occupied') && (
                                     <div className="table-reservations">
-                                        <h4>Thông tin đặt bàn</h4>
+                                        <h4>Thông tin đặt bàn (Ngày {new Date(selectedDate).toLocaleDateString()})</h4>
                                         {getTableReservations(selectedTable._id).map(res => (
                                             <div key={res._id} className="reservation-item">
                                                 <p><strong>Khách hàng:</strong> {res.contact_name}</p>
                                                 <p><strong>SĐT:</strong> {res.contact_phone}</p>
-                                                <p><strong>Thời gian:</strong> {new Date(res.date).toLocaleDateString()} {res.time}</p>
+                                                <p><strong>Thời gian:</strong> {new Date(res.date).toLocaleDateString()}
+                                                    <span className="time-slot-display">
+                                                        {res.slot_id && safeGet(res, 'slot_id.name')
+                                                            ? `${safeGet(res, 'slot_id.name')} (${safeGet(res, 'slot_id.start_time')}-${safeGet(res, 'slot_id.end_time')})`
+                                                            : (res.slot_start_time && res.slot_end_time)
+                                                                ? `${res.slot_start_time}-${res.slot_end_time}`
+                                                                : getSlotDisplayText(safeGet(res, 'slot_id._id') || res.slot_id)
+                                                        }
+                                                    </span>
+                                                </p>
                                                 <p><strong>Số khách:</strong> {res.guest_count}</p>
                                                 <p><strong>Trạng thái:</strong>
                                                     <span className={`status-badge ${res.status}`}>
-                                                        {res.status === 'pending' && 'Chờ xác nhận'}
-                                                        {res.status === 'confirmed' && 'Đã xác nhận'}
+                                                        {getReservationStatusLabel(res.status)}
+                                                    </span>
+                                                </p>
+                                                <p><strong>Thanh toán:</strong>
+                                                    <span className={`payment-badge ${res.payment_status || 'pending'}`}>
+                                                        {getPaymentStatusLabel(res.payment_status)}
                                                     </span>
                                                 </p>
                                                 <p><strong>Nguồn:</strong> {getStaffName(res)}</p>
                                                 {res.notes && <p><strong>Ghi chú:</strong> {res.notes}</p>}
+
+                                                {res.pre_order_items && res.pre_order_items.length > 0 && (
+                                                    <div className="reservation-pre-order">
+                                                        <p><strong>Món đã đặt trước:</strong></p>
+                                                        <div className="pre-order-items-list">
+                                                            {res.pre_order_items.map((item, index) => {
+                                                                if (!item || !item.menu_item_id) return null;
+
+                                                                const menuItem = item.menu_item_id;
+                                                                const menuName = typeof menuItem === 'object' ? menuItem.name : 'Món không xác định';
+                                                                const menuPrice = typeof menuItem === 'object' ? menuItem.price : 0;
+
+                                                                return (
+                                                                    <div key={index} className="pre-order-item">
+                                                                        <span>
+                                                                            {menuName} x {item.quantity}
+                                                                        </span>
+                                                                        <span>
+                                                                            {(menuPrice * item.quantity).toLocaleString()}đ
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                            <div className="pre-order-item" style={{ fontWeight: 'bold' }}>
+                                                                <span>Tổng tiền:</span>
+                                                                <span>
+                                                                    {res.pre_order_items.reduce((total, item) => {
+                                                                        if (!item || !item.menu_item_id) return total;
+                                                                        const menuItem = item.menu_item_id;
+                                                                        const price = typeof menuItem === 'object' ? menuItem.price : 0;
+                                                                        return total + (price * item.quantity);
+                                                                    }, 0).toLocaleString()}đ
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 <div className="reservation-actions">
                                                     <button
                                                         className="action-button edit"
@@ -621,27 +1461,189 @@ const TableManagement = () => {
                                                     >
                                                         Sửa
                                                     </button>
-                                                    {['pending', 'confirmed'].includes(res.status) && (
-                                                        <>
-                                                            <button
-                                                                className="action-button move"
-                                                                onClick={() => openModal('move', res)}
-                                                                disabled={loading}
-                                                            >
-                                                                Chuyển bàn
-                                                            </button>
-                                                            <button
-                                                                className="action-button delete"
-                                                                onClick={() => openModal('delete', res)}
-                                                                disabled={loading}
-                                                            >
-                                                                Hủy
-                                                            </button>
-                                                        </>
+
+                                                    {res.status === 'pending' && (
+                                                        <button
+                                                            className="action-button confirm"
+                                                            onClick={() => handleConfirmReservation(res._id)}
+                                                            disabled={loading}
+                                                        >
+                                                            Xác nhận
+                                                        </button>
                                                     )}
+
+                                                    {res.status === 'confirmed' && (
+                                                        <button
+                                                            className="action-button seat"
+                                                            onClick={() => handleSeatCustomer(res._id)}
+                                                            disabled={loading}
+                                                        >
+                                                            Vào bàn
+                                                        </button>
+                                                    )}
+
+                                                    {['pending', 'confirmed', 'seated'].includes(res.status) && (
+                                                        <button
+                                                            className="action-button move"
+                                                            onClick={() => openModal('move', res)}
+                                                            disabled={loading}
+                                                        >
+                                                            Chuyển bàn
+                                                        </button>
+                                                    )}
+
+                                                    {['pending', 'confirmed'].includes(res.status) && (
+                                                        <button
+                                                            className="action-button delete"
+                                                            onClick={() => openModal('delete', res)}
+                                                            disabled={loading}
+                                                        >
+                                                            Hủy
+                                                        </button>
+                                                    )}
+
+                                                    {['seated', 'completed'].includes(res.status) && (
+                                                        <button
+                                                            className="action-button invoice"
+                                                            onClick={() => openInvoice(res)}
+                                                            disabled={loading}
+                                                        >
+                                                            In hóa đơn
+                                                        </button>
+                                                    )}
+
+                                                    {['pending', 'confirmed', 'seated'].includes(res.status) &&
+                                                        (
+                                                            (res.pre_order_items && res.pre_order_items.length > 0) ||
+                                                            hasRelatedOrders(res)
+                                                        ) &&
+                                                        ['pending', 'partial'].includes(res.payment_status) && (
+                                                            <button
+                                                                className="action-button payment-status"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openModal('updatePayment', res);
+                                                                }}
+                                                                disabled={loading}
+                                                                title="Cập nhật thanh toán"
+                                                            >
+                                                                💰 Thanh toán
+                                                            </button>
+                                                        )}
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+                                )}
+
+                                {selectedTable.status === 'occupied' && (
+                                    <div className="table-orders">
+                                        <h4>Đơn hàng hiện tại</h4>
+                                        {getTableOrders(selectedTable._id).slice(0, 1).map(order => {
+                                            const tableReservations = getTableReservations(selectedTable._id);
+                                            const currentReservation = tableReservations.length > 0 ? tableReservations[0] : null;
+
+                                            const preOrderTotal = currentReservation?.pre_order_items ?
+                                                currentReservation.pre_order_items.reduce((total, item) => {
+                                                    if (!item || !item.menu_item_id) return total;
+                                                    const menuItem = typeof item.menu_item_id === 'object' ? item.menu_item_id :
+                                                        menuItems.find(m => m && m._id === item.menu_item_id);
+                                                    const price = menuItem ? menuItem.price : 0;
+                                                    return total + (price * item.quantity);
+                                                }, 0) : 0;
+
+                                            const orderItemsTotal = calculateOrderTotal(order.order_items);
+                                            const grandTotal = preOrderTotal + orderItemsTotal;
+
+                                            return (
+                                                <div key={order._id} className="order-item">
+                                                    <p><strong>Mã đơn:</strong> #{order._id.slice(-6)}</p>
+
+                                                    {order.customer_id ? (
+                                                        <p><strong>Khách hàng:</strong> {safeGet(order, 'customer_id.full_name') || safeGet(order, 'customer_id.username') || 'N/A'}</p>
+                                                    ) : (
+                                                        <p><strong>Khách hàng:</strong> <span className="walk-in-customer">Khách walk-in</span></p>
+                                                    )}
+
+                                                    <p><strong>Nhân viên phục vụ:</strong> {safeGet(order, 'staff_id.full_name') || safeGet(order, 'staff_id.username') || 'N/A'}</p>
+
+                                                    <p><strong>Trạng thái:</strong>
+                                                        <span className={`status-badge ${order.status}`}>
+                                                            {order.status === 'pending' && 'Chờ xử lý'}
+                                                            {order.status === 'preparing' && 'Đang chuẩn bị'}
+                                                            {order.status === 'served' && 'Đã phục vụ'}
+                                                            {order.status === 'completed' && 'Hoàn thành'}
+                                                        </span>
+                                                    </p>
+
+                                                    <p><strong>Thanh toán:</strong> {order.paid ? 'Đã thanh toán' : 'Chưa thanh toán'}</p>
+                                                    {order.note && <p><strong>Ghi chú:</strong> {order.note}</p>}
+
+                                                    {currentReservation?.pre_order_items && currentReservation.pre_order_items.length > 0 && (
+                                                        <div className="pre-order-section">
+                                                            <p><strong>🍽️ Món đã đặt trước (Đã thanh toán):</strong></p>
+                                                            <div className="pre-order-items-display">
+                                                                {currentReservation.pre_order_items.map((item, index) => {
+                                                                    if (!item || !item.menu_item_id) return null;
+
+                                                                    const menuItem = typeof item.menu_item_id === 'object' ? item.menu_item_id :
+                                                                        menuItems.find(m => m && m._id === item.menu_item_id);
+                                                                    const menuName = menuItem ? menuItem.name : 'Món không xác định';
+                                                                    const menuPrice = menuItem ? menuItem.price : 0;
+
+                                                                    return (
+                                                                        <div key={index} className="order-item-detail pre-order-item-detail">
+                                                                            <span>{menuName} x {item.quantity}</span>
+                                                                            <span className="paid-amount">{(menuPrice * item.quantity).toLocaleString()}đ</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                                <div className="pre-order-subtotal">
+                                                                    <strong>Tổng đã thanh toán: {preOrderTotal.toLocaleString()}đ</strong>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {order.order_items && order.order_items.length > 0 && (
+                                                        <div className="current-order-section">
+                                                            <p><strong>🍽️ Món đã gọi thêm (Chưa thanh toán):</strong></p>
+                                                            <div className="order-items-display">
+                                                                {order.order_items.map((item, index) => {
+                                                                    const menuItem = menuItems.find(m => m && m._id === (safeGet(item, 'menu_item_id._id') || item.menu_item_id));
+                                                                    return (
+                                                                        <div key={index} className="order-item-detail">
+                                                                            <span>{menuItem ? menuItem.name : 'Món không xác định'} x {item.quantity}</span>
+                                                                            <span className="unpaid-amount">{((item.price || 0) * item.quantity).toLocaleString()}đ</span>
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                                <div className="order-subtotal">
+                                                                    <strong>Còn lại phải thanh toán: {orderItemsTotal.toLocaleString()}đ</strong>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="order-grand-total">
+                                                        <div className="total-breakdown">
+                                                            <div className="total-row">
+                                                                <span>Đã thanh toán trước:</span>
+                                                                <span className="paid-total">{preOrderTotal.toLocaleString()}đ</span>
+                                                            </div>
+                                                            <div className="total-row">
+                                                                <span>Còn lại phải thanh toán:</span>
+                                                                <span className="unpaid-total">{orderItemsTotal.toLocaleString()}đ</span>
+                                                            </div>
+                                                            <div className="total-row grand-total-row">
+                                                                <span><strong>Tổng cộng:</strong></span>
+                                                                <span className="grand-total-amount"><strong>{grandTotal.toLocaleString()}đ</strong></span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -652,7 +1654,7 @@ const TableManagement = () => {
                 {activeTab === 'reservations' && (
                     <div className="reservations-view">
                         <div className="reservations-header">
-                            <h3>Danh sách đặt bàn</h3>
+                            <h3>Danh sách đặt bàn - Ngày {new Date(selectedDate).toLocaleDateString()}</h3>
                             <button
                                 className="action-button add-reservation"
                                 onClick={() => openModal('add')}
@@ -670,11 +1672,12 @@ const TableManagement = () => {
                                         <th>Bàn</th>
                                         <th>Khách hàng</th>
                                         <th>Liên hệ</th>
-                                        <th>Ngày</th>
                                         <th>Giờ</th>
                                         <th>Số khách</th>
                                         <th>Trạng thái</th>
+                                        <th>Thanh toán</th>
                                         <th>Nguồn</th>
+                                        <th>Đặt món</th>
                                         <th>Thao tác</th>
                                     </tr>
                                 </thead>
@@ -689,54 +1692,142 @@ const TableManagement = () => {
                                             <td>{safeGet(res, 'table_id.name') || 'N/A'}</td>
                                             <td>{res.contact_name}</td>
                                             <td>{res.contact_phone}</td>
-                                            <td>{new Date(res.date).toLocaleDateString()}</td>
-                                            <td>{res.time}</td>
+                                            <td>
+                                                {res.slot_id ? (
+                                                    <span className="time-slot-display">
+                                                        {safeGet(res, 'slot_id.name')
+                                                            ? `${safeGet(res, 'slot_id.name')} (${safeGet(res, 'slot_id.start_time')}-${safeGet(res, 'slot_id.end_time')})`
+                                                            : (res.slot_start_time && res.slot_end_time)
+                                                                ? `${res.slot_start_time}-${res.slot_end_time}`
+                                                                : getSlotDisplayText(safeGet(res, 'slot_id._id') || res.slot_id)
+                                                        }
+                                                    </span>
+                                                ) : (
+                                                    res.slot_start_time && res.slot_end_time
+                                                        ? `${res.slot_start_time}-${res.slot_end_time}`
+                                                        : 'N/A'
+                                                )}
+                                            </td>
                                             <td>{res.guest_count}</td>
                                             <td>
                                                 <span className={`status-badge ${res.status}`}>
-                                                    {res.status === 'pending' && 'Chờ xác nhận'}
-                                                    {res.status === 'confirmed' && 'Đã xác nhận'}
-                                                    {res.status === 'cancelled' && 'Đã hủy'}
-                                                    {res.status === 'no_show' && 'Không đến'}
-                                                    {res.status === 'completed' && 'Hoàn thành'}
+                                                    {getReservationStatusLabel(res.status)}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={`payment-badge ${res.payment_status || 'pending'}`}>
+                                                    {getPaymentStatusLabel(res.payment_status)}
                                                 </span>
                                             </td>
                                             <td>{getStaffName(res)}</td>
                                             <td>
+                                                {res.pre_order_items && res.pre_order_items.length > 0 ||
+                                                    orders.some(order => order.reservation_id === res._id || safeGet(order, 'reservation_id._id') === res._id) ? (
+                                                    <span className="has-pre-order" title="Có đặt món">
+                                                        {getTotalOrderedItems(res)} món
+                                                    </span>
+                                                ) : (
+                                                    <span className="no-pre-order">Không</span>
+                                                )}
+                                            </td>
+                                            <td>
                                                 <div className="action-buttons">
-                                                    <button
-                                                        className="action-button edit"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            openModal('edit', res);
-                                                        }}
-                                                        disabled={loading || res.status === 'cancelled'}
-                                                    >
-                                                        Sửa
-                                                    </button>
                                                     {['pending', 'confirmed'].includes(res.status) && (
-                                                        <>
+                                                        <button
+                                                            className="action-button edit"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                openModal('edit', res);
+                                                            }}
+                                                            disabled={loading}
+                                                        >
+                                                            Sửa
+                                                        </button>
+                                                    )}
+
+                                                    {res.status === 'pending' && (
+                                                        <button
+                                                            className="action-button confirm"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleConfirmReservation(res._id);
+                                                            }}
+                                                            disabled={loading}
+                                                        >
+                                                            Xác nhận
+                                                        </button>
+                                                    )}
+
+                                                    {res.status === 'confirmed' && (
+                                                        <button
+                                                            className="action-button seat"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleSeatCustomer(res._id);
+                                                            }}
+                                                            disabled={loading}
+                                                        >
+                                                            Vào bàn
+                                                        </button>
+                                                    )}
+
+                                                    {['pending', 'confirmed', 'seated'].includes(res.status) &&
+                                                        (
+                                                            (res.pre_order_items && res.pre_order_items.length > 0) ||
+                                                            hasRelatedOrders(res)
+                                                        ) &&
+                                                        ['pending', 'partial'].includes(res.payment_status) && (
                                                             <button
-                                                                className="action-button move"
+                                                                className="action-button payment-status"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    openModal('move', res);
+                                                                    openModal('updatePayment', res);
                                                                 }}
                                                                 disabled={loading}
+                                                                title="Cập nhật thanh toán"
                                                             >
-                                                                Chuyển
+                                                                💰 Thanh toán
                                                             </button>
-                                                            <button
-                                                                className="action-button delete"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    openModal('delete', res);
-                                                                }}
-                                                                disabled={loading}
-                                                            >
-                                                                Hủy
-                                                            </button>
-                                                        </>
+                                                        )}
+
+                                                    {['seated', 'completed'].includes(res.status) && (
+                                                        <button
+                                                            className="action-button invoice"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                openInvoice(res);
+                                                            }}
+                                                            disabled={loading}
+                                                            title="In hóa đơn"
+                                                        >
+                                                            🖨️ In
+                                                        </button>
+                                                    )}
+
+                                                    {['confirmed', 'seated'].includes(res.status) && (
+                                                        <button
+                                                            className="action-button move"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                openModal('move', res);
+                                                            }}
+                                                            disabled={loading}
+                                                        >
+                                                            Chuyển
+                                                        </button>
+                                                    )}
+
+                                                    {['pending', 'confirmed'].includes(res.status) && (
+                                                        <button
+                                                            className="action-button delete"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                openModal('delete', res);
+                                                            }}
+                                                            disabled={loading}
+                                                        >
+                                                            Hủy
+                                                        </button>
                                                     )}
                                                 </div>
                                             </td>
@@ -758,6 +1849,9 @@ const TableManagement = () => {
                                     {modalType === 'edit' && 'Chỉnh sửa đặt bàn'}
                                     {modalType === 'move' && 'Chuyển bàn'}
                                     {modalType === 'delete' && 'Xác nhận hủy đặt bàn'}
+                                    {modalType === 'updatePayment' && 'Cập nhật thanh toán'}
+                                    {modalType === 'addMenuItems' && 'Thêm món'}
+                                    {modalType === 'payment' && 'Thanh toán'}
                                     {modalType === 'createTable' && 'Tạo bàn mới'}
                                     {modalType === 'editTable' && 'Sửa bàn'}
                                     {modalType === 'deleteTable' && 'Xác nhận xóa bàn'}
@@ -775,21 +1869,60 @@ const TableManagement = () => {
                                 {modalType === 'add' || modalType === 'edit' ? (
                                     <div className="modal-body">
                                         <div className="form-group">
+                                            <label>Ngày đặt bàn</label>
+                                            <input
+                                                type="date"
+                                                name="date"
+                                                value={formData.date || ''}
+                                                onChange={handleInputChange}
+                                                required
+                                            />
+                                        </div>
+
+                                        {/* Thay đổi phần chọn giờ thành chọn slot */}
+                                        <div className="form-group">
+                                            <label>Chọn khung giờ</label>
+                                            <select
+                                                name="slot_id"
+                                                value={formData.slot_id || ''}
+                                                onChange={handleInputChange}
+                                                required
+                                                disabled={!formData.date}
+                                            >
+                                                <option value="">Chọn khung giờ</option>
+                                                {bookingSlots.map(slot => (
+                                                    <option key={slot._id} value={slot._id}>
+                                                        {slot.name ? `${slot.name} (${slot.start_time}-${slot.end_time})` : `${slot.start_time}-${slot.end_time}`}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Hiển thị thông báo nếu không có bàn trống */}
+                                        {formData.slot_id && formData.availableTables && formData.availableTables.length === 0 && (
+                                            <div className="warning-message">
+                                                <p>Đã hết bàn trống trong khung giờ này, vui lòng chọn khung giờ khác.</p>
+                                            </div>
+                                        )}
+
+                                        <div className="form-group">
                                             <label>Bàn</label>
                                             <select
                                                 name="table_id"
                                                 value={formData.table_id || ''}
                                                 onChange={handleInputChange}
                                                 required
+                                                disabled={!formData.slot_id || (formData.availableTables && formData.availableTables.length === 0)}
                                             >
                                                 <option value="">Chọn bàn</option>
                                                 {(formData.availableTables || []).map(table => (
                                                     <option key={table._id} value={table._id}>
-                                                        {table.name} ({table.capacity} người) - {getAreaName(safeGet(table, 'area_id._id') || table.area_id)}
+                                                        {table.name} (Sức chứa: {table.capacity} người) - {getAreaName(safeGet(table, 'area_id._id') || table.area_id)}
                                                     </option>
                                                 ))}
                                             </select>
                                         </div>
+
                                         <div className="form-group">
                                             <label>Tên khách hàng</label>
                                             <input
@@ -800,6 +1933,7 @@ const TableManagement = () => {
                                                 required
                                             />
                                         </div>
+
                                         <div className="form-group">
                                             <label>Số điện thoại</label>
                                             <input
@@ -810,6 +1944,7 @@ const TableManagement = () => {
                                                 required
                                             />
                                         </div>
+
                                         <div className="form-group">
                                             <label>Email</label>
                                             <input
@@ -819,55 +1954,59 @@ const TableManagement = () => {
                                                 onChange={handleInputChange}
                                             />
                                         </div>
-                                        <div className="form-row">
-                                            <div className="form-group">
-                                                <label>Ngày</label>
-                                                <input
-                                                    type="date"
-                                                    name="date"
-                                                    value={formData.date || ''}
-                                                    onChange={handleInputChange}
-                                                    required
-                                                />
-                                            </div>
-                                            <div className="form-group">
-                                                <label>Giờ</label>
-                                                <input
-                                                    type="time"
-                                                    name="time"
-                                                    value={formData.time || ''}
-                                                    onChange={handleInputChange}
-                                                    required
-                                                />
-                                            </div>
+
+                                        <div className="form-group">
+                                            <label>Số khách</label>
+                                            <input
+                                                type="number"
+                                                name="guest_count"
+                                                value={formData.guest_count || 1}
+                                                onChange={handleInputChange}
+                                                min="1"
+                                                max={formData.table_id ? (formData.availableTables.find(t => t._id === formData.table_id)?.capacity || 1) : 1}
+                                                required
+                                                disabled={!formData.table_id}
+                                            />
+                                            {formData.table_id && (
+                                                <small className="capacity-hint">
+                                                    Sức chứa tối đa: {formData.availableTables.find(t => t._id === formData.table_id)?.capacity || 1} người
+                                                </small>
+                                            )}
                                         </div>
-                                        <div className="form-row">
-                                            <div className="form-group">
-                                                <label>Số khách</label>
-                                                <input
-                                                    type="number"
-                                                    name="guest_count"
-                                                    value={formData.guest_count || 1}
-                                                    onChange={handleInputChange}
-                                                    min="1"
-                                                    required
-                                                />
-                                            </div>
-                                            <div className="form-group">
-                                                <label>Trạng thái</label>
-                                                <select
-                                                    name="status"
-                                                    value={formData.status || 'pending'}
-                                                    onChange={handleInputChange}
-                                                >
-                                                    <option value="pending">Chờ xác nhận</option>
-                                                    <option value="confirmed">Đã xác nhận</option>
-                                                    <option value="cancelled">Đã hủy</option>
-                                                    <option value="no_show">Không đến</option>
-                                                    <option value="completed">Hoàn thành</option>
-                                                </select>
-                                            </div>
-                                        </div>
+
+                                        {modalType === 'edit' && (
+                                            <>
+                                                <div className="form-group">
+                                                    <label>Trạng thái</label>
+                                                    <select
+                                                        name="status"
+                                                        value={formData.status || 'pending'}
+                                                        onChange={handleInputChange}
+                                                    >
+                                                        <option value="pending">Chờ xác nhận</option>
+                                                        <option value="confirmed">Đã xác nhận</option>
+                                                        <option value="seated">Đã vào bàn</option>
+                                                        <option value="cancelled">Đã hủy</option>
+                                                        <option value="no_show">Không đến</option>
+                                                        <option value="completed">Hoàn thành</option>
+                                                    </select>
+                                                </div>
+                                                <div className="form-group">
+                                                    <label>Trạng thái thanh toán</label>
+                                                    <select
+                                                        name="payment_status"
+                                                        value={formData.payment_status || 'pending'}
+                                                        onChange={handleInputChange}
+                                                    >
+                                                        <option value="pending">Chưa thanh toán</option>
+                                                        <option value="partial">Đã cọc</option>
+                                                        <option value="paid">Đã thanh toán</option>
+                                                        <option value="refunded">Đã hoàn tiền</option>
+                                                    </select>
+                                                </div>
+                                            </>
+                                        )}
+
                                         <div className="form-group">
                                             <label>Ghi chú</label>
                                             <textarea
@@ -877,6 +2016,141 @@ const TableManagement = () => {
                                                 rows="3"
                                                 placeholder="Ghi chú đặc biệt..."
                                             />
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Đặt món trước (tùy chọn)</label>
+                                            <div className="pre-order-section">
+                                                {menuItems && menuItems.length > 0 ? (
+                                                    <div className="menu-items-container">
+                                                        {menuItems.map(item => {
+                                                            if (!item || !item._id) return null;
+
+                                                            const preOrderItem = (formData.pre_order_items || [])
+                                                                .find(i => i.menu_item_id === item._id);
+                                                            const quantity = preOrderItem ? preOrderItem.quantity : 0;
+
+                                                            return (
+                                                                <div key={item._id} className="menu-item-row">
+                                                                    <div className="menu-item-info">
+                                                                        <span className="menu-item-name">{item.name}</span>
+                                                                        <span className="menu-item-price">{item.price ? item.price.toLocaleString() : 0}đ</span>
+                                                                    </div>
+                                                                    <div className="menu-item-quantity">
+                                                                        <button
+                                                                            type="button"
+                                                                            className="quantity-btn"
+                                                                            onClick={() => handleMenuItemChange(item._id, Math.max(0, quantity - 1))}
+                                                                        >-</button>
+                                                                        <input
+                                                                            type="number"
+                                                                            min="0"
+                                                                            value={quantity}
+                                                                            onChange={(e) => handleMenuItemChange(item._id, parseInt(e.target.value) || 0)}
+                                                                        />
+                                                                        <button
+                                                                            type="button"
+                                                                            className="quantity-btn"
+                                                                            onClick={() => handleMenuItemChange(item._id, quantity + 1)}
+                                                                        >+</button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                ) : (
+                                                    <p>Không có món ăn nào trong menu</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Hiển thị trạng thái kiểm tra tồn kho */}
+                                        {formData.isCheckingInventory && (
+                                            <div className="inventory-checking">
+                                                <div className="mini-spinner"></div>
+                                                <span>Đang kiểm tra tồn kho nguyên liệu...</span>
+                                            </div>
+                                        )}
+
+                                        {/* Hiển thị kết quả kiểm tra tồn kho */}
+                                        {formData.inventoryStatus === 'insufficient' && (
+                                            <div className="inventory-warning">
+                                                <p><strong>⚠️ Cảnh báo:</strong> Một số món đặt trước hiện không đủ nguyên liệu. Nhà hàng sẽ ưu tiên chuẩn bị cho đơn đặt trước.</p>
+                                            </div>
+                                        )}
+
+                                        {formData.pre_order_items && formData.pre_order_items.length > 0 && (
+                                            <div className="form-group">
+                                                <label>Tổng tiền đặt món</label>
+                                                <div className="pre-order-total">
+                                                    <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : modalType === 'updatePayment' ? (
+                                    <div className="modal-body">
+                                        <div className="form-group">
+                                            <label>Khách hàng: <strong>{formData.contact_name}</strong></label>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Trạng thái thanh toán hiện tại</label>
+                                            <div className="current-status">
+                                                <span className={`payment-badge ${formData.current_payment_status}`}>
+                                                    {getPaymentStatusLabel(formData.current_payment_status)}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Cập nhật trạng thái thanh toán</label>
+                                            <select
+                                                name="payment_status"
+                                                value={formData.payment_status || 'pending'}
+                                                onChange={handleInputChange}
+                                                required
+                                            >
+                                                <option value="pending">Chưa thanh toán</option>
+                                                <option value="partial">Đã cọc</option>
+                                                <option value="paid">Đã thanh toán đầy đủ</option>
+                                                <option value="refunded">Đã hoàn tiền</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Phương thức thanh toán</label>
+                                            <select
+                                                name="payment_method"
+                                                value={formData.payment_method || 'bank_transfer'}
+                                                onChange={handleInputChange}
+                                            >
+                                                <option value="cash">Tiền mặt</option>
+                                                <option value="bank_transfer">Chuyển khoản</option>
+                                                <option value="card">Thẻ tín dụng</option>
+                                                <option value="e_wallet">Ví điện tử</option>
+                                                <option value="qr_code">Quét mã QR</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Ghi chú thanh toán</label>
+                                            <textarea
+                                                name="payment_note"
+                                                value={formData.payment_note || ''}
+                                                onChange={handleInputChange}
+                                                rows="3"
+                                                placeholder="Ghi chú về thanh toán (mã giao dịch, thời gian...)"
+                                            />
+                                        </div>
+
+                                        <div className="payment-warning">
+                                            <p><strong>Lưu ý:</strong></p>
+                                            <ul>
+                                                <li>Đã cọc: Khách đã thanh toán một phần (tiền cọc)</li>
+                                                <li>Đã thanh toán đầy đủ: Khách đã thanh toán 100% hóa đơn</li>
+                                                <li>Vui lòng xác nhận kỹ trước khi cập nhật</li>
+                                            </ul>
                                         </div>
                                     </div>
                                 ) : modalType === 'move' ? (
@@ -889,6 +2163,14 @@ const TableManagement = () => {
                                                 disabled
                                             />
                                         </div>
+
+                                        <div className="form-group">
+                                            <label>Trạng thái hiện tại</label>
+                                            <span className={`status-badge ${formData.current_status}`}>
+                                                {getReservationStatusLabel(formData.current_status)}
+                                            </span>
+                                        </div>
+
                                         <div className="form-group">
                                             <label>Chọn bàn mới</label>
                                             <select
@@ -903,6 +2185,147 @@ const TableManagement = () => {
                                                         {table.name} ({table.capacity} người) - {getAreaName(safeGet(table, 'area_id._id') || table.area_id)}
                                                     </option>
                                                 ))}
+                                            </select>
+                                        </div>
+
+                                        {formData.current_status === 'seated' && (
+                                            <div className="move-warning">
+                                                <p><strong>⚠️ Chú ý:</strong> Khách đã vào bàn. Vui lòng thông báo với khách trước khi chuyển bàn.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : modalType === 'addMenuItems' ? (
+                                    <div className="modal-body">
+                                        <div className="form-group">
+                                            <label>Bàn: <strong>{formData.table_name}</strong></label>
+                                            {formData.customer_id && (
+                                                <p className="customer-info">
+                                                    <small>Khách hàng đã đặt bàn trước</small>
+                                                </p>
+                                            )}
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Chọn món</label>
+                                            <div className="menu-items-container order-items-section">
+                                                {menuItems && menuItems.length > 0 ? (
+                                                    menuItems.map(item => {
+                                                        if (!item || !item._id) return null;
+
+                                                        const orderItem = (formData.order_items || [])
+                                                            .find(i => i.menu_item_id === item._id);
+                                                        const quantity = orderItem ? orderItem.quantity : 0;
+
+                                                        return (
+                                                            <div key={item._id} className="menu-item-row">
+                                                                <div className="menu-item-info">
+                                                                    <span className="menu-item-name">{item.name}</span>
+                                                                    <span className="menu-item-price">{item.price ? item.price.toLocaleString() : 0}đ</span>
+                                                                </div>
+                                                                <div className="menu-item-quantity">
+                                                                    <button
+                                                                        type="button"
+                                                                        className="quantity-btn"
+                                                                        onClick={() => handleOrderItemChange(item._id, Math.max(0, quantity - 1))}
+                                                                    >-</button>
+                                                                    <input
+                                                                        type="number"
+                                                                        min="0"
+                                                                        value={quantity}
+                                                                        onChange={(e) => handleOrderItemChange(item._id, parseInt(e.target.value) || 0)}
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        className="quantity-btn"
+                                                                        onClick={() => handleOrderItemChange(item._id, quantity + 1)}
+                                                                    >+</button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <p>Không có món ăn nào trong menu</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {formData.order_items && formData.order_items.length > 0 && (
+                                            <div className="form-group">
+                                                <label>Tổng tiền</label>
+                                                <div className="order-total">
+                                                    <strong>{calculateOrderTotal(formData.order_items).toLocaleString()}đ</strong>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="form-group">
+                                            <label>Trạng thái</label>
+                                            <select
+                                                name="status"
+                                                value={formData.status || 'pending'}
+                                                onChange={handleInputChange}
+                                            >
+                                                <option value="pending">Chờ xử lý</option>
+                                                <option value="preparing">Đang chuẩn bị</option>
+                                                <option value="served">Đã phục vụ</option>
+                                                <option value="completed">Hoàn thành</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Ghi chú</label>
+                                            <textarea
+                                                name="note"
+                                                value={formData.note || ''}
+                                                onChange={handleInputChange}
+                                                rows="3"
+                                                placeholder="Ghi chú đặc biệt..."
+                                            />
+                                        </div>
+                                    </div>
+                                ) : modalType === 'payment' ? (
+                                    <div className="modal-body">
+                                        <div className="form-group">
+                                            <label>Bàn: <strong>{formData.table_name}</strong></label>
+                                        </div>
+
+                                        <div className="payment-breakdown">
+                                            {formData.pre_order_total > 0 && (
+                                                <div className="form-group">
+                                                    <label>Đã thanh toán trước (Pre-order)</label>
+                                                    <div className="payment-amount paid">
+                                                        <strong>{formData.pre_order_total?.toLocaleString()}đ</strong>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {formData.order_items_total > 0 && (
+                                                <div className="form-group">
+                                                    <label>Số tiền còn lại phải thanh toán</label>
+                                                    <div className="payment-amount unpaid">
+                                                        <strong>{formData.order_items_total?.toLocaleString()}đ</strong>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="form-group">
+                                                <label>Tổng hóa đơn</label>
+                                                <div className="payment-total">
+                                                    <strong>{formData.total_amount ? formData.total_amount.toLocaleString() : 0}đ</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label>Phương thức thanh toán</label>
+                                            <select
+                                                name="payment_method"
+                                                value={formData.payment_method || 'cash'}
+                                                onChange={handleInputChange}
+                                            >
+                                                <option value="cash">Tiền mặt</option>
+                                                <option value="card">Thẻ</option>
+                                                <option value="transfer">Chuyển khoản</option>
                                             </select>
                                         </div>
                                     </div>
@@ -1020,9 +2443,8 @@ const TableManagement = () => {
                                     </div>
                                 ) : modalType === 'deleteTable' ? (
                                     <div className="modal-body">
-                                        <p>Bạn có chắc chắn muốn xóa bàn này?</p>
-                                        <p><strong>Tên bàn:</strong> {formData.name}</p>
-                                        <p><strong>Sức chứa:</strong> {formData.capacity} người</p>
+                                        <p>Bạn có chắc chắn muốn xóa bàn <strong>{formData.name}</strong>?</p>
+                                        <p className="warning-text">Lưu ý: Hành động này không thể hoàn tác.</p>
                                     </div>
                                 ) : null}
 
@@ -1037,6 +2459,9 @@ const TableManagement = () => {
                                                 {modalType === 'edit' && 'Cập nhật'}
                                                 {modalType === 'move' && 'Chuyển bàn'}
                                                 {modalType === 'delete' && 'Xác nhận hủy'}
+                                                {modalType === 'updatePayment' && 'Cập nhật thanh toán'}
+                                                {modalType === 'addMenuItems' && 'Thêm món'}
+                                                {modalType === 'payment' && 'Thanh toán'}
                                                 {modalType === 'createTable' && 'Tạo bàn'}
                                                 {modalType === 'editTable' && 'Cập nhật bàn'}
                                                 {modalType === 'deleteTable' && 'Xác nhận xóa'}
@@ -1048,8 +2473,19 @@ const TableManagement = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Invoice Print Component */}
+                {showInvoice && invoiceData && (
+                    <InvoicePrint
+                        invoiceData={invoiceData}
+                        onClose={() => {
+                            setShowInvoice(false);
+                            setInvoiceData(null);
+                        }}
+                    />
+                )}
             </div>
-        </div>
+        </div >
     );
 };
 
