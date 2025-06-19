@@ -1,0 +1,392 @@
+/* InventoryDetail.css */
+.inventory-detail-container {
+    padding: 24px;
+    background: #fafafa;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  /* Header */
+  .detail-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: transparent;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    color: #374151;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+  
+  .back-btn:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+  }
+  
+  .detail-header h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+  
+  /* Inventory Info Card */
+  .inventory-info-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  
+  .info-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  
+  .inventory-icon {
+    width: 64px;
+    height: 64px;
+    background: #f3f4f6;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #6b7280;
+  }
+  
+  .inventory-basic h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 12px 0;
+  }
+  
+  .inventory-stats {
+    display: flex;
+    gap: 32px;
+  }
+  
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .stat-label {
+    font-size: 14px;
+    color: #6b7280;
+  }
+  
+  .stat-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  /* History Section */
+  .history-section {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 24px;
+  }
+  
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  
+  .section-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+  }
+  
+  .history-count {
+    font-size: 14px;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 4px 12px;
+    border-radius: 12px;
+  }
+  
+  /* Empty History */
+  .empty-history {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+  }
+  
+  .empty-history p {
+    font-size: 16px;
+    margin: 16px 0 0 0;
+  }
+  
+  /* History List */
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .history-item {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    transition: all 0.2s ease;
+  }
+  
+  .history-item:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-color: #d1d5db;
+  }
+  
+  .history-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  
+  .history-info {
+    flex: 1;
+  }
+  
+  .receipt-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    margin-bottom: 12px;
+  }
+  
+  .receipt-code strong {
+    color: #111827;
+    background: #f3f4f6;
+    padding: 4px 8px;
+    border-radius: 4px;
+  }
+  
+  .import-details {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .detail-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #374151;
+  }
+  
+  .detail-icon {
+    color: #6b7280;
+    font-size: 12px;
+    width: 12px;
+  }
+  
+  /* History Numbers */
+  .history-numbers {
+    display: flex;
+    gap: 24px;
+    align-items: flex-end;
+  }
+  
+  .quantity-info {
+    text-align: right;
+  }
+  
+  .quantity-change {
+    font-size: 18px;
+    font-weight: 700;
+    color: #059669;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 4px;
+  }
+  
+  .quantity-flow {
+    font-size: 12px;
+    color: #6b7280;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  .price-info {
+    text-align: right;
+  }
+  
+  .unit-price {
+    font-size: 14px;
+    color: #374151;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 4px;
+  }
+  
+  .total-cost {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  
+  /* History Reason */
+  .history-reason {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+  }
+  
+  .history-reason small {
+    color: #6b7280;
+    font-style: italic;
+  }
+  
+  /* Pagination */
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #f3f4f6;
+  }
+  
+  .page-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    border: 1px solid #d1d5db;
+    background: white;
+    color: #374151;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+  }
+  
+  .page-btn:hover:not(:disabled) {
+    background: #f3f4f6;
+    border-color: #9ca3af;
+  }
+  
+  .page-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .page-info {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  
+  /* Loading & Error */
+  .loading-container, .error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+    text-align: center;
+  }
+  
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 2px solid #f3f4f6;
+    border-top: 2px solid #111827;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .error-container h2 {
+    color: #374151;
+    margin-bottom: 16px;
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  
+  .btn-primary {
+    background: #111827;
+    color: white;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .inventory-detail-container {
+      padding: 16px;
+    }
+    
+    .detail-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    
+    .info-header {
+      flex-direction: column;
+      text-align: center;
+      gap: 16px;
+    }
+    
+    .inventory-stats {
+      flex-direction: column;
+      gap: 16px;
+      text-align: center;
+    }
+    
+    .history-main {
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .history-numbers {
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    
+    .quantity-info,
+    .price-info {
+      text-align: left;
+    }
+  }
+  

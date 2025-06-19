@@ -1,17 +1,29 @@
-// pages/Chef/Inventory/AddInventoryModal.jsx - PHIÊN BẢN ĐÃ SỬA
-import React, { useState } from 'react';
+// pages/Chef/Inventory/EditInventoryModal.jsx
+import React, { useState, useEffect } from 'react';
 import './Modal.css';
 
-const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
+const EditInventoryModal = ({ isOpen, onClose, onSubmit, inventory }) => {
   const [formData, setFormData] = useState({
     name: '',
     unit: '',
+    costperunit: '',
     supplier: '',
-    minstocklevel: '10'
-    // ✅ BỎ costperunit và currentstock
+    minstocklevel: ''
   });
 
   const units = ['kg', 'g', 'lít', 'ml', 'cái', 'gói', 'lon', 'hộp', 'thùng'];
+
+  useEffect(() => {
+    if (inventory) {
+      setFormData({
+        name: inventory.name,
+        unit: inventory.unit,
+        costperunit: inventory.costperunit.toString(),
+        supplier: inventory.supplier,
+        minstocklevel: inventory.minstocklevel.toString()
+      });
+    }
+  }, [inventory]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -21,18 +33,17 @@ const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.unit || !formData.supplier) {
+    if (!formData.name || !formData.unit || !formData.costperunit || !formData.supplier) {
       alert('Vui lòng điền đầy đủ thông tin bắt buộc');
       return;
     }
 
     const submitData = {
-      name: formData.name.trim(),
+      name: formData.name,
       unit: formData.unit,
-      supplier: formData.supplier.trim(),
-      minstocklevel: parseInt(formData.minstocklevel) || 10,
-      costperunit: 0, // ✅ Mặc định 0, sẽ được cập nhật khi nhập hàng
-      currentstock: 0 // ✅ Mặc định 0, sẽ được cập nhật khi nhập hàng
+      costperunit: parseFloat(formData.costperunit),
+      supplier: formData.supplier,
+      minstocklevel: parseInt(formData.minstocklevel)
     };
 
     onSubmit(submitData);
@@ -44,15 +55,14 @@ const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
     <div className="modal-overlay">
       <div className="modal-content">
         <div className="modal-header">
-          <h3>Thêm Nguyên Liệu Mới</h3>
+          <h3>Chỉnh Sửa Nguyên Liệu</h3>
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
         
         <form onSubmit={handleSubmit} className="modal-body">
-          {/* ✅ THÔNG TIN HƯỚNG DẪN */}
           <div className="info-note">
-            <p><strong>Lưu ý:</strong> Nguyên liệu mới sẽ có số lượng = 0 và giá = 0. 
-            Giá và số lượng sẽ được cập nhật khi bạn nhập hàng lần đầu tiên.</p>
+            <p><strong>Lưu ý:</strong> Không thể sửa số lượng tồn kho trực tiếp. 
+            Để thay đổi số lượng, sử dụng chức năng "Nhập hàng" hoặc "Kiểm kho".</p>
           </div>
 
           <div className="form-group">
@@ -84,21 +94,22 @@ const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
             </div>
 
             <div className="form-group">
-              <label>Mức tối thiểu</label>
+              <label>Giá/Đơn vị (VND) *</label>
               <input
                 type="number"
-                name="minstocklevel"
-                value={formData.minstocklevel}
+                name="costperunit"
+                value={formData.costperunit}
                 onChange={handleChange}
-                placeholder="10"
+                placeholder="Nhập giá"
                 min="0"
+                step="0.01"
+                required
               />
-              <small>Cảnh báo khi số lượng dưới mức này</small>
             </div>
           </div>
 
           <div className="form-group">
-            <label>Nhà cung cấp mặc định *</label>
+            <label>Nhà cung cấp *</label>
             <input
               type="text"
               name="supplier"
@@ -107,7 +118,23 @@ const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
               placeholder="Tên nhà cung cấp"
               required
             />
-            <small>Có thể thay đổi khi nhập hàng</small>
+          </div>
+
+          <div className="form-group">
+            <label>Mức tối thiểu (cần mua khi dưới mức này)</label>
+            <input
+              type="number"
+              name="minstocklevel"
+              value={formData.minstocklevel}
+              onChange={handleChange}
+              placeholder="10"
+              min="0"
+            />
+            <small>Khi số lượng tồn kho dưới mức này, hệ thống sẽ cảnh báo cần mua thêm.</small>
+          </div>
+
+          <div className="current-stock-info">
+            <p><strong>Số lượng hiện tại:</strong> {inventory?.currentstock} {inventory?.unit}</p>
           </div>
 
           <div className="modal-footer">
@@ -115,7 +142,7 @@ const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
               Hủy
             </button>
             <button type="submit" className="btn btn-primary">
-              Thêm Nguyên Liệu
+              Cập Nhật
             </button>
           </div>
         </form>
@@ -124,4 +151,4 @@ const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
   );
 };
 
-export default AddInventoryModal;
+export default EditInventoryModal;
