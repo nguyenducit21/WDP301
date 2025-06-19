@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { FaHome, FaUtensils, FaChevronDown, FaList, FaTrash, FaBoxes, FaReceipt } from "react-icons/fa";
+import { FaHome, FaUtensils, FaChevronDown, FaList, FaTrash, FaBoxes, FaReceipt, FaFileInvoice } from "react-icons/fa";
 import "./SidebarChef.css";
 import logo from "../../assets/logo.png";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const ChefSidebar = ({ collapsed, setCollapsed }) => {
   const [mobileMenu, setMobileMenu] = useState(false);
-  const [inventoryMenu, setInventoryMenu] = useState(false); // Thêm state cho menu nguyên liệu
+  const [inventoryMenu, setInventoryMenu] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -16,8 +16,10 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
     if (location.pathname.includes("manage-categories")) return "categories";
     if (location.pathname.includes("products")) return "products";
     if (location.pathname.includes("deleted-menu-items")) return "trash";
+    if (location.pathname.includes("inventory-list")) return "inventory-list"; // ✅ THÊM DÒNG NÀY
     if (location.pathname.includes("inventory")) return "inventory";
     if (location.pathname.includes("recipes")) return "recipes";
+    if (location.pathname.includes("import-receipts")) return "import-receipts";
     return "dashboard";
   };
 
@@ -48,7 +50,7 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
           <span className="toggle-bar" />
         </button>
       </div>
-      
+
       <ul className="chef-sidebar-menu">
         {/* Dashboard */}
         <li
@@ -72,7 +74,7 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
             </>
           )}
         </li>
-        
+
         {/* Submenu món ăn */}
         {!collapsed && (
           <ul className={`chef-sidebar-submenu ${mobileMenu ? "open" : ""}`}>
@@ -100,7 +102,7 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
           </ul>
         )}
 
-        {/* Quản lý nguyên liệu - THÊM MỚI */}
+        {/* Quản lý nguyên liệu */}
         <li
           className={`menu-parent ${collapsed ? "collapsed" : ""}`}
           onClick={() => setInventoryMenu((v) => !v)}
@@ -113,16 +115,17 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
             </>
           )}
         </li>
-        
-        {/* Submenu nguyên liệu - THÊM MỚI */}
+
+        {/* Submenu nguyên liệu - ✅ SỬA ĐỒNG NHẤT */}
         {!collapsed && (
           <ul className={`chef-sidebar-submenu ${inventoryMenu ? "open" : ""}`}>
+            {/* ✅ SỬA: Sử dụng cấu trúc li giống các nút khác */}
             <li
-              className={currentTab === "inventory" ? "active" : ""}
-              onClick={() => navigate("/chef/inventory")}
+              className={currentTab === "inventory-list" ? "active" : ""}
+              onClick={() => navigate("/chef/inventory-list")}
             >
               <FaBoxes className="sidebar-icon" />
-              <span>Danh sách nguyên liệu</span>
+              <span>Kho Nguyên Liệu</span>
             </li>
             <li
               className={currentTab === "recipes" ? "active" : ""}
@@ -130,6 +133,13 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
             >
               <FaReceipt className="sidebar-icon" />
               <span>Công thức món ăn</span>
+            </li>
+            <li
+              className={currentTab === "import-receipts" ? "active" : ""}
+              onClick={() => navigate("/chef/import-receipts")}
+            >
+              <FaFileInvoice className="sidebar-icon" />
+              <span>Phiếu nhập hàng</span>
             </li>
           </ul>
         )}

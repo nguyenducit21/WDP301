@@ -1,12 +1,13 @@
-// pages/Chef/Recipe/RecipeModal.jsx
+// pages/Chef/Recipe/RecipeModal.jsx - SỬ DỤNG CSS RIÊNG
 import React, { useState, useEffect } from 'react';
+import { FaPlus, FaTrash, FaSave, FaTimes } from 'react-icons/fa';
 import axios from '../../../utils/axios.customize';
 import { toast } from 'react-toastify';
+import './RecipeModal.css'; // ✅ IMPORT CSS RIÊNG
 
 const RecipeModal = ({ isOpen, onClose, onSave, menuItem, inventories }) => {
     const [recipe, setRecipe] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [totalCost, setTotalCost] = useState(0);
 
     useEffect(() => {
         if (isOpen && menuItem) {
@@ -14,62 +15,38 @@ const RecipeModal = ({ isOpen, onClose, onSave, menuItem, inventories }) => {
         }
     }, [isOpen, menuItem]);
 
-    useEffect(() => {
-        calculateTotalCost();
-    }, [recipe]);
-
-    // Trong fetchExistingRecipe function
+    // pages/Chef/Recipe/RecipeModal.jsx - XỬ LÝ DATA MỚI
 const fetchExistingRecipe = async () => {
     setLoading(true);
     try {
-        console.log('Fetching recipe for:', menuItem._id); // Debug
-        
-        // Sửa endpoint này
         const res = await axios.get(`/recipes/menu-items/${menuItem._id}`, { withCredentials: true });
-        console.log('Recipe response:', res.data); // Debug
         
         if (res.data.success && res.data.data.length > 0) {
+            // ✅ DATA GIỜ LÀ ARRAY TRỰC TIẾP
             const existingRecipe = res.data.data.map(item => ({
                 inventory_id: item.inventory_id._id,
                 inventory_name: item.inventory_id.name,
                 quantity_needed: item.quantity_needed,
-                unit: item.unit,
-                cost_per_serving: item.cost_per_serving,
-                is_main_ingredient: item.is_main_ingredient
+                unit: item.unit
             }));
             setRecipe(existingRecipe);
         } else {
-            console.log('No existing recipe found');
             setRecipe([]);
         }
     } catch (error) {
         console.error('Error fetching recipe:', error);
-        console.error('Error details:', error.response?.data); // Debug chi tiết
         setRecipe([]);
     }
     setLoading(false);
 };
 
 
-    const calculateTotalCost = () => {
-        const total = recipe.reduce((sum, ingredient) => {
-            const inventory = inventories.find(inv => inv._id === ingredient.inventory_id);
-            if (inventory) {
-                return sum + (ingredient.quantity_needed * inventory.cost_per_unit);
-            }
-            return sum;
-        }, 0);
-        setTotalCost(total);
-    };
-
     const addIngredient = () => {
         setRecipe([...recipe, {
             inventory_id: '',
             inventory_name: '',
-            quantity_needed: 0,
-            unit: '',
-            cost_per_serving: 0,
-            is_main_ingredient: false
+            quantity_needed: '',
+            unit: ''
         }]);
     };
 
@@ -77,7 +54,6 @@ const fetchExistingRecipe = async () => {
         const updatedRecipe = [...recipe];
         updatedRecipe[index][field] = value;
 
-        // Nếu thay đổi nguyên liệu, cập nhật tên và đơn vị
         if (field === 'inventory_id') {
             const selectedInventory = inventories.find(inv => inv._id === value);
             if (selectedInventory) {
@@ -97,126 +73,137 @@ const fetchExistingRecipe = async () => {
     const handleSubmit = (e) => {
         e.preventDefault();
         
-        // Validation
         const validRecipe = recipe.filter(ingredient => 
-            ingredient.inventory_id && ingredient.quantity_needed > 0
+            ingredient.inventory_id && 
+            ingredient.quantity_needed && 
+            parseFloat(ingredient.quantity_needed) > 0
         );
 
         if (validRecipe.length === 0) {
-            toast.error('Vui lòng thêm ít nhất một nguyên liệu');
+            toast.error('Vui lòng thêm ít nhất một nguyên liệu với số lượng hợp lệ');
             return;
         }
 
-        onSave(validRecipe);
-    };
+        const processedRecipe = validRecipe.map(ingredient => ({
+            ...ingredient,
+            quantity_needed: parseFloat(ingredient.quantity_needed)
+        }));
 
-    const getInventoryStock = (inventoryId) => {
-        const inventory = inventories.find(inv => inv._id === inventoryId);
-        return inventory ? inventory.current_stock : 0;
+        onSave(processedRecipe);
     };
 
     if (!isOpen) return null;
 
     return (
         <div className="modal-overlay">
-            <div className="modal-content recipe-modal">
-                <div className="modal-header">
-                    <h3>Công thức: {menuItem.name}</h3>
-                    <button className="close-btn" onClick={onClose}>×</button>
+            <div className="recipe-modal-content">
+                {/* Header */}
+                <div className="recipe-modal-header">
+                    <h3>📊 Định lượng: {menuItem.name}</h3>
+                    <button className="recipe-modal-close" onClick={onClose}>
+                        <FaTimes />
+                    </button>
                 </div>
 
-                <div className="modal-body">
+                <div className="recipe-modal-body">
                     {loading ? (
-                        <div className="loading">Đang tải công thức...</div>
+                        <div className="recipe-loading">
+                            <div className="recipe-loading-spinner"></div>
+                            <p>Đang tải định lượng...</p>
+                        </div>
                     ) : (
                         <form onSubmit={handleSubmit}>
-                            <div className="menu-item-info">
+                            {/* Menu Item Info */}
+                            <div className="recipe-menu-item-info">
                                 <img 
                                     src={menuItem.image?.startsWith('http') ? menuItem.image : `/uploads/${menuItem.image}`} 
                                     alt={menuItem.name}
-                                    className="menu-item-image"
+                                    className="recipe-menu-item-image"
+                                    onError={(e) => {
+                                        e.target.src = '/default-food.png';
+                                    }}
                                 />
-                                <div className="menu-item-details">
+                                <div className="recipe-menu-item-details">
                                     <h4>{menuItem.name}</h4>
-                                    <p>Giá bán: {menuItem.price.toLocaleString()} VND</p>
-                                    <p>Chi phí NL dự kiến: {totalCost.toLocaleString()} VND</p>
-                                    <p>Tỷ lệ chi phí: {menuItem.price > 0 ? (totalCost / menuItem.price * 100).toFixed(1) : 0}%</p>
+                                    <p>Thiết lập định lượng nguyên liệu cho món ăn này</p>
                                 </div>
                             </div>
 
-                            <div className="ingredients-section">
-                                <div className="section-header">
-                                    <h4>Nguyên liệu cần thiết</h4>
+                            {/* Ingredients Section */}
+                            <div className="recipe-ingredients-section">
+                                <div className="recipe-section-header">
+                                    <h4>Danh sách nguyên liệu</h4>
                                     <button 
                                         type="button" 
-                                        className="btn btn-secondary"
+                                        className="recipe-btn-add"
                                         onClick={addIngredient}
                                     >
-                                        Thêm nguyên liệu
+                                        <FaPlus /> Thêm nguyên liệu
                                     </button>
                                 </div>
 
                                 {recipe.length === 0 ? (
-                                    <p className="no-ingredients">Chưa có nguyên liệu nào. Hãy thêm nguyên liệu đầu tiên!</p>
+                                    <div className="recipe-empty-ingredients">
+                                        <h4>Chưa có nguyên liệu nào</h4>
+                                        <p>Hãy thêm nguyên liệu đầu tiên cho món ăn này</p>
+                                        <button 
+                                            type="button" 
+                                            className="recipe-btn-add-first"
+                                            onClick={addIngredient}
+                                        >
+                                            <FaPlus /> Thêm nguyên liệu đầu tiên
+                                        </button>
+                                    </div>
                                 ) : (
-                                    <div className="ingredients-list">
+                                    <div className="recipe-ingredients-list">
                                         {recipe.map((ingredient, index) => (
-                                            <div key={index} className="ingredient-row">
-                                                <div className="ingredient-select">
+                                            <div key={index} className="recipe-ingredient-row">
+                                                {/* Tên nguyên liệu */}
+                                                <div className="recipe-form-group">
+                                                    <label className="recipe-form-label">Nguyên liệu</label>
                                                     <select
                                                         value={ingredient.inventory_id}
                                                         onChange={(e) => updateIngredient(index, 'inventory_id', e.target.value)}
+                                                        className="recipe-form-select"
                                                         required
                                                     >
-                                                        <option value="">Chọn nguyên liệu</option>
+                                                        <option value="">-- Chọn nguyên liệu --</option>
                                                         {inventories.map(inv => (
                                                             <option key={inv._id} value={inv._id}>
-                                                                {inv.name} (Tồn: {inv.current_stock} {inv.unit})
+                                                                {inv.name} (Tồn: {inv.currentstock} {inv.unit})
                                                             </option>
                                                         ))}
                                                     </select>
                                                 </div>
 
-                                                <div className="quantity-input">
-                                                    <input
-                                                        type="number"
-                                                        placeholder="Số lượng"
-                                                        value={ingredient.quantity_needed}
-                                                        onChange={(e) => updateIngredient(index, 'quantity_needed', parseFloat(e.target.value) || 0)}
-                                                        min="0"
-                                                        step="0.01"
-                                                        required
-                                                    />
-                                                    <span className="unit-label">{ingredient.unit}</span>
-                                                </div>
-
-                                                <div className="ingredient-cost">
-                                                    {ingredient.inventory_id && ingredient.quantity_needed > 0 && (
-                                                        <span>
-                                                            {(ingredient.quantity_needed * 
-                                                              (inventories.find(inv => inv._id === ingredient.inventory_id)?.cost_per_unit || 0)
-                                                            ).toLocaleString()} VND
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                <div className="ingredient-options">
-                                                    <label className="checkbox-label">
+                                                {/* Số lượng */}
+                                                <div className="recipe-form-group">
+                                                    <label className="recipe-form-label">Số lượng cần</label>
+                                                    <div className="recipe-quantity-input">
                                                         <input
-                                                            type="checkbox"
-                                                            checked={ingredient.is_main_ingredient}
-                                                            onChange={(e) => updateIngredient(index, 'is_main_ingredient', e.target.checked)}
+                                                            type="number"
+                                                            value={ingredient.quantity_needed}
+                                                            onChange={(e) => updateIngredient(index, 'quantity_needed', e.target.value)}
+                                                            className="recipe-form-input"
+                                                            placeholder="Nhập số lượng"
+                                                            min="0"
+                                                            step="0.01"
+                                                            required
                                                         />
-                                                        Nguyên liệu chính
-                                                    </label>
+                                                        <span className="recipe-unit-badge">
+                                                            {ingredient.unit || 'Đơn vị'}
+                                                        </span>
+                                                    </div>
                                                 </div>
 
+                                                {/* Nút xóa */}
                                                 <button 
                                                     type="button"
-                                                    className="btn btn-danger btn-sm"
+                                                    className="recipe-btn-remove"
                                                     onClick={() => removeIngredient(index)}
+                                                    title="Xóa nguyên liệu"
                                                 >
-                                                    Xóa
+                                                    <FaTrash />
                                                 </button>
                                             </div>
                                         ))}
@@ -224,12 +211,21 @@ const fetchExistingRecipe = async () => {
                                 )}
                             </div>
 
-                            <div className="modal-footer">
-                                <button type="button" className="btn btn-secondary" onClick={onClose}>
-                                    Hủy
+                            {/* Footer */}
+                            <div className="recipe-modal-footer">
+                                <button 
+                                    type="button" 
+                                    className="recipe-btn-cancel"
+                                    onClick={onClose}
+                                >
+                                    Hủy bỏ
                                 </button>
-                                <button type="submit" className="btn btn-primary">
-                                    Lưu công thức
+                                <button 
+                                    type="submit" 
+                                    className="recipe-btn-save"
+                                    disabled={recipe.length === 0}
+                                >
+                                    <FaSave /> Lưu định lượng
                                 </button>
                             </div>
                         </form>
