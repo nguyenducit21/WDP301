@@ -12,6 +12,7 @@ const Bill = require("./bill.model");
 const Combo = require("./combo.model");
 const Inventory = require("./inventory.model");
 const MenuItemRecipe = require("./menuItemRecipe.model");
+const ImportReceipt = require("./importReceipt.model");
 
 
 module.exports = {
@@ -26,5 +27,6 @@ module.exports = {
   Bill,
   Combo,
   Inventory,
-  MenuItemRecipe
+  MenuItemRecipe,
+  ImportReceipt
 };
