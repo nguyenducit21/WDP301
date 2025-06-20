@@ -7,9 +7,9 @@ const {
     updateTable,
     deleteTable,
     updateTableStatus
-} = require('../../controller/table.controller');
-const authMiddleware = require('../../middlewares/auth.middleware');
-const roleMiddleware = require('../../middlewares/role.middleware');
+} = require('../controllers/table.controller');
+const authMiddleware = require('../middlewares/auth.middleware');
+const roleMiddleware = require('../middlewares/role.middleware');
 
 // roleMiddleware(['admin', 'manager', 'waiter'])
 // Lấy tất cả bàn (có phân trang và filter)

@@ -8,9 +8,9 @@ const {
     cancelReservation,
     moveReservation,
     getCustomerReservations
-} = require('../../controller/reservation.controller');
-const authMiddleware = require('../../middlewares/auth.middleware');
-const roleMiddleware = require('../../middlewares/role.middleware')
+} = require('../controllers/reservation.controller');
+const authMiddleware = require('../middlewares/auth.middleware');
+const roleMiddleware = require('../middlewares/role.middleware')
 
 // Lấy tất cả đặt bàn
 router.get('/', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), getReservations);

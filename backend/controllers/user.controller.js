@@ -2,6 +2,7 @@ const User = require("../models/user.model");
 const Role = require("../models/role.model");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 const test = async (req, res) => {
     try {
@@ -82,6 +83,7 @@ const register = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 }
+
 const login = async (req, res) => {
     try {
         const { username, password } = req.body;
@@ -237,4 +239,79 @@ const getUserProfile = async (req, res) => {
     }
 };
 
-module.exports = { test, register, login, logout, updateProfile, changePassword, getUserProfile }
+
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) return res.status(400).json({ message: "Vui lòng nhập email." });
+
+        const user = await User.findOne({ email });
+        if (!user) return res.status(400).json({ message: "Email chưa đăng ký." });
+
+        // Tạo mã code 6 số
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+        // Tạo JWT chứa email, code, hết hạn 10 phút
+        const resetToken = jwt.sign(
+            { email: user.email, code },
+            process.env.JWT_SECRET,
+            { expiresIn: '10m' }
+        );
+
+        // Gửi mã code qua email
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_NAME,
+                pass: process.env.EMAIL_PASS
+            }
+        });
+
+        await transporter.sendMail({
+            from: process.env.EMAIL_NAME,
+            to: email,
+            subject: 'Mã xác nhận đặt lại mật khẩu',
+            text: `Mã xác nhận đặt lại mật khẩu của bạn là: ${code}`
+        });
+
+        // Trả JWT về client (client lưu tạm)
+        res.status(200).json({ message: "Đã gửi mã xác nhận tới email.", resetToken });
+    } catch (error) {
+        res.status(500).json({ message: error.message || "Gửi email thất bại." });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    try {
+        const { email, code, newPassword, resetToken } = req.body;
+        if (!email || !code || !newPassword || !resetToken) {
+            return res.status(400).json({ message: "Thiếu thông tin." });
+        }
+        const user = await User.findOne({ email });
+        if (!user) return res.status(400).json({ message: "Không tìm thấy user." });
+
+        // Verify JWT
+        let payload;
+        try {
+            payload = jwt.verify(resetToken, process.env.JWT_SECRET);
+        } catch (err) {
+            return res.status(400).json({ message: "Token không hợp lệ hoặc đã hết hạn." });
+        }
+
+        // Kiểm tra email và code
+        if (payload.email !== email || payload.code !== code) {
+            return res.status(400).json({ message: "Mã xác nhận không hợp lệ." });
+        }
+
+        // Đổi mật khẩu
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(newPassword, salt);
+        await user.save();
+
+        res.status(200).json({ message: "Đặt lại mật khẩu thành công." });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+module.exports = { test, register, login, logout, updateProfile, changePassword, getUserProfile, forgotPassword, resetPassword }

@@ -6,9 +6,9 @@ const {
     createArea,
     updateArea,
     deleteArea
-} = require('../../controller/area.controller');
-const authMiddleware = require('../../middlewares/auth.middleware');
-const roleMiddleware = require('../../middlewares/role.middleware');
+} = require('../controllers/area.controller');
+const authMiddleware = require('../middlewares/auth.middleware');
+const roleMiddleware = require('../middlewares/role.middleware');
 
 // Lấy tất cả khu vực
 router.get('/', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), getAreas);

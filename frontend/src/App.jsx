@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import TableManagement from "./pages/TableManagement/TableManagement";
 import AreaManagement from "./pages/TableManagement/AreaManagement";
 import Profile from "./pages/Profile/Profile"
+import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 
 const App = () => {
   return (
@@ -32,6 +33,8 @@ const App = () => {
           <Route path="/dashboard/tables" element={<TableManagement />} />
           <Route path="/dashboard/areas" element={<AreaManagement />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          
         </Routes>
         <ScrollToTopButton />
         <Footer />
