@@ -170,11 +170,13 @@ const getAvailableTables = async (req, res) => {
             }
         });
 
-        // Tìm các bàn có sẵn
-        let query = {
-            _id: { $nin: reservedTableIds },
-            status: { $in: ['available', 'cleaning'] }
-        };
+        // Tìm các bàn có sẵn - Bỏ qua trạng thái bàn, chỉ loại trừ các bàn đã được đặt trong cùng slot
+        let query = {};
+
+        // Loại trừ các bàn đã được đặt trong cùng slot
+        if (reservedTableIds.length > 0) {
+            query._id = { $nin: reservedTableIds };
+        }
 
         if (area_id) {
             query.area_id = area_id;
@@ -921,7 +923,7 @@ const cancelReservation = async (req, res) => {
 // Chuyển bàn
 const moveReservation = async (req, res) => {
     try {
-        const { new_table_id } = req.body;
+        const { new_table_id, transfer_orders, update_table_status } = req.body;
 
         if (!new_table_id) {
             return res.status(400).json({
@@ -946,6 +948,9 @@ const moveReservation = async (req, res) => {
                 message: 'Bàn mới không tồn tại'
             });
         }
+
+        // Lưu lại bàn cũ để cập nhật trạng thái sau
+        const oldTableId = reservation.table_id;
 
         //  Kiểm tra bàn mới có trống trong ngày và giờ của reservation không
         const startOfDay = new Date(reservation.date);
@@ -975,6 +980,29 @@ const moveReservation = async (req, res) => {
         reservation.table_id = new_table_id;
         reservation.updated_at = new Date();
         await reservation.save();
+
+        // Cập nhật trạng thái bàn nếu được yêu cầu
+        if (update_table_status) {
+            // Đặt bàn cũ về trạng thái available
+            await Table.findByIdAndUpdate(oldTableId, {
+                status: 'available',
+                updated_at: new Date()
+            });
+
+            // Đặt bàn mới về trạng thái occupied
+            await Table.findByIdAndUpdate(new_table_id, {
+                status: 'occupied',
+                updated_at: new Date()
+            });
+        }
+
+        // Chuyển đơn hàng sang bàn mới nếu được yêu cầu
+        if (transfer_orders) {
+            await Order.updateMany(
+                { table_id: oldTableId, status: { $nin: ['completed', 'cancelled'] } },
+                { table_id: new_table_id, updated_at: new Date() }
+            );
+        }
 
         // Populate thông tin
         await reservation.populate([
@@ -1121,9 +1149,9 @@ const confirmReservation = async (req, res) => {
         reservation.updated_at = new Date();
         await reservation.save();
 
-        // Cập nhật trạng thái bàn từ available → reserved
+        // Cập nhật trạng thái bàn từ available → occupied (thay đổi từ reserved sang occupied)
         await Table.findByIdAndUpdate(reservation.table_id, {
-            status: 'reserved',
+            status: 'occupied',
             updated_at: new Date()
         });
 

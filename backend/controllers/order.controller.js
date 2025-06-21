@@ -203,10 +203,7 @@ const createOrder = async (req, res) => {
         const order = new Order(orderData);
         await order.save();
 
-        // Cập nhật trạng thái bàn thành occupied nếu chưa
-        if (table.status !== 'occupied') {
-            await Table.findByIdAndUpdate(table_id, { status: 'occupied' });
-        }
+        // Bỏ phần cập nhật trạng thái bàn, vì trạng thái bàn đã được quản lý bởi reservation
 
         await order.populate([
             { path: 'table_id', select: 'name capacity area_id' },
