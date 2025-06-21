@@ -286,4 +286,38 @@
       min-width: 600px;
     }
   }
-  
+  /* pages/Chef/ImportReceipt/ImportReceiptCreate.css */
+.quantity-cell {
+  position: relative;
+}
+
+.warning {
+  border: 2px solid #ffcc00 !important;
+  background-color: #fff9e6;
+}
+
+.warning-icon {
+  color: #ffcc00;
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.suggested-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #28a745;
+  font-weight: 500;
+}
+
+.info-icon {
+  cursor: help;
+  color: #666;
+  font-size: 14px;
+}
+
+.info-icon:hover {
+  color: #28a745;
+}
