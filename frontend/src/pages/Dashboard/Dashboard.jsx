@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from '../../utils/axios.customize';
-import { FaInfoCircle, FaSyncAlt, FaFilter } from 'react-icons/fa';
-import { Tooltip } from 'react-tooltip';
+import { FaInfoCircle, FaSyncAlt, FaFilter, FaChevronDown, FaChevronRight, FaShoppingCart } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import './ImportDashboard.css';
+
 const STORAGE_TYPES = [
   { value: '', label: 'Tất cả' },
   { value: 'Tươi sống', label: 'Tươi sống' },
@@ -17,7 +18,9 @@ const ImportDashboard = () => {
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10); // Số mục mỗi trang
+  const [itemsPerPage] = useState(10);
+  const [expandedRows, setExpandedRows] = useState([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchAnalytics();
@@ -42,6 +45,54 @@ const ImportDashboard = () => {
   const handleFilter = (value) => setFilter(value);
   const handleSearch = (e) => setSearch(e.target.value);
 
+  const toggleRowDetails = (itemId) => {
+    setExpandedRows(prev => 
+      prev.includes(itemId) 
+        ? prev.filter(id => id !== itemId)
+        : [...prev, itemId]
+    );
+  };
+
+  const handleQuickImport = (item) => {
+    const importData = {
+      inventory_id: item.id,
+      name: item.name,
+      unit: item.unit,
+      suggestedQuantity: item.suggestImport,
+      currentStock: item.currentStock,
+      minStockLevel: item.minStockLevel,
+      storageType: item.storageType,
+      description: item.description
+    };
+
+    navigate('/chef/import-receipts/create', {
+      state: { prefilledItem: importData }
+    });
+  };
+
+  const handleBulkImport = () => {
+    const itemsNeedImport = filteredData.filter(item => item.suggestImport > 0);
+    
+    if (itemsNeedImport.length === 0) {
+      toast.info('Không có nguyên liệu nào cần nhập hàng');
+      return;
+    }
+
+    const bulkData = itemsNeedImport.map(item => ({
+      inventory_id: item.id,
+      name: item.name,
+      unit: item.unit,
+      suggestedQuantity: item.suggestImport,
+      currentStock: item.currentStock,
+      minStockLevel: item.minStockLevel,
+      storageType: item.storageType
+    }));
+
+    navigate('/chef/import-receipts/create', {
+      state: { prefilledItems: bulkData }
+    });
+  };
+
   const filteredData = analytics.filter(
     (item) =>
       (filter ? item.storageType === filter : true) &&
@@ -50,7 +101,6 @@ const ImportDashboard = () => {
 
   const totalSuggest = filteredData.reduce((sum, item) => sum + (item.suggestImport > 0 ? 1 : 0), 0);
 
-  // Phân trang
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
   const paginatedData = filteredData.slice(
     (currentPage - 1) * itemsPerPage,
@@ -73,6 +123,14 @@ const ImportDashboard = () => {
           </p>
         </div>
         <div className="header-actions">
+          <button 
+            className="btn btn-primary" 
+            onClick={handleBulkImport}
+            disabled={filteredData.filter(item => item.suggestImport > 0).length === 0}
+          >
+            <FaShoppingCart /> Nhập hàng ({filteredData.filter(item => item.suggestImport > 0).length})
+          </button>
+          
           <button className="btn btn-outline" onClick={fetchAnalytics} title="Tải lại dữ liệu">
             <FaSyncAlt /> Làm mới
           </button>
@@ -106,14 +164,14 @@ const ImportDashboard = () => {
       <div className="table-wrapper">
         <table className="receipt-table">
           <colgroup>
-            <col style={{ width: '30%' }} /> {/* Tên Nguyên Liệu */}
-            <col style={{ width: '8%' }} /> {/* Bảo Quản */}
-            <col style={{ width: '10%' }} /> {/* Tồn Kho */}
-            <col style={{ width: '12%' }} /> {/* Tiêu Thụ TB/Ngày */}
-            <col style={{ width: '12%' }} /> {/* Đủ Dùng */}
-            <col style={{ width: '12%' }} /> {/* Đề Xuất Nhập */}
-            <col style={{ width: '10%' }} /> {/* Diễn Giải */}
-            <col style={{ width: '16%' }} /> {/* Ngày Nhập Gần Nhất */}
+            <col style={{ width: '22%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '8%' }} />
           </colgroup>
           <thead>
             <tr>
@@ -123,8 +181,8 @@ const ImportDashboard = () => {
               <th>Tiêu Thụ TB/Ngày</th>
               <th>Đủ Dùng</th>
               <th>Đề Xuất Nhập</th>
-              <th>Diễn Giải</th>
-              <th>Ngày Nhập Gần Nhất</th>
+              <th>Chi Tiết</th>
+              <th>Thao Tác</th>
             </tr>
           </thead>
           <tbody>
@@ -145,62 +203,103 @@ const ImportDashboard = () => {
               </tr>
             ) : (
               paginatedData.map((item) => (
-                <tr
-                  key={item.id}
-                  className={item.suggestImport > 0 ? 'row-highlight' : ''}
-                  data-tooltip-id={`tooltip-${item.id}`}
-                >
-                  <td>
-                    <span className="receipt-number">{item.name}</span>
-                    <span className="unit-label">({item.unit})</span>
-                  </td>
-                  <td className="storage-type">{item.storageType}</td>
-                  <td className={item.currentStock < item.minStockLevel ? 'cell-warning' : ''}>
-                    {item.currentStock}
-                  </td>
-                  <td>{item.avgDailyUsed.toFixed(2)}</td>
-                  <td>
-                    {item.neededForDays} {item.unit} / {item.usedForDays} ngày
-                  </td>
-                  <td>
-                    <span className={item.suggestImport > 0 ? 'import-suggest' : 'import-none'}>
-                      {item.suggestImport}
-                    </span>
-                    {item.warning && (
-                      <span className="warning-icon" title={item.warning}>
+                <React.Fragment key={item.id}>
+                  <tr className={item.suggestImport > 0 ? 'row-highlight' : ''}>
+                    <td>
+                      <span className="receipt-number">{item.name}</span>
+                      <span className="unit-label">({item.unit})</span>
+                    </td>
+                    <td className="storage-type">{item.storageType}</td>
+                    <td className={item.currentStock < item.minStockLevel ? 'cell-warning' : ''}>
+                      {item.currentStock}
+                    </td>
+                    <td>{item.avgDailyUsed.toFixed(2)}</td>
+                    <td>
+                      {item.neededForDays} {item.unit} / {item.usedForDays} ngày
+                    </td>
+                    <td>
+                      <span className={item.suggestImport > 0 ? 'import-suggest' : 'import-none'}>
+                        {item.suggestImport}
                       </span>
-                    )}
-                  </td>
-                  <td>
-                    <span className="info-tooltip">
-                      <FaInfoCircle /> Xem
-                    </span>
-                    <Tooltip
-                      id={`tooltip-${item.id}`}
-                      place="top"
-                      style={{
-                        backgroundColor: '#ffffff',
-                        color: '#111827',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        padding: '12px',
-                        maxWidth: '320px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                        zIndex: 1000,
-                      }}
-                    >
-                      <div>
-                        <b>Đề xuất nhập:</b> <span style={{ color: '#157347' }}>{item.suggestImport} {item.unit}</span> (cho {item.usedForDays} ngày)<br />
-                        <b>Tiêu thụ TB:</b> {item.avgDailyUsed.toFixed(2)}/ngày<br />
-                        <b>Tồn kho:</b> {item.currentStock} {item.unit}<br />
-                        <b>Công thức:</b> <span style={{ fontFamily: 'monospace' }}>{item.formula}</span><br />
-                        <b>Ghi chú:</b> {item.description}<br />
-                        {item.warning && <span style={{ color: '#dc2626' }}>{item.warning}</span>}
-                      </div>
-                    </Tooltip>
-                  </td>
-                  <td>{item.lastImportDate || 'N/A'}</td>
-                </tr>
+                      {item.warning && (
+                        <span className="warning-icon" title={item.warning}>
+                          ⚠️
+                        </span>
+                      )}
+                    </td>
+                    <td className="details-cell">
+                      <button 
+                        className={`details-toggle ${expandedRows.includes(item.id) ? 'active' : ''}`}
+                        onClick={() => toggleRowDetails(item.id)}
+                      >
+                        {expandedRows.includes(item.id) ? <FaChevronDown /> : <FaChevronRight />}
+                        {expandedRows.includes(item.id) ? 'Ẩn' : 'Chi tiết'}
+                      </button>
+                    </td>
+                    <td className="action-cell">
+                      {item.suggestImport > 0 ? (
+                        <button 
+                          className="btn-quick-import"
+                          onClick={() => handleQuickImport(item)}
+                          title="Nhập hàng nhanh"
+                        >
+                          <FaShoppingCart />
+                        </button>
+                      ) : (
+                        <span className="no-action">-</span>
+                      )}
+                    </td>
+                  </tr>
+                  
+                  {expandedRows.includes(item.id) && (
+                    <tr className="details-row">
+                      <td colSpan={8}>
+                        <div className="details-content">
+                          <div className="details-grid">
+                            <div className="detail-item">
+                              <div className="detail-label">Đề xuất nhập</div>
+                              <div className="detail-value">
+                                <span className="import-suggest">{item.suggestImport} {item.unit}</span>
+                                <small> (cho {item.usedForDays} ngày)</small>
+                              </div>
+                            </div>
+                            
+                            <div className="detail-item">
+                              <div className="detail-label">Tiêu thụ trung bình</div>
+                              <div className="detail-value">{item.avgDailyUsed.toFixed(2)} {item.unit}/ngày</div>
+                            </div>
+                            
+                            <div className="detail-item">
+                              <div className="detail-label">Tồn kho hiện tại</div>
+                              <div className="detail-value">{item.currentStock} {item.unit}</div>
+                            </div>
+                            
+                            <div className="detail-item">
+                              <div className="detail-label">Mức tối thiểu</div>
+                              <div className="detail-value">{item.minStockLevel} {item.unit}</div>
+                            </div>
+                            
+                            <div className="detail-item">
+                              <div className="detail-label">Công thức tính</div>
+                              <div className="detail-formula">{item.formula}</div>
+                            </div>
+                            
+                            <div className="detail-item">
+                              <div className="detail-label">Mô tả</div>
+                              <div className="detail-value">{item.description}</div>
+                            </div>
+                          </div>
+                          
+                          {item.warning && (
+                            <div className="detail-warning">
+                              <strong>⚠️ Cảnh báo:</strong> {item.warning}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))
             )}
           </tbody>

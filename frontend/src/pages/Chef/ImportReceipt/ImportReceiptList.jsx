@@ -28,15 +28,15 @@ const ImportReceiptList = () => {
         setLoading(true);
         try {
             const params = {};
-            
+
             if (filters.search) params.search = filters.search;
             if (filters.from) params.from = filters.from;
             if (filters.to) params.to = filters.to;
             if (filters.staff) params.staff = filters.staff;
 
-            const response = await axios.get('/import-receipt', { 
+            const response = await axios.get('/import-receipt', {
                 params,
-                withCredentials: true 
+                withCredentials: true
             });
 
             if (response.data.success) {
@@ -110,12 +110,12 @@ const ImportReceiptList = () => {
     const handleExportPDF = async (receipt) => {
         try {
             toast.info('Đang tạo file PDF...');
-            
+
             const response = await axios.get(`/import-receipt/${receipt._id}/export-pdf`, {
                 responseType: 'blob',
                 withCredentials: true
             });
-            
+
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
@@ -125,7 +125,7 @@ const ImportReceiptList = () => {
             link.click();
             link.remove();
             window.URL.revokeObjectURL(url);
-            
+
             toast.success('Xuất PDF thành công!');
         } catch (error) {
             console.error('Export PDF error:', error);
@@ -154,7 +154,7 @@ const ImportReceiptList = () => {
                     <button className="btn btn-outline" onClick={resetFilters}>
                         <FaRedo /> Reset
                     </button>
-                    <button 
+                    <button
                         className="btn btn-primary"
                         onClick={() => navigate('/chef/import-receipts/create')}
                     >
@@ -169,30 +169,30 @@ const ImportReceiptList = () => {
                     <div className="filter-row">
                         <div className="filter-group">
                             <label>Từ ngày:</label>
-                            <input 
-                                type="date" 
+                            <input
+                                type="date"
                                 value={filters.from}
                                 onChange={(e) => handleFilterChange('from', e.target.value)}
-                                className="filter-input" 
+                                className="filter-input"
                             />
                         </div>
                         <div className="filter-group">
                             <label>Đến ngày:</label>
-                            <input 
-                                type="date" 
+                            <input
+                                type="date"
                                 value={filters.to}
                                 onChange={(e) => handleFilterChange('to', e.target.value)}
-                                className="filter-input" 
+                                className="filter-input"
                             />
                         </div>
                         <div className="filter-group">
                             <label>Nhân viên:</label>
-                            <input 
-                                type="text" 
-                                placeholder="Tìm theo tên nhân viên" 
+                            <input
+                                type="text"
+                                placeholder="Tìm theo tên nhân viên"
                                 value={filters.staff}
                                 onChange={(e) => handleFilterChange('staff', e.target.value)}
-                                className="filter-input" 
+                                className="filter-input"
                             />
                         </div>
                     </div>
@@ -203,7 +203,7 @@ const ImportReceiptList = () => {
             <div className="table-controls">
                 <div className="entries-control">
                     <span>Hiển thị</span>
-                    <select 
+                    <select
                         value={filters.entriesPerPage}
                         onChange={(e) => handleEntriesChange(e.target.value)}
                         className="entries-select"
@@ -237,6 +237,13 @@ const ImportReceiptList = () => {
                     </div>
                 ) : (
                     <table className="receipt-table">
+                        <colgroup>
+                            <col />
+                            <col />
+                            <col />
+                            <col />
+                            <col />
+                        </colgroup>
                         <thead>
                             <tr>
                                 <th>Mã Phiếu</th>
@@ -267,14 +274,14 @@ const ImportReceiptList = () => {
                                     <td className="amount">{formatCurrency(receipt.total_amount)}</td>
                                     <td>{formatDate(receipt.created_at)}</td>
                                     <td className="actions">
-                                        <button 
+                                        <button
                                             className="action-btn view-btn"
                                             onClick={() => navigate(`/chef/import-receipts/${receipt._id}`)}
                                             title="Xem chi tiết"
                                         >
                                             <FaEye />
                                         </button>
-                                        <button 
+                                        <button
                                             className="action-btn pdf-btn"
                                             onClick={() => handleExportPDF(receipt)}
                                             title="Xuất PDF"
@@ -293,26 +300,26 @@ const ImportReceiptList = () => {
             <div className="table-footer">
                 <div className="table-info">
                     <span>
-                        Hiển thị {startIndex + 1} - {Math.min(endIndex, receipts.length)} 
+                        Hiển thị {startIndex + 1} - {Math.min(endIndex, receipts.length)}
                         trong tổng số {receipts.length} phiếu nhập
                     </span>
                 </div>
-                
+
                 {totalPages > 1 && (
                     <div className="pagination">
-                        <button 
+                        <button
                             className="page-btn"
                             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                             disabled={currentPage === 1}
                         >
                             ← Trước
                         </button>
-                        
+
                         {[...Array(totalPages)].map((_, index) => {
                             const pageNum = index + 1;
                             if (
-                                pageNum === 1 || 
-                                pageNum === totalPages || 
+                                pageNum === 1 ||
+                                pageNum === totalPages ||
                                 (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
                             ) {
                                 return (
@@ -325,15 +332,15 @@ const ImportReceiptList = () => {
                                     </button>
                                 );
                             } else if (
-                                pageNum === currentPage - 2 || 
+                                pageNum === currentPage - 2 ||
                                 pageNum === currentPage + 2
                             ) {
                                 return <span key={pageNum} className="page-dots">...</span>;
                             }
                             return null;
                         })}
-                        
-                        <button 
+
+                        <button
                             className="page-btn"
                             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                             disabled={currentPage === totalPages}

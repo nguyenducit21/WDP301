@@ -1,4 +1,4 @@
-// pages/Chef/Inventory/InventoryList.jsx - PHIÊN BẢN ĐƠN GIẢN
+// pages/Chef/Inventory/InventoryList.jsx - CÓ THÊM STORAGETYPE
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -23,7 +23,8 @@ const InventoryList = () => {
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
     search: '',
-    stockStatus: '', // ✅ THÊM filter trạng thái
+    stockStatus: '',
+    storageType: '', // ✅ THÊM FILTER STORAGETYPE
     entriesPerPage: 10,
     showFilter: false
   });
@@ -41,9 +42,17 @@ const InventoryList = () => {
     { value: 'out-of-stock', label: 'Hết hàng', icon: '❌' }
   ];
 
+  // ✅ ĐỊNH NGHĨA CÁC LOẠI BẢO QUẢN
+  const storageTypes = [
+    { value: '', label: 'Tất cả loại', icon: '📦' },
+    { value: 'perishable', label: 'Tươi sống (2 ngày)', icon: '🥬' },
+    { value: 'semi_perishable', label: 'Bán tươi (4 ngày)', icon: '🥩' },
+    { value: 'dry', label: 'Khô/đông lạnh (7 ngày)', icon: '🌾' }
+  ];
+
   useEffect(() => {
     fetchInventories();
-  }, [filters.search, filters.stockStatus]);
+  }, [filters.search, filters.stockStatus, filters.storageType]);
 
   const fetchInventories = async () => {
     setLoading(true);
@@ -70,6 +79,13 @@ const InventoryList = () => {
           filteredData = filteredData.filter(inventory => {
             const status = getStockStatus(inventory);
             return status === filters.stockStatus;
+          });
+        }
+
+        // ✅ FILTER THEO STORAGETYPE
+        if (filters.storageType) {
+          filteredData = filteredData.filter(inventory => {
+            return (inventory.storageType || 'perishable') === filters.storageType;
           });
         }
 
@@ -102,6 +118,12 @@ const InventoryList = () => {
     return 'Còn hàng';
   };
 
+  // ✅ HÀM LẤY LABEL STORAGETYPE
+  const getStorageTypeLabel = (storageType) => {
+    const type = storageTypes.find(t => t.value === (storageType || 'perishable'));
+    return type ? `${type.icon} ${type.label}` : '🥬 Tươi sống (2 ngày)';
+  };
+
   const handleSearch = (value) => {
     setFilters(prev => ({ ...prev, search: value }));
     setCurrentPage(1);
@@ -121,6 +143,7 @@ const InventoryList = () => {
     setFilters({
       search: '',
       stockStatus: '',
+      storageType: '', // ✅ RESET STORAGETYPE
       entriesPerPage: 10,
       showFilter: false
     });
@@ -225,7 +248,7 @@ const InventoryList = () => {
         </div>
       )}
 
-      {/* ✅ FILTER PANEL - CHỈ HIỂN THỊ KHI BẤM NÚT LỌC */}
+      {/* ✅ FILTER PANEL - CÓ THÊM STORAGETYPE */}
       {filters.showFilter && (
         <div className="filter-panel">
           <div className="filter-row">
@@ -239,6 +262,22 @@ const InventoryList = () => {
                 {stockStatuses.map(status => (
                   <option key={status.value} value={status.value}>
                     {status.icon} {status.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            {/* ✅ THÊM FILTER STORAGETYPE */}
+            <div className="filter-group">
+              <label>Loại bảo quản:</label>
+              <select
+                value={filters.storageType}
+                onChange={(e) => handleFilterChange('storageType', e.target.value)}
+                className="filter-input"
+              >
+                {storageTypes.map(type => (
+                  <option key={type.value} value={type.value}>
+                    {type.icon} {type.label}
                   </option>
                 ))}
               </select>
@@ -289,6 +328,7 @@ const InventoryList = () => {
               <tr>
                 <th>Mã NL</th>
                 <th>Tên Nguyên Liệu</th>
+                <th>Loại Bảo Quản</th> {/* ✅ THÊM CỘT STORAGETYPE */}
                 <th>Số Lượng Tồn</th>
                 <th>Đơn Vị</th>
                 <th>Mức Tối Thiểu</th>
@@ -301,12 +341,15 @@ const InventoryList = () => {
             <tbody>
               {currentInventories.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="no-data">
+                  <td colSpan={10} className="no-data"> {/* ✅ TĂNG COLSPAN */}
                     <div className="empty-state">
                       <FaBoxes size={48} />
                       <p>Không có nguyên liệu nào</p>
                       {filters.stockStatus && (
                         <small>Không có nguyên liệu nào với trạng thái "{stockStatuses.find(s => s.value === filters.stockStatus)?.label}"</small>
+                      )}
+                      {filters.storageType && (
+                        <small>Không có nguyên liệu nào với loại bảo quản "{storageTypes.find(s => s.value === filters.storageType)?.label}"</small>
                       )}
                     </div>
                   </td>
@@ -320,6 +363,12 @@ const InventoryList = () => {
                   </td>
                   <td className="inventory-name">
                     <strong>{inventory.name}</strong>
+                  </td>
+                  {/* ✅ THÊM CỘT HIỂN THỊ STORAGETYPE */}
+                  <td className="storage-type">
+                    <span className={`storage-badge ${inventory.storageType || 'perishable'}`}>
+                      {getStorageTypeLabel(inventory.storageType)}
+                    </span>
                   </td>
                   <td className="stock-quantity">
                     <span className={`quantity ${getStockStatus(inventory)}`}>
@@ -372,7 +421,12 @@ const InventoryList = () => {
             trong tổng số {inventories.length} nguyên liệu
             {filters.stockStatus && (
               <span className="filter-info">
-                {' '}(Lọc: {stockStatuses.find(s => s.value === filters.stockStatus)?.label})
+                {' '}(Lọc trạng thái: {stockStatuses.find(s => s.value === filters.stockStatus)?.label})
+              </span>
+            )}
+            {filters.storageType && (
+              <span className="filter-info">
+                {' '}(Lọc bảo quản: {storageTypes.find(s => s.value === filters.storageType)?.label})
               </span>
             )}
           </span>

@@ -1,4 +1,4 @@
-// pages/Chef/Inventory/AddInventoryModal.jsx - PHIÊN BẢN ĐÃ SỬA
+// pages/Chef/Inventory/AddInventoryModal.jsx - CÓ THÊM STORAGETYPE
 import React, { useState } from 'react';
 import './Modal.css';
 
@@ -7,11 +7,18 @@ const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
     name: '',
     unit: '',
     supplier: '',
-    minstocklevel: '10'
-    // ✅ BỎ costperunit và currentstock
+    minstocklevel: '10',
+    storageType: 'perishable' // ✅ THÊM STORAGETYPE MẶC ĐỊNH
   });
 
   const units = ['kg', 'g', 'lít', 'ml', 'cái', 'gói', 'lon', 'hộp', 'thùng'];
+  
+  // ✅ THÊM DANH SÁCH LOẠI BẢO QUẢN
+  const storageTypes = [
+    { value: 'perishable', label: '🥬 Tươi sống (2 ngày)', description: 'Rau củ tươi, bánh phở, thực phẩm dễ hỏng' },
+    { value: 'semi_perishable', label: '🥩 Bán tươi (4 ngày)', description: 'Thịt, cá, hải sản tươi' },
+    { value: 'dry', label: '🌾 Khô/đông lạnh (7 ngày)', description: 'Gia vị, ngũ cốc, đồ khô, đông lạnh' }
+  ];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -21,7 +28,7 @@ const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.unit || !formData.supplier) {
+    if (!formData.name || !formData.unit || !formData.supplier || !formData.storageType) {
       alert('Vui lòng điền đầy đủ thông tin bắt buộc');
       return;
     }
@@ -31,8 +38,9 @@ const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
       unit: formData.unit,
       supplier: formData.supplier.trim(),
       minstocklevel: parseInt(formData.minstocklevel) || 10,
-      costperunit: 0, // ✅ Mặc định 0, sẽ được cập nhật khi nhập hàng
-      currentstock: 0 // ✅ Mặc định 0, sẽ được cập nhật khi nhập hàng
+      storageType: formData.storageType, // ✅ THÊM STORAGETYPE
+      costperunit: 0,
+      currentstock: 0
     };
 
     onSubmit(submitData);
@@ -49,7 +57,6 @@ const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
         </div>
         
         <form onSubmit={handleSubmit} className="modal-body">
-          {/* ✅ THÔNG TIN HƯỚNG DẪN */}
           <div className="info-note">
             <p><strong>Lưu ý:</strong> Nguyên liệu mới sẽ có số lượng = 0 và giá = 0. 
             Giá và số lượng sẽ được cập nhật khi bạn nhập hàng lần đầu tiên.</p>
@@ -65,6 +72,27 @@ const AddInventoryModal = ({ isOpen, onClose, onSubmit }) => {
               placeholder="Nhập tên nguyên liệu"
               required
             />
+          </div>
+
+          {/* ✅ THÊM TRƯỜNG LOẠI BẢO QUẢN */}
+          <div className="form-group">
+            <label>Loại bảo quản *</label>
+            <select
+              name="storageType"
+              value={formData.storageType}
+              onChange={handleChange}
+              required
+              className="storage-type-select"
+            >
+              {storageTypes.map(type => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+            <small className="storage-description">
+              {storageTypes.find(t => t.value === formData.storageType)?.description}
+            </small>
           </div>
 
           <div className="form-row">
