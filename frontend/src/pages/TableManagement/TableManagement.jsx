@@ -31,6 +31,9 @@ const TableManagement = () => {
     const [showInvoice, setShowInvoice] = useState(false);
     const [invoiceData, setInvoiceData] = useState(null);
     const [bookingSlots, setBookingSlots] = useState([]); // Thêm state cho booking slots
+    const [showMenuModal, setShowMenuModal] = useState(false); // Add state for menu modal
+    const [selectedCategory, setSelectedCategory] = useState("All"); // Add state for category filter
+    const [categories, setCategories] = useState([]); // Add state for categories
 
     //Date selector state
     const [selectedDate, setSelectedDate] = useState(() => {
@@ -173,6 +176,14 @@ const TableManagement = () => {
             const response = await axios.get('/menu-items');
             if (response?.data?.success && Array.isArray(response.data.data)) {
                 setMenuItems(response.data.data);
+            }
+
+            // Fetch categories
+            const categoriesResponse = await axios.get('/categories');
+            if (Array.isArray(categoriesResponse.data)) {
+                setCategories(categoriesResponse.data);
+            } else if (Array.isArray(categoriesResponse.data?.data)) {
+                setCategories(categoriesResponse.data.data);
             }
         } catch (error) {
             console.error('Error loading menu items:', error);
@@ -598,47 +609,9 @@ const TableManagement = () => {
                 payment_note: ''
             });
         } else if (type === 'addMenuItems' && item) {
-            // Tìm đặt bàn hiện tại của bàn này (chỉ lấy đặt bàn chưa hoàn thành)
-            const tableReservations = getTableReservations(item._id);
-            const currentReservation = tableReservations.length > 0 ? tableReservations[0] : null;
-
-            // Chỉ lấy đơn hàng liên quan đến đặt bàn hiện tại
-            let currentOrders = [];
-            if (currentReservation) {
-                currentOrders = orders.filter(order =>
-                    order.reservation_id === currentReservation._id ||
-                    safeGet(order, 'reservation_id._id') === currentReservation._id
-                );
-            } else {
-                // Nếu không có đặt bàn, lấy đơn hàng của bàn không có reservation_id
-                currentOrders = orders.filter(order =>
-                    order.table_id === item._id &&
-                    !order.reservation_id
-                );
-            }
-
-            const currentOrder = currentOrders.length > 0 ? currentOrders[0] : null;
-
-            let orderItems = [];
-            if (currentOrder && currentOrder.order_items) {
-                orderItems = currentOrder.order_items.map(orderItem => ({
-                    menu_item_id: safeGet(orderItem, 'menu_item_id._id') || orderItem.menu_item_id,
-                    quantity: orderItem.quantity,
-                    price: orderItem.price
-                }));
-            }
-
-            setFormData({
-                table_id: item._id,
-                table_name: item.name,
-                order_id: currentOrder ? currentOrder._id : null,
-                reservation_id: currentReservation ? currentReservation._id : null,
-                customer_id: currentReservation?.customer_id || null,
-                order_items: orderItems,
-                status: currentOrder ? currentOrder.status : 'pending',
-                paid: currentOrder ? currentOrder.paid : false,
-                note: currentOrder ? currentOrder.note : ''
-            });
+            // Instead of showing the modal, open the menu modal
+            openMenuModal(item);
+            return;
         } else if (type === 'payment' && item) {
             const currentOrders = getTableOrders(item._id);
             const currentOrder = currentOrders.length > 0 ? currentOrders[0] : null;
@@ -1155,6 +1128,140 @@ const TableManagement = () => {
         }
     };
 
+    // Open menu modal
+    const openMenuModal = (table) => {
+        // Find current reservation for this table
+        const tableReservations = getTableReservations(table._id);
+        const currentReservation = tableReservations.length > 0 ? tableReservations[0] : null;
+
+        // Find current order
+        let currentOrders = [];
+        if (currentReservation) {
+            currentOrders = orders.filter(order =>
+                order.reservation_id === currentReservation._id ||
+                safeGet(order, 'reservation_id._id') === currentReservation._id
+            );
+        } else {
+            // If no reservation, get orders for this table without reservation_id
+            currentOrders = orders.filter(order =>
+                order.table_id === table._id &&
+                !order.reservation_id
+            );
+        }
+
+        const currentOrder = currentOrders.length > 0 ? currentOrders[0] : null;
+
+        let orderItems = [];
+        if (currentOrder && currentOrder.order_items) {
+            orderItems = currentOrder.order_items.map(orderItem => ({
+                menu_item_id: safeGet(orderItem, 'menu_item_id._id') || orderItem.menu_item_id,
+                quantity: orderItem.quantity,
+                price: orderItem.price
+            }));
+        }
+
+        setFormData({
+            table_id: table._id,
+            table_name: table.name,
+            order_id: currentOrder ? currentOrder._id : null,
+            reservation_id: currentReservation ? currentReservation._id : null,
+            customer_id: currentReservation?.customer_id || null,
+            order_items: orderItems,
+            status: currentOrder ? currentOrder.status : 'pending',
+            paid: currentOrder ? currentOrder.paid : false,
+            note: currentOrder ? currentOrder.note : ''
+        });
+
+        setSelectedCategory("All");
+        setShowMenuModal(true);
+    };
+
+    // Close menu modal
+    const closeMenuModal = () => {
+        setShowMenuModal(false);
+    };
+
+    // Get filtered menu items based on selected category
+    const getFilteredMenuItems = () => {
+        return menuItems.filter(
+            (item) =>
+                selectedCategory === "All" ||
+                item.category_id === selectedCategory ||
+                (item.category_id?._id && item.category_id._id === selectedCategory)
+        );
+    };
+
+    // Get selected items count
+    const getSelectedItemsCount = () => {
+        return formData.order_items ? formData.order_items.reduce((total, item) => total + item.quantity, 0) : 0;
+    };
+
+    // Handle menu item submission
+    const handleSubmitMenuItems = async () => {
+        try {
+            setLoading(true);
+            const orderItems = formData.order_items.filter(item => item.quantity > 0);
+
+            if (orderItems.length === 0) {
+                setError('Vui lòng chọn ít nhất một món');
+                setLoading(false);
+                return;
+            }
+
+            let response;
+            if (formData.order_id) {
+                const orderData = {
+                    order_items: orderItems,
+                    status: formData.status,
+                    note: formData.note
+                };
+                response = await axios.put(`/orders/${formData.order_id}`, orderData);
+            } else {
+                const orderData = {
+                    table_id: formData.table_id,
+                    order_items: orderItems,
+                    note: formData.note
+                };
+
+                if (formData.reservation_id) {
+                    orderData.reservation_id = formData.reservation_id;
+                }
+
+                if (formData.customer_id) {
+                    orderData.customer_id = formData.customer_id;
+                } else {
+                    const potentialCustomerId = user?.userId || user?.user?._id || user?._id;
+                    const userRole = safeGet(user, 'user.role') || safeGet(user, 'role');
+
+                    if (potentialCustomerId && userRole === 'customer') {
+                        orderData.customer_id = potentialCustomerId;
+                    }
+                }
+
+                console.log('Order data being sent:', orderData);
+                response = await axios.post('/orders', orderData);
+            }
+
+            if (response?.data?.success) {
+                await Promise.all([
+                    loadReservations(),
+                    loadAllTables(),
+                    loadOrders()
+                ]);
+
+                setShowMenuModal(false);
+                alert('Thêm món thành công');
+            } else {
+                setError(response?.data?.message || 'Lỗi khi thêm món');
+            }
+        } catch (error) {
+            console.error('Error submitting menu items:', error);
+            setError(error.response?.data?.message || 'Có lỗi xảy ra khi xử lý yêu cầu');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     if (loading && areas.length === 0) {
         return (
             <div className="table-management">
@@ -1363,7 +1470,7 @@ const TableManagement = () => {
                                                 className="btn-add-menu"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    openModal('addMenuItems', table);
+                                                    openMenuModal(table);
                                                 }}
                                                 disabled={loading}
                                             >
@@ -1901,6 +2008,112 @@ const TableManagement = () => {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    </div>
+                )}
+
+                {/* Menu Selection Modal */}
+                {showMenuModal && (
+                    <div className="menu-modal-overlay">
+                        <div className="menu-modal">
+                            <div className="menu-modal-header">
+                                <h3>Thêm món cho bàn {formData.table_name}</h3>
+                                <button className="close-modal-btn" onClick={closeMenuModal}>×</button>
+                            </div>
+
+                            <div className="menu-modal-content">
+                                <div className="menu-sidebar">
+                                    <div className="menu-sidebar-title">
+                                        <span className="decor">—</span>
+                                        <span>THỰC ĐƠN</span>
+                                        <span className="decor">—</span>
+                                    </div>
+                                    <ul className="sidebar-list">
+                                        <li
+                                            className={selectedCategory === "All" ? "active" : ""}
+                                            onClick={() => setSelectedCategory("All")}
+                                        >
+                                            Xem tất cả
+                                        </li>
+                                        {categories.map((cat) => (
+                                            <li
+                                                key={cat._id}
+                                                className={selectedCategory === cat._id ? "active" : ""}
+                                                onClick={() => setSelectedCategory(cat._id)}
+                                            >
+                                                {cat.name}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                <div className="menu-content">
+                                    <div className="menu-heading">
+                                        <span className="sub-title">Nhà Hàng Hương Sen</span>
+                                        <h2>
+                                            {selectedCategory === "All"
+                                                ? "Thực đơn"
+                                                : categories.find((c) => c._id === selectedCategory)?.name || ""}
+                                        </h2>
+                                    </div>
+
+                                    {loading ? (
+                                        <div className="loading">Đang tải menu...</div>
+                                    ) : (
+                                        <div className="menu-items-grid">
+                                            {getFilteredMenuItems().map((item) => {
+                                                const orderItem = (formData.order_items || [])
+                                                    .find(i => i.menu_item_id === item._id);
+                                                const quantity = orderItem ? orderItem.quantity : 0;
+
+                                                return (
+                                                    <div key={item._id} className="menu-item-card">
+                                                        <div className="menu-item-image">
+                                                            {item.image && (
+                                                                <img src={item.image} alt={item.name} />
+                                                            )}
+                                                        </div>
+                                                        <div className="menu-item-info">
+                                                            <h4>{item.name}</h4>
+                                                            <p>{item.description}</p>
+                                                            <div className="menu-item-price">{item.price ? item.price.toLocaleString() : 0}đ</div>
+                                                        </div>
+                                                        <div className="menu-item-actions">
+                                                            <div className="quantity-controls">
+                                                                <button
+                                                                    type="button"
+                                                                    className="quantity-btn"
+                                                                    onClick={() => handleOrderItemChange(item._id, Math.max(0, quantity - 1))}
+                                                                >-</button>
+                                                                <span className="quantity-display">{quantity}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="quantity-btn"
+                                                                    onClick={() => handleOrderItemChange(item._id, quantity + 1)}
+                                                                >+</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="menu-modal-footer">
+                                <div className="order-summary">
+                                    <span>Tổng tiền: <strong>{calculateOrderTotal(formData.order_items).toLocaleString()}đ</strong></span>
+                                    <span>Số món: <strong>{getSelectedItemsCount()}</strong></span>
+                                </div>
+                                <button
+                                    className="confirm-menu-btn"
+                                    onClick={handleSubmitMenuItems}
+                                    disabled={loading}
+                                >
+                                    {loading ? "Đang xử lý..." : `Xác nhận (${getSelectedItemsCount()} món)`}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}
