@@ -30,10 +30,15 @@ const TableManagement = () => {
     const [orders, setOrders] = useState([]);
     const [showInvoice, setShowInvoice] = useState(false);
     const [invoiceData, setInvoiceData] = useState(null);
-    const [bookingSlots, setBookingSlots] = useState([]); // Thêm state cho booking slots
-    const [showMenuModal, setShowMenuModal] = useState(false); // Add state for menu modal
-    const [selectedCategory, setSelectedCategory] = useState("All"); // Add state for category filter
-    const [categories, setCategories] = useState([]); // Add state for categories
+    const [bookingSlots, setBookingSlots] = useState([]);
+    const [showMenuModal, setShowMenuModal] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState("All");
+    const [categories, setCategories] = useState([]);
+    const [statusFilter, setStatusFilter] = useState('all');
+    const [showPreOrderModal, setShowPreOrderModal] = useState(false);
+    const [reservationPage, setReservationPage] = useState(1); // Separate pagination for reservations
+    const [reservationsPerPage] = useState(10); // Number of reservations per page
+    const [filterByDate, setFilterByDate] = useState(false); // Toggle for date filtering
 
     //Date selector state
     const [selectedDate, setSelectedDate] = useState(() => {
@@ -144,24 +149,34 @@ const TableManagement = () => {
         }
     }, []);
 
-    // NEW: Load reservations with date filter
+    // NEW: Load reservations with date and status filters
     const loadReservations = useCallback(async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams({
-                limit: '1000',
-                sort: '-created_at',
-                date: selectedDate
+                limit: '1000', // Get all and handle pagination client-side for better filtering
+                sort: '-created_at'
             });
+
+            // Add status filter if not 'all'
+            if (statusFilter !== 'all') {
+                params.append('status', statusFilter);
+            }
+
+            // Add date filter if enabled
+            if (filterByDate) {
+                params.append('date', selectedDate);
+            }
 
             const response = await axios.get(`/reservations?${params}`);
             if (response?.data?.success && Array.isArray(response.data.data)) {
                 const validReservations = response.data.data.filter(res =>
-                    res &&
-                    res._id &&
-                    res.table_id
+                    res && res._id
                 );
                 setReservations(validReservations);
+
+                // Reset to first page when filters change
+                setReservationPage(1);
             }
         } catch (error) {
             setError('Lỗi khi tải danh sách đặt bàn');
@@ -169,7 +184,7 @@ const TableManagement = () => {
         } finally {
             setLoading(false);
         }
-    }, [selectedDate]);
+    }, [statusFilter, selectedDate, filterByDate]); // Update dependencies
 
     const loadMenuItems = useCallback(async () => {
         try {
@@ -250,6 +265,11 @@ const TableManagement = () => {
     useEffect(() => {
         loadReservations();
     }, [loadReservations]);
+
+    // Update useEffect to reload reservations when status filter changes
+    useEffect(() => {
+        loadReservations();
+    }, [loadReservations, statusFilter, filterByDate]); // Add filterByDate dependency
 
     // Filter tables by area and update status based on reservations
     useEffect(() => {
@@ -573,8 +593,15 @@ const TableManagement = () => {
                 notes: item.notes || '',
                 pre_order_items: item.pre_order_items || [],
                 availableTables: availableTablesForEdit,
-                bookingSlots: bookingSlots // Sử dụng booking slots từ state
+                bookingSlots: bookingSlots
             });
+
+            // // If there are pre-order items, open the menu modal instead
+            // if (item.pre_order_items && item.pre_order_items.length > 0) {
+            //     setShowPreOrderModal(true);
+            //     setSelectedCategory("All");
+            //     return;
+            // }
         } else if (type === 'move' && item) {
             // Lấy tất cả bàn trống từ tất cả khu vực, không chỉ khu vực hiện tại
             const availableTables = allTables.filter(table =>
@@ -1262,6 +1289,27 @@ const TableManagement = () => {
         }
     };
 
+    // Close pre-order modal
+    const closePreOrderModal = () => {
+        setShowPreOrderModal(false);
+        setIsModalOpen(true); // Show the regular edit modal
+    };
+
+    // Get filtered menu items for pre-order
+    const getFilteredPreOrderItems = () => {
+        return menuItems.filter(
+            (item) =>
+                selectedCategory === "All" ||
+                item.category_id === selectedCategory ||
+                (item.category_id?._id && item.category_id._id === selectedCategory)
+        );
+    };
+
+    // Get pre-order items count
+    const getPreOrderItemsCount = () => {
+        return formData.pre_order_items ? formData.pre_order_items.reduce((total, item) => total + item.quantity, 0) : 0;
+    };
+
     if (loading && areas.length === 0) {
         return (
             <div className="table-management">
@@ -1343,6 +1391,58 @@ const TableManagement = () => {
         );
     };
 
+    // Helper function to sort reservations by status priority
+    const getSortedReservations = () => {
+        // Define status priority (pending first, then confirmed, seated, completed)
+        const statusPriority = {
+            'pending': 1,
+            'confirmed': 2,
+            'seated': 3,
+            'completed': 4,
+            'cancelled': 5,
+            'no_show': 6
+        };
+
+        return [...reservations].sort((a, b) => {
+            // First sort by status priority
+            const statusDiff = (statusPriority[a.status] || 99) - (statusPriority[b.status] || 99);
+            if (statusDiff !== 0) return statusDiff;
+
+            // If same status, sort by date (newest first)
+            return new Date(b.date) - new Date(a.date);
+        });
+    };
+
+    // Format date function
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('vi-VN', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    };
+
+    // Get paginated reservations
+    const getPaginatedReservations = () => {
+        const sortedReservations = getSortedReservations();
+        const startIndex = (reservationPage - 1) * reservationsPerPage;
+        const endIndex = startIndex + reservationsPerPage;
+        return sortedReservations.slice(startIndex, endIndex);
+    };
+
+    // Calculate total pages for reservations
+    const getReservationTotalPages = () => {
+        return Math.ceil(getSortedReservations().length / reservationsPerPage);
+    };
+
+    // Handle reservation page change
+    const handleReservationPageChange = (pageNumber) => {
+        if (pageNumber >= 1 && pageNumber <= getReservationTotalPages()) {
+            setReservationPage(pageNumber);
+        }
+    };
+
     return (
         <div className="table-management">
             <Sidebar />
@@ -1372,24 +1472,24 @@ const TableManagement = () => {
                 </div>
 
                 {/* NEW: Date Selector */}
-                <div className="date-selector-container">
-                    <div className="date-selector">
-                        <label>Chọn ngày:</label>
-                        <input
-                            type="date"
-                            value={selectedDate}
-                            onChange={(e) => handleDateChange(e.target.value)}
-                            className="date-input"
-                        />
-                    </div>
-                    <button
-                        className="btn-add-table"
-                        onClick={() => openModal('createTable')}
-                        disabled={loading}
-                    >
-                        Thêm bàn ăn
-                    </button>
-                </div>
+                {/* <div className="date-selector-container">
+                        <div className="date-selector">
+                            <label>Chọn ngày:</label>
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => handleDateChange(e.target.value)}
+                                className="date-input"
+                            />
+                        </div>
+                        <button
+                            className="btn-add-table"
+                            onClick={() => openModal('createTable')}
+                            disabled={loading}
+                        >
+                            Thêm bàn ăn
+                        </button>
+                    </div> */}
 
                 {error && (
                     <div className="error-message">
@@ -1808,14 +1908,53 @@ const TableManagement = () => {
                 {activeTab === 'reservations' && (
                     <div className="reservations-view">
                         <div className="reservations-header">
-                            <h3>Danh sách đặt bàn - Ngày {new Date(selectedDate).toLocaleDateString()}</h3>
-                            <button
-                                className="action-button add-reservation"
-                                onClick={() => openModal('add')}
-                                disabled={loading}
-                            >
-                                Đặt bàn mới
-                            </button>
+                            <h3>Danh sách đặt bàn</h3>
+                            <div className="reservations-actions">
+                                {/* Use the existing date selector with a toggle checkbox */}
+                                <div className="date-filter">
+                                    <div className="filter-by-date-toggle">
+                                        <input
+                                            type="checkbox"
+                                            id="filter-by-date"
+                                            checked={filterByDate}
+                                            onChange={(e) => setFilterByDate(e.target.checked)}
+                                        />
+                                        <label htmlFor="filter-by-date">Lọc theo ngày:</label>
+                                    </div>
+                                    <input
+                                        type="date"
+                                        value={selectedDate}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                        className="date-input"
+                                        disabled={!filterByDate}
+                                    />
+                                </div>
+
+                                {/* Status filter dropdown */}
+                                <div className="status-filter">
+                                    <label>Trạng thái:</label>
+                                    <select
+                                        value={statusFilter}
+                                        onChange={(e) => setStatusFilter(e.target.value)}
+                                        className="status-filter-select"
+                                    >
+                                        <option value="all">Tất cả trạng thái</option>
+                                        <option value="pending">Chờ xác nhận</option>
+                                        <option value="confirmed">Đã xác nhận</option>
+                                        <option value="seated">Đã vào bàn</option>
+                                        <option value="completed">Đã hoàn thành</option>
+                                        <option value="cancelled">Đã hủy</option>
+                                        <option value="no_show">Không đến</option>
+                                    </select>
+                                </div>
+                                <button
+                                    className="action-button add-reservation"
+                                    onClick={() => openModal('add')}
+                                    disabled={loading}
+                                >
+                                    Đặt bàn mới
+                                </button>
+                            </div>
                         </div>
 
                         <div className="reservations-table">
@@ -1826,6 +1965,7 @@ const TableManagement = () => {
                                         <th>Bàn</th>
                                         <th>Khách hàng</th>
                                         <th>Liên hệ</th>
+                                        <th>Ngày đặt</th>
                                         <th>Giờ</th>
                                         <th>Số khách</th>
                                         <th>Trạng thái</th>
@@ -1836,178 +1976,247 @@ const TableManagement = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {reservations.map(res => (
-                                        <tr
-                                            key={res._id}
-                                            className={selectedReservation?._id === res._id ? 'selected' : ''}
-                                            onClick={() => handleReservationClick(res)}
-                                        >
-                                            <td>#{res._id.slice(-6)}</td>
-                                            <td>{safeGet(res, 'table_id.name') || 'N/A'}</td>
-                                            <td>{res.contact_name}</td>
-                                            <td>{res.contact_phone}</td>
-                                            <td>
-                                                {res.slot_id ? (
-                                                    <span className="time-slot-display">
-                                                        {safeGet(res, 'slot_id.name')
-                                                            ? `${safeGet(res, 'slot_id.name')} (${safeGet(res, 'slot_id.start_time')}-${safeGet(res, 'slot_id.end_time')})`
-                                                            : (res.slot_start_time && res.slot_end_time)
-                                                                ? `${res.slot_start_time}-${res.slot_end_time}`
-                                                                : getSlotDisplayText(safeGet(res, 'slot_id._id') || res.slot_id)
-                                                        }
+                                    {loading ? (
+                                        <tr>
+                                            <td colSpan="12" className="loading-cell">
+                                                <div className="mini-spinner"></div> Đang tải dữ liệu...
+                                            </td>
+                                        </tr>
+                                    ) : getSortedReservations().length === 0 ? (
+                                        <tr>
+                                            <td colSpan="12" className="empty-cell">
+                                                Không có đặt bàn nào {statusFilter !== 'all' ? `với trạng thái "${getReservationStatusLabel(statusFilter)}"` : ''}
+                                                {filterByDate ? ` vào ngày ${new Date(selectedDate).toLocaleDateString()}` : ''}
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        getPaginatedReservations().map(res => (
+                                            <tr
+                                                key={res._id}
+                                                className={`${selectedReservation?._id === res._id ? 'selected' : ''} status-${res.status}`}
+                                                onClick={() => handleReservationClick(res)}
+                                            >
+                                                <td>#{res._id.slice(-6)}</td>
+                                                <td>{safeGet(res, 'table_id.name') || (res.table_ids && res.table_ids.length > 0 ?
+                                                    res.table_ids.map(t => safeGet(t, 'name') || '').join(', ') : 'N/A')}</td>
+                                                <td>{res.contact_name}</td>
+                                                <td>{res.contact_phone}</td>
+                                                <td>{formatDate(res.date)}</td>
+                                                <td>
+                                                    {res.slot_id ? (
+                                                        <span className="time-slot-display">
+                                                            {safeGet(res, 'slot_id.name')
+                                                                ? `${safeGet(res, 'slot_id.name')} (${safeGet(res, 'slot_id.start_time')}-${safeGet(res, 'slot_id.end_time')})`
+                                                                : (res.slot_start_time && res.slot_end_time)
+                                                                    ? `${res.slot_start_time}-${res.slot_end_time}`
+                                                                    : getSlotDisplayText(safeGet(res, 'slot_id._id') || res.slot_id)
+                                                            }
+                                                        </span>
+                                                    ) : (
+                                                        res.slot_start_time && res.slot_end_time
+                                                            ? `${res.slot_start_time}-${res.slot_end_time}`
+                                                            : 'N/A'
+                                                    )}
+                                                </td>
+                                                <td>{res.guest_count}</td>
+                                                <td>
+                                                    <span className={`status-badge ${res.status}`}>
+                                                        {getReservationStatusLabel(res.status)}
                                                     </span>
-                                                ) : (
-                                                    res.slot_start_time && res.slot_end_time
-                                                        ? `${res.slot_start_time}-${res.slot_end_time}`
-                                                        : 'N/A'
-                                                )}
-                                            </td>
-                                            <td>{res.guest_count}</td>
-                                            <td>
-                                                <span className={`status-badge ${res.status}`}>
-                                                    {getReservationStatusLabel(res.status)}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className={`payment-badge ${res.payment_status || 'pending'}`}>
-                                                    {getPaymentStatusLabel(res.payment_status)}
-                                                </span>
-                                            </td>
-                                            <td>{getStaffName(res)}</td>
-                                            <td>
-                                                {res.pre_order_items && res.pre_order_items.length > 0 ||
-                                                    orders.some(order => order.reservation_id === res._id || safeGet(order, 'reservation_id._id') === res._id) ? (
-                                                    <span className="has-pre-order" title="Có đặt món">
-                                                        {getTotalOrderedItems(res)} món
+                                                </td>
+                                                <td>
+                                                    <span className={`payment-badge ${res.payment_status || 'pending'}`}>
+                                                        {getPaymentStatusLabel(res.payment_status)}
                                                     </span>
-                                                ) : (
-                                                    <span className="no-pre-order">Không</span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <div className="action-buttons">
-                                                    {['pending', 'confirmed'].includes(res.status) && (
-                                                        <button
-                                                            className="action-button edit"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                openModal('edit', res);
-                                                            }}
-                                                            disabled={loading}
-                                                        >
-                                                            Sửa
-                                                        </button>
+                                                </td>
+                                                <td>{getStaffName(res)}</td>
+                                                <td>
+                                                    {res.pre_order_items && res.pre_order_items.length > 0 ||
+                                                        orders.some(order => order.reservation_id === res._id || safeGet(order, 'reservation_id._id') === res._id) ? (
+                                                        <span className="has-pre-order" title="Có đặt món">
+                                                            {getTotalOrderedItems(res)} món
+                                                        </span>
+                                                    ) : (
+                                                        <span className="no-pre-order">Không</span>
                                                     )}
-
-                                                    {res.status === 'pending' && (
-                                                        <button
-                                                            className="action-button confirm"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleConfirmReservation(res._id);
-                                                            }}
-                                                            disabled={loading}
-                                                        >
-                                                            Xác nhận
-                                                        </button>
-                                                    )}
-
-                                                    {res.status === 'confirmed' && (
-                                                        <button
-                                                            className="action-button seat"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                handleSeatCustomer(res._id);
-                                                            }}
-                                                            disabled={loading}
-                                                        >
-                                                            Vào bàn
-                                                        </button>
-                                                    )}
-
-                                                    {['pending', 'confirmed', 'seated'].includes(res.status) &&
-                                                        (
-                                                            (res.pre_order_items && res.pre_order_items.length > 0) ||
-                                                            hasRelatedOrders(res)
-                                                        ) &&
-                                                        ['pending', 'partial'].includes(res.payment_status) && (
+                                                </td>
+                                                <td>
+                                                    <div className="action-buttons">
+                                                        {['pending', 'confirmed', 'seated'].includes(res.status) && (
                                                             <button
-                                                                className="action-button payment-status"
+                                                                className="action-button edit"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    openModal('updatePayment', res);
+                                                                    openModal('edit', res);
                                                                 }}
                                                                 disabled={loading}
-                                                                title="Cập nhật thanh toán"
                                                             >
-                                                                💰 Thanh toán
+                                                                Sửa
                                                             </button>
                                                         )}
 
-                                                    {['seated', 'completed'].includes(res.status) && (
-                                                        <button
-                                                            className="action-button invoice"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                openInvoice(res);
-                                                            }}
-                                                            disabled={loading}
-                                                            title="In hóa đơn"
-                                                        >
-                                                            🖨️ In
-                                                        </button>
-                                                    )}
+                                                        {res.status === 'pending' && (
+                                                            <button
+                                                                className="action-button confirm"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleConfirmReservation(res._id);
+                                                                }}
+                                                                disabled={loading}
+                                                            >
+                                                                Xác nhận
+                                                            </button>
+                                                        )}
 
-                                                    {['confirmed', 'seated'].includes(res.status) && (
-                                                        <button
-                                                            className="action-button move"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                openModal('move', res);
-                                                            }}
-                                                            disabled={loading}
-                                                        >
-                                                            Chuyển
-                                                        </button>
-                                                    )}
+                                                        {res.status === 'confirmed' && (
+                                                            <button
+                                                                className="action-button seat"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleSeatCustomer(res._id);
+                                                                }}
+                                                                disabled={loading}
+                                                            >
+                                                                Vào bàn
+                                                            </button>
+                                                        )}
 
-                                                    {['pending', 'confirmed'].includes(res.status) && (
-                                                        <button
-                                                            className="action-button delete"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                openModal('delete', res);
-                                                            }}
-                                                            disabled={loading}
-                                                        >
-                                                            Hủy
-                                                        </button>
-                                                    )}
+                                                        {['pending', 'confirmed', 'seated'].includes(res.status) &&
+                                                            (
+                                                                (res.pre_order_items && res.pre_order_items.length > 0) ||
+                                                                hasRelatedOrders(res)
+                                                            ) &&
+                                                            ['pending', 'partial'].includes(res.payment_status) && (
+                                                                <button
+                                                                    className="action-button payment-status"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        openModal('updatePayment', res);
+                                                                    }}
+                                                                    disabled={loading}
+                                                                    title="Cập nhật thanh toán"
+                                                                >
+                                                                    💰 Thanh toán
+                                                                </button>
+                                                            )}
 
-                                                    {res.status === 'seated' && (
-                                                        <button
-                                                            className="action-button add-menu"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                // Get the table ID from the reservation
-                                                                const tableId = safeGet(res, 'table_id._id') || res.table_id;
-                                                                // Find the table object
-                                                                const table = allTables.find(t => t._id === tableId);
-                                                                if (table) {
-                                                                    openModal('addMenuItems', table);
-                                                                }
-                                                            }}
-                                                            disabled={loading}
-                                                        >
-                                                            Thêm món
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
+                                                        {['seated', 'completed'].includes(res.status) && (
+                                                            <button
+                                                                className="action-button invoice"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openInvoice(res);
+                                                                }}
+                                                                disabled={loading}
+                                                                title="In hóa đơn"
+                                                            >
+                                                                🖨️ In
+                                                            </button>
+                                                        )}
+
+                                                        {['confirmed', 'seated'].includes(res.status) && (
+                                                            <button
+                                                                className="action-button move"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openModal('move', res);
+                                                                }}
+                                                                disabled={loading}
+                                                            >
+                                                                Chuyển
+                                                            </button>
+                                                        )}
+
+                                                        {['pending', 'confirmed'].includes(res.status) && (
+                                                            <button
+                                                                className="action-button delete"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openModal('delete', res);
+                                                                }}
+                                                                disabled={loading}
+                                                            >
+                                                                Hủy
+                                                            </button>
+                                                        )}
+
+                                                        {res.status === 'seated' && (
+                                                            <button
+                                                                className="action-button add-menu"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    // Get the table ID from the reservation
+                                                                    const tableId = safeGet(res, 'table_id._id') || res.table_id;
+                                                                    // Find the table object
+                                                                    const table = allTables.find(t => t._id === tableId);
+                                                                    if (table) {
+                                                                        openMenuModal(table);
+                                                                    }
+                                                                }}
+                                                                disabled={loading}
+                                                                title="Thêm món"
+                                                            >
+                                                                🍽️ Thêm món
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
+
+                            {/* Pagination for reservations */}
+                            {!loading && getSortedReservations().length > 0 && (
+                                <div className="pagination">
+                                    <button
+                                        onClick={() => handleReservationPageChange(reservationPage - 1)}
+                                        disabled={reservationPage === 1}
+                                        className="pagination-button"
+                                    >
+                                        &lt; Trước
+                                    </button>
+
+                                    {Array.from({ length: getReservationTotalPages() }, (_, index) => {
+                                        // Show 5 pages around current page
+                                        if (
+                                            index === 0 || // First page
+                                            index === getReservationTotalPages() - 1 || // Last page
+                                            Math.abs(index + 1 - reservationPage) <= 2 // Pages around current
+                                        ) {
+                                            return (
+                                                <button
+                                                    key={index + 1}
+                                                    onClick={() => handleReservationPageChange(index + 1)}
+                                                    className={`pagination-button ${reservationPage === index + 1 ? 'active' : ''}`}
+                                                >
+                                                    {index + 1}
+                                                </button>
+                                            );
+                                        } else if (
+                                            index === 1 && reservationPage > 4 ||
+                                            index === getReservationTotalPages() - 2 && reservationPage < getReservationTotalPages() - 3
+                                        ) {
+                                            // Show ellipsis
+                                            return <span key={index + 1} className="pagination-ellipsis">...</span>;
+                                        }
+                                        return null;
+                                    })}
+
+                                    <button
+                                        onClick={() => handleReservationPageChange(reservationPage + 1)}
+                                        disabled={reservationPage === getReservationTotalPages()}
+                                        className="pagination-button"
+                                    >
+                                        Sau &gt;
+                                    </button>
+
+                                    <span className="pagination-info">
+                                        Trang {reservationPage}/{getReservationTotalPages()} · Tổng {getSortedReservations().length} đơn
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -2298,74 +2507,63 @@ const TableManagement = () => {
                                         </div>
 
                                         <div className="form-group">
-                                            <label>Đặt món trước (tùy chọn)</label>
+                                            <label>Đặt món trước</label>
                                             <div className="pre-order-section">
-                                                {menuItems && menuItems.length > 0 ? (
-                                                    <div className="menu-items-container">
-                                                        {menuItems.map(item => {
-                                                            if (!item || !item._id) return null;
+                                                {formData.pre_order_items && formData.pre_order_items.length > 0 ? (
+                                                    <div className="pre-order-summary">
+                                                        <div className="pre-order-items-list">
+                                                            {formData.pre_order_items.map((item, index) => {
+                                                                if (!item || !item.menu_item_id) return null;
 
-                                                            const preOrderItem = (formData.pre_order_items || [])
-                                                                .find(i => i.menu_item_id === item._id);
-                                                            const quantity = preOrderItem ? preOrderItem.quantity : 0;
+                                                                const menuItem = typeof item.menu_item_id === 'object' ? item.menu_item_id :
+                                                                    menuItems.find(m => m && m._id === item.menu_item_id);
 
-                                                            return (
-                                                                <div key={item._id} className="menu-item-row">
-                                                                    <div className="menu-item-info">
-                                                                        <span className="menu-item-name">{item.name}</span>
-                                                                        <span className="menu-item-price">{item.price ? item.price.toLocaleString() : 0}đ</span>
+                                                                if (!menuItem) return null;
+
+                                                                return (
+                                                                    <div key={index} className="pre-order-item">
+                                                                        <span className="pre-order-item-name">
+                                                                            {menuItem.name} x {item.quantity}
+                                                                        </span>
+                                                                        <span className="pre-order-item-price">
+                                                                            {((menuItem.price || 0) * item.quantity).toLocaleString()}đ
+                                                                        </span>
                                                                     </div>
-                                                                    <div className="menu-item-quantity">
-                                                                        <button
-                                                                            type="button"
-                                                                            className="quantity-btn"
-                                                                            onClick={() => handleMenuItemChange(item._id, Math.max(0, quantity - 1))}
-                                                                        >-</button>
-                                                                        <input
-                                                                            type="number"
-                                                                            min="0"
-                                                                            value={quantity}
-                                                                            onChange={(e) => handleMenuItemChange(item._id, parseInt(e.target.value) || 0)}
-                                                                        />
-                                                                        <button
-                                                                            type="button"
-                                                                            className="quantity-btn"
-                                                                            onClick={() => handleMenuItemChange(item._id, quantity + 1)}
-                                                                        >+</button>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
+                                                                );
+                                                            })}
+                                                            <div className="pre-order-total-row">
+                                                                <span>Tổng tiền:</span>
+                                                                <span>{calculatePreOrderTotal().toLocaleString()}đ</span>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            className="edit-pre-order-btn"
+                                                            onClick={() => {
+                                                                setIsModalOpen(false);
+                                                                setShowPreOrderModal(true);
+                                                            }}
+                                                        >
+                                                            Chỉnh sửa món ({getPreOrderItemsCount()} món)
+                                                        </button>
                                                     </div>
                                                 ) : (
-                                                    <p>Không có món ăn nào trong menu</p>
+                                                    <div className="no-pre-order">
+                                                        <p>Chưa có món đặt trước</p>
+                                                        <button
+                                                            type="button"
+                                                            className="add-pre-order-btn"
+                                                            onClick={() => {
+                                                                setIsModalOpen(false);
+                                                                setShowPreOrderModal(true);
+                                                            }}
+                                                        >
+                                                            🍽️ Chọn món đặt trước
+                                                        </button>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
-
-                                        {/* Hiển thị trạng thái kiểm tra tồn kho */}
-                                        {formData.isCheckingInventory && (
-                                            <div className="inventory-checking">
-                                                <div className="mini-spinner"></div>
-                                                <span>Đang kiểm tra tồn kho nguyên liệu...</span>
-                                            </div>
-                                        )}
-
-                                        {/* Hiển thị kết quả kiểm tra tồn kho */}
-                                        {formData.inventoryStatus === 'insufficient' && (
-                                            <div className="inventory-warning">
-                                                <p><strong>⚠️ Cảnh báo:</strong> Một số món đặt trước hiện không đủ nguyên liệu. Nhà hàng sẽ ưu tiên chuẩn bị cho đơn đặt trước.</p>
-                                            </div>
-                                        )}
-
-                                        {formData.pre_order_items && formData.pre_order_items.length > 0 && (
-                                            <div className="form-group">
-                                                <label>Tổng tiền đặt món</label>
-                                                <div className="pre-order-total">
-                                                    <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong>
-                                                </div>
-                                            </div>
-                                        )}
                                     </div>
                                 ) : modalType === 'updatePayment' ? (
                                     <div className="modal-body">
@@ -2762,6 +2960,110 @@ const TableManagement = () => {
                             setInvoiceData(null);
                         }}
                     />
+                )}
+
+                {showPreOrderModal && (
+                    <div className="menu-modal-overlay">
+                        <div className="menu-modal">
+                            <div className="menu-modal-header">
+                                <h3>Món đặt trước - {formData.contact_name}</h3>
+                                <button className="close-modal-btn" onClick={closePreOrderModal}>×</button>
+                            </div>
+
+                            <div className="menu-modal-content">
+                                <div className="menu-sidebar">
+                                    <div className="menu-sidebar-title">
+                                        <span className="decor">—</span>
+                                        <span>THỰC ĐƠN</span>
+                                        <span className="decor">—</span>
+                                    </div>
+                                    <ul className="sidebar-list">
+                                        <li
+                                            className={selectedCategory === "All" ? "active" : ""}
+                                            onClick={() => setSelectedCategory("All")}
+                                        >
+                                            Xem tất cả
+                                        </li>
+                                        {categories.map((cat) => (
+                                            <li
+                                                key={cat._id}
+                                                className={selectedCategory === cat._id ? "active" : ""}
+                                                onClick={() => setSelectedCategory(cat._id)}
+                                            >
+                                                {cat.name}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+
+                                <div className="menu-content">
+                                    <div className="menu-heading">
+                                        <span className="sub-title">Nhà Hàng Hương Sen</span>
+                                        <h2>
+                                            {selectedCategory === "All"
+                                                ? "Thực đơn đặt trước"
+                                                : categories.find((c) => c._id === selectedCategory)?.name || ""}
+                                        </h2>
+                                    </div>
+
+                                    {loading ? (
+                                        <div className="loading">Đang tải menu...</div>
+                                    ) : (
+                                        <div className="menu-items-grid">
+                                            {getFilteredPreOrderItems().map((item) => {
+                                                const preOrderItem = (formData.pre_order_items || [])
+                                                    .find(i => i.menu_item_id === item._id);
+                                                const quantity = preOrderItem ? preOrderItem.quantity : 0;
+
+                                                return (
+                                                    <div key={item._id} className="menu-item-card">
+                                                        <div className="menu-item-image">
+                                                            {item.image && (
+                                                                <img src={item.image} alt={item.name} />
+                                                            )}
+                                                        </div>
+                                                        <div className="menu-item-info">
+                                                            <h4>{item.name}</h4>
+                                                            <p>{item.description}</p>
+                                                            <div className="menu-item-price">{item.price ? item.price.toLocaleString() : 0}đ</div>
+                                                        </div>
+                                                        <div className="menu-item-actions">
+                                                            <div className="quantity-controls">
+                                                                <button
+                                                                    type="button"
+                                                                    className="quantity-btn"
+                                                                    onClick={() => handleMenuItemChange(item._id, Math.max(0, quantity - 1))}
+                                                                >-</button>
+                                                                <span className="quantity-display">{quantity}</span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="quantity-btn"
+                                                                    onClick={() => handleMenuItemChange(item._id, quantity + 1)}
+                                                                >+</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="menu-modal-footer">
+                                <div className="order-summary">
+                                    <span>Tổng tiền: <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong></span>
+                                    <span>Số món: <strong>{getPreOrderItemsCount()}</strong></span>
+                                </div>
+                                <button
+                                    className="confirm-menu-btn"
+                                    onClick={closePreOrderModal}
+                                >
+                                    Xác nhận ({getPreOrderItemsCount()} món)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
         </div >
