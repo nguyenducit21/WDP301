@@ -21,7 +21,7 @@ const { getInventoryAnalytics } = require('../controllers/inventoryAnalytics.con
 router.use(authMiddleware, roleMiddleware(['kitchen_staff', 'admin']));
 
 // ---- ĐẶT CÁC ROUTE ĐẶC BIỆT (KHÔNG CÓ ID) Ở TRÊN ----
-router.get('/analytics', getInventoryAnalytics);  // <-- đúng, KHÔNG có 'inventory' nữa
+router.get('/analytics', getInventoryAnalytics);
 router.get('/low-stock', getLowStockItems);
 router.get('/consumption', getDailyIngredientConsumption);
 
