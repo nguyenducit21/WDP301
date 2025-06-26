@@ -30,11 +30,13 @@ import { ToastContainer } from "react-toastify";
 const App = () => {
   const location = useLocation();
   const isChefPage = location.pathname.includes("/chef");
+  const isTableBooking = location.pathname.includes("/table-booking");
+  const isMenuPage = location.pathname.includes("/menu");
 
   return (
     <>
       <div className="app">
-        {!isChefPage && <Navbar />}
+      {!isChefPage && <Navbar isPositionUnset={isTableBooking || isMenuPage} />}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/cart" element={<Cart />} />

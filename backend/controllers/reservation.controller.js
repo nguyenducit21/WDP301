@@ -677,9 +677,21 @@ const getCustomerReservationsByUserId = async (req, res) => {
             ])
             .sort({ date: -1, time: -1 });
 
+        // Lấy order items cho từng reservation
+        const Order = require('./order.controller').Order || require('../models/order.model');
+        const reservationsWithOrders = await Promise.all(reservations.map(async (reservation) => {
+            const orders = await Order.find({ reservation_id: reservation._id })
+                .populate({ path: 'order_items.menu_item_id', select: 'name price category_id description' });
+            const allOrderItems = orders.flatMap(order => order.order_items);
+            return {
+                ...reservation.toObject(),
+                order_items: allOrderItems
+            };
+        }));
+
         res.status(200).json({
             success: true,
-            data: reservations
+            data: reservationsWithOrders
         });
     } catch (error) {
         res.status(500).json({

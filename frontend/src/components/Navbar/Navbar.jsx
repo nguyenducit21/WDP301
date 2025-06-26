@@ -4,7 +4,7 @@ import "./Navbar.css";
 import { assets } from "../../assets/assets";
 import { AuthContext } from "../../context/AuthContext";
 
-const Navbar = ({ setShowLogin }) => {
+const Navbar = ({ setShowLogin, isPositionUnset }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const location = useLocation();
@@ -52,7 +52,7 @@ const Navbar = ({ setShowLogin }) => {
   };
 
   return (
-    <nav className={`navbar ${isScrolled ? "shrink" : ""}`}>
+    <nav className={`navbar${isScrolled ? " shrink" : ""}${isPositionUnset ? " unset-position" : ""}`}>
       <Link to="/" className="logo-container">
         <img src={assets.logo} alt="Logo Hương Sen" className="logo-img" />
       </Link>

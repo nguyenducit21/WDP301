@@ -3,7 +3,13 @@
     min-height: 100vh;
     padding: 0;
 }
-
+.reservation-header-top {
+    background: linear-gradient(135deg, #7a6c2f 0%, #f7b731 100%);
+    color: white;
+    text-align: center;
+    padding: 48px 24px;
+    margin-bottom: 32px;
+}
 .reservation-header {
     background: linear-gradient(135deg, #7a6c2f 0%, #f7b731 100%);
     color: white;

@@ -218,3 +218,7 @@
     right: 0;
   }
 }
+
+.navbar.unset-position {
+  position: unset !important;
+}

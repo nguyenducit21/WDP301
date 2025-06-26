@@ -8,7 +8,7 @@ const Reservation = () => {
 
   return (
     <div className="reservation-page">
-      <div className="reservation-header">
+      <div className="reservation-header-top">
         <h1>Đặt bàn nhà hàng</h1>
         <p>Chọn thời gian và bàn phù hợp cho bữa ăn của bạn</p>
       </div>
