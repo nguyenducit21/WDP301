@@ -34,7 +34,7 @@ const ReservationSchema = new Schema({
     payment_date: { type: Date },
     payment_status: {
         type: String,
-        enum: ['pending', 'pending_deposit', 'partial', 'paid', 'refunded'],
+        enum: ['pending', 'pending', 'partial', 'paid', 'refunded'],
         default: 'pending'
     },
     notes: { type: String },

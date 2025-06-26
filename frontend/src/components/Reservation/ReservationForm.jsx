@@ -77,12 +77,10 @@ export default function ReservationForm() {
   const [availableTables, setAvailableTables] = useState([]);
   const [showMenuModal, setShowMenuModal] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
-<<<<<<< Updated upstream
-=======
   const [tableCombinations, setTableCombinations] = useState({});
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
->>>>>>> Stashed changes
+  const [isGuestCountExceeded, setIsGuestCountExceeded] = useState(false);
   const timeSlots = getTimeSlots();
   const navigate = useNavigate();
 
@@ -604,20 +602,8 @@ export default function ReservationForm() {
               Đặt bàn thành công! Chúng tôi sẽ liên hệ xác nhận sớm nhất.
             </div>
           )}
-<<<<<<< Updated upstream
-          <button type="submit" disabled={submitting || !!validationError}>
-            {submitting ? "Đang gửi..." : "Đặt bàn"}
-=======
-          <button
-            type="submit"
-            disabled={submitting || paymentLoading || !!validationError || isGuestCountExceeded()}
-          >
-            {submitting || paymentLoading ? "Đang xử lý..." :
-              isGuestCountExceeded() ? "Vượt quá sức chứa" :
-                form.pre_order_items && form.pre_order_items.length > 0 && form.pre_order_items.some(item => item.quantity > 0) ?
-                  `Đặt bàn & Thanh toán cọc (${calculateDepositAmount().toLocaleString()}đ)` :
-                  "Đặt bàn"}
->>>>>>> Stashed changes
+          <button type="submit" disabled={submitting || !!validationError || isGuestCountExceeded()}>
+            {submitting ? "Đang gửi..." : isGuestCountExceeded() ? "Vượt quá sức chứa" : "Đặt bàn"}
           </button>
         </form>
       </div>
