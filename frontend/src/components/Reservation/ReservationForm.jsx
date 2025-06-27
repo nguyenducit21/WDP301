@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import customFetch from "../../utils/axios.customize";
 import { useBookingSlots } from "./BookingSlotManager";
 import { useNavigate } from "react-router-dom";
@@ -25,27 +25,67 @@ function addHoursToTime(timeStr, hours) {
   return `${endH.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 }
 
-// Validation thời gian đặt bàn
-function validateBookingTime(date, time) {
-  const now = new Date();
-  const bookingDate = new Date(date);
-  const [hours, minutes] = time.split(":").map(Number);
-  const slotTime = new Date(bookingDate);
-  slotTime.setHours(hours, minutes);
+// Validation thời gian đặt bàn (Vietnam timezone)
+function validateBookingTime(date, time, todayVietnam) {
+  // Skip validation if date or time is empty
+  if (!date || !time) {
+    console.log('Skipping validation - missing date or time');
+    return null;
+  }
 
-  // Không cho đặt bàn trong quá khứ
-  if (bookingDate < now) {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const [inputHour, inputMinute] = time.split(':').map(Number);
+
+  console.log('=== VALIDATION DEBUG ===');
+  console.log('Input date:', date);
+  console.log('Input time:', time);
+  console.log('Today Vietnam (passed):', todayVietnam);
+  console.log('Local now:', now.toString());
+  console.log('Current time:', currentHour + ':' + currentMinute);
+  console.log('Input time:', inputHour + ':' + inputMinute);
+  console.log('Date comparison (string):', date, 'vs', todayVietnam);
+  console.log('Is past date (string)?', date < todayVietnam);
+  console.log('Is same date (string)?', date === todayVietnam);
+
+  // Compare dates using Date objects for more reliable comparison
+  const inputDate = new Date(date + 'T00:00:00');
+  const todayDate = new Date(todayVietnam + 'T00:00:00');
+
+  console.log('Input Date object:', inputDate);
+  console.log('Today Date object:', todayDate);
+  console.log('Input Date time:', inputDate.getTime());
+  console.log('Today Date time:', todayDate.getTime());
+  console.log('Is input date < today?', inputDate < todayDate);
+
+  if (inputDate < todayDate) {
+    console.log('REJECTED: Past date');
+    console.log('========================');
     return "Không thể đặt bàn cho thời gian trong quá khứ";
   }
 
-  // Nếu đặt trong ngày, kiểm tra giờ
-  if (bookingDate.toDateString() === now.toDateString()) {
-    const minBookingTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 giờ trước
-    if (slotTime < minBookingTime) {
+  // If booking for today, check time
+  if (inputDate.getTime() === todayDate.getTime()) {
+    const currentTotalMinutes = currentHour * 60 + currentMinute;
+    const inputTotalMinutes = inputHour * 60 + inputMinute;
+    const minBookingMinutes = currentTotalMinutes + 60; // 1 hour from now
+
+    console.log('Same day - checking time');
+    console.log('Current total minutes:', currentTotalMinutes);
+    console.log('Input total minutes:', inputTotalMinutes);
+    console.log('Min booking minutes (now + 60):', minBookingMinutes);
+    console.log('Is input time < min booking time?', inputTotalMinutes < minBookingMinutes);
+
+    if (inputTotalMinutes < minBookingMinutes) {
+      console.log('REJECTED: Too early');
+      console.log('========================');
       return "Vui lòng đặt bàn trước ít nhất 1 giờ so với thời gian bắt đầu";
     }
   }
 
+  console.log('VALIDATED: OK');
+  console.log('========================');
   return null;
 }
 
@@ -60,15 +100,33 @@ export default function ReservationForm() {
   const [error, setError] = useState("");
   const [menuItems, setMenuItems] = useState([]);
   const [categories, setCategories] = useState([]);
+  // Get today's date in Vietnam timezone (GMT+7)
+  const getTodayVietnam = () => {
+    // Since user is already in Vietnam timezone, use local date directly
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayVietnam = `${year}-${month}-${day}`;
+
+    console.log('=== getTodayVietnam() called ===');
+    console.log('Local Time:', now.toString());
+    console.log('Local Time ISO:', now.toISOString());
+    console.log('Vietnam Date (Local):', todayVietnam);
+    console.log('Current Hour:', now.getHours());
+    console.log('Current Minute:', now.getMinutes());
+    console.log('================================');
+
+    return todayVietnam;
+  };
+
   const [form, setForm] = useState({
     name: "",
     phone: "",
     email: "",
     guest_count: 1,
-    date: "",
-    slot_id: "",
-    note: "",
-    pre_order_items: []
+    date: getTodayVietnam(), // Auto set today's date in Vietnam timezone
+    slot_id: ""
   });
   const [endTime, setEndTime] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -80,6 +138,10 @@ export default function ReservationForm() {
   const [tableCombinations, setTableCombinations] = useState({});
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [reservationId, setReservationId] = useState(null);
+  const [preOrderItems, setPreOrderItems] = useState([]);
+  const [reservationNote, setReservationNote] = useState("");
   const timeSlots = getTimeSlots();
   const navigate = useNavigate();
 
@@ -91,8 +153,12 @@ export default function ReservationForm() {
     return getSlotIdFromTime(time);
   }, [getSlotIdFromTime]);
 
-  // Ngày hôm nay (yyyy-mm-dd)
-  const todayStr = new Date().toISOString().split("T")[0];
+  // Ngày hôm nay (yyyy-mm-dd) - Vietnam timezone  
+  const todayStr = useMemo(() => {
+    const result = getTodayVietnam();
+    console.log('todayStr memoized:', result);
+    return result;
+  }, []); // Empty deps means it only calculates once
 
   // Calculate total capacity of selected tables
   const getTotalCapacity = () => {
@@ -208,21 +274,21 @@ export default function ReservationForm() {
     return combinations;
   };
 
-  // Handle table selection
+  // Handle table selection (single select only)
   const handleTableSelect = (table) => {
     setSelectedTables(prev => {
       const isSelected = prev.find(t => t._id === table._id);
       if (isSelected) {
-        // Remove table if already selected
-        return prev.filter(t => t._id !== table._id);
+        // Remove table if already selected (deselect)
+        return [];
       } else {
-        // Add table to selection
-        return [...prev, table];
+        // Replace with new table selection (single select)
+        return [table];
       }
     });
   };
 
-  // Handle combination selection
+  // Handle combination selection (replace current selection)
   const handleCombinationSelect = (tables) => {
     setSelectedTables(tables);
   };
@@ -304,7 +370,7 @@ export default function ReservationForm() {
 
         // Validate thời gian
         if (form.date) {
-          const validationError = validateBookingTime(form.date, selectedSlot.start_time);
+          const validationError = validateBookingTime(form.date, selectedSlot.start_time, todayStr);
           setValidationError(validationError);
         }
       }
@@ -312,7 +378,99 @@ export default function ReservationForm() {
       setEndTime("");
       setValidationError("");
     }
-  }, [form.slot_id, form.date, slots]);
+  }, [form.slot_id, form.date, slots, todayStr]);
+
+  // Auto-select optimal table combination
+  const autoSelectTables = (tables, combinations, guestCount) => {
+    console.log('Auto selecting tables for', guestCount, 'guests');
+    console.log('Available tables:', tables);
+    console.log('Combinations from API:', combinations);
+
+    if (!tables || tables.length === 0) return [];
+
+    // For small groups (1-4 people), prioritize single table
+    if (guestCount <= 4) {
+      const singleTable = tables.find(table => table.capacity >= guestCount);
+      if (singleTable) {
+        console.log('Found single table for small group:', singleTable);
+        return [singleTable];
+      }
+    }
+
+    // For larger groups (5+ people), check if there's a reasonably sized single table
+    // Don't use a table that's too big (more than 1.5x the guest count)
+    const reasonableSingleTable = tables.find(table =>
+      table.capacity >= guestCount && table.capacity <= guestCount * 1.5
+    );
+    if (reasonableSingleTable) {
+      console.log('Found reasonable single table for larger group:', reasonableSingleTable);
+      return [reasonableSingleTable];
+    }
+
+    console.log('No single table found, trying combinations...');
+
+    // If no single table, try API combinations
+    // Check single table combinations from API
+    if (combinations.single && Array.isArray(combinations.single) && combinations.single.length > 0) {
+      const firstSingle = combinations.single[0];
+      if (Array.isArray(firstSingle)) {
+        console.log('Using API single combination:', firstSingle);
+        return firstSingle;
+      } else if (firstSingle && firstSingle._id) {
+        console.log('Using API single table:', firstSingle);
+        return [firstSingle];
+      }
+    }
+
+    // Check double table combinations from API
+    if (combinations.double && Array.isArray(combinations.double) && combinations.double.length > 0) {
+      const firstDouble = combinations.double[0];
+      if (Array.isArray(firstDouble)) {
+        console.log('Using API double combination:', firstDouble);
+        return firstDouble;
+      }
+    }
+
+    // Check triple table combinations from API
+    if (combinations.triple && Array.isArray(combinations.triple) && combinations.triple.length > 0) {
+      const firstTriple = combinations.triple[0];
+      if (Array.isArray(firstTriple)) {
+        console.log('Using API triple combination:', firstTriple);
+        return firstTriple;
+      }
+    }
+
+    console.log('No API combinations found, using fallback logic...');
+
+    // Fallback to local calculation
+    // Try 2-table combinations
+    for (let i = 0; i < tables.length; i++) {
+      for (let j = i + 1; j < tables.length; j++) {
+        const totalCapacity = tables[i].capacity + tables[j].capacity;
+        if (totalCapacity >= guestCount) {
+          console.log('Found local double combination:', [tables[i], tables[j]]);
+          return [tables[i], tables[j]];
+        }
+      }
+    }
+
+    // Try 3-table combinations
+    for (let i = 0; i < tables.length; i++) {
+      for (let j = i + 1; j < tables.length; j++) {
+        for (let k = j + 1; k < tables.length; k++) {
+          const totalCapacity = tables[i].capacity + tables[j].capacity + tables[k].capacity;
+          if (totalCapacity >= guestCount) {
+            console.log('Found local triple combination:', [tables[i], tables[j], tables[k]]);
+            return [tables[i], tables[j], tables[k]];
+          }
+        }
+      }
+    }
+
+    console.log('No valid combinations found');
+    // If no combination works, return empty array
+    return [];
+  };
 
   // Fetch available tables when area/date/slot/guest_count changes
   useEffect(() => {
@@ -333,14 +491,23 @@ export default function ReservationForm() {
         },
       })
       .then((res) => {
-        setAvailableTables(res.data.data || []);
-        setTableCombinations(res.data.combinations || {});
-        setSelectedTables([]);
+        console.log('API Response:', res.data);
+        const tables = res.data.data || [];
+        const combinations = res.data.combinations || {};
+
+        setAvailableTables(tables);
+        setTableCombinations(combinations);
+
+        // Auto-select optimal tables
+        const autoSelected = autoSelectTables(tables, combinations, form.guest_count);
+        console.log('Auto selected tables:', autoSelected);
+        setSelectedTables(autoSelected);
       })
       .catch((err) => {
         setError(err?.response?.data?.message || "Không lấy được danh sách bàn trống");
         setAvailableTables([]);
         setTableCombinations({});
+        setSelectedTables([]);
       })
       .finally(() => setLoadingTables(false));
   }, [selectedArea, form.date, form.slot_id, form.guest_count, validationError]);
@@ -358,10 +525,9 @@ export default function ReservationForm() {
     setForm({ ...form, slot_id: e.target.value });
   };
 
-  // Handle pre-order menu item changes
+  // Handle pre-order menu item changes for success modal
   const handleMenuItemChange = (menuItemId, quantity) => {
-    const currentItems = form.pre_order_items || [];
-    let updatedItems = currentItems.filter(item => item.menu_item_id !== menuItemId);
+    let updatedItems = preOrderItems.filter(item => item.menu_item_id !== menuItemId);
 
     if (quantity > 0) {
       updatedItems.push({
@@ -370,17 +536,31 @@ export default function ReservationForm() {
       });
     }
 
-    setForm({
-      ...form,
-      pre_order_items: updatedItems
-    });
+    setPreOrderItems(updatedItems);
   };
 
-  // Calculate pre-order total
+  // Calculate pre-order total with 15% discount
   const calculatePreOrderTotal = () => {
-    if (!form.pre_order_items || !form.pre_order_items.length || !menuItems.length) return 0;
+    if (!preOrderItems.length || !menuItems.length) return 0;
 
-    return form.pre_order_items.reduce((total, item) => {
+    const subtotal = preOrderItems.reduce((total, item) => {
+      if (!item || !item.menu_item_id) return total;
+      const menuItem = menuItems.find(m => m && m._id === item.menu_item_id);
+      if (menuItem) {
+        return total + ((menuItem.price || 0) * item.quantity);
+      }
+      return total;
+    }, 0);
+
+    // Apply 15% discount for pre-order
+    return Math.ceil(subtotal * 0.85);
+  };
+
+  // Calculate original total (before discount)
+  const calculateOriginalTotal = () => {
+    if (!preOrderItems.length || !menuItems.length) return 0;
+
+    return preOrderItems.reduce((total, item) => {
       if (!item || !item.menu_item_id) return total;
       const menuItem = menuItems.find(m => m && m._id === item.menu_item_id);
       if (menuItem) {
@@ -390,122 +570,13 @@ export default function ReservationForm() {
     }, 0);
   };
 
-  // Calculate deposit amount (50% of pre-order total)
-  const calculateDepositAmount = () => {
-    const total = calculatePreOrderTotal();
-    return Math.ceil(total * 0.5); // 50% deposit, rounded up
-  };
 
-  // Handle payment for deposit
-  const handlePayment = async () => {
-    if (!isAuthenticated) {
-      setError('Vui lòng đăng nhập để đặt bàn!');
-      setTimeout(() => {
-        navigate('/login', { state: { from: '/reservation' } });
-      }, 2000);
-      return;
-    }
-
-    if (!form.name || !form.phone || !form.date || !form.slot_id || !isTableSelectionValid()) {
-      setError('Vui lòng điền đầy đủ thông tin bắt buộc!');
-      return;
-    }
-
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    if (isGuestCountExceeded()) {
-      setError("Số lượng khách vượt quá giới hạn đặt bàn trực tuyến (tối đa 23 người). Vui lòng liên hệ trực tiếp để đặt bàn số lượng lớn.");
-      return;
-    }
-
-    setPaymentLoading(true);
-    setError('');
-
-    try {
-      const depositAmount = calculateDepositAmount();
-
-      if (depositAmount > 0) {
-        // Create payment URL for deposit
-        const paymentResponse = await customFetch.post('/payment/create_payment_url', {
-          amount: depositAmount,
-          orderDescription: `Đặt cọc đặt bàn ngày ${new Date(form.date).toLocaleDateString('vi-VN')} - ${form.slot_id ? getSlotDisplayText(form.slot_id) : ''}`,
-          orderType: 'reservation_deposit',
-          language: 'vn'
-        });
-
-        if (paymentResponse?.data?.paymentUrl && paymentResponse?.data?.orderId) {
-          // Create reservation with payment info
-          const reservationData = {
-            table_ids: selectedTables.map(table => table._id),
-            date: form.date,
-            slot_id: form.slot_id,
-            guest_count: form.guest_count,
-            contact_name: form.name,
-            contact_phone: form.phone,
-            contact_email: form.email,
-            pre_order_items: form.pre_order_items.filter(item => item.quantity > 0),
-            notes: form.note,
-            payment_order_id: paymentResponse.data.orderId,
-            deposit_amount: depositAmount,
-            total_amount: calculatePreOrderTotal(),
-            payment_status: 'pending_deposit',
-            status: 'pending'
-          };
-
-          const reservationResponse = await customFetch.post('/reservations', reservationData);
-
-          if (reservationResponse?.data?.success) {
-            // Open payment URL in new window
-            window.open(paymentResponse.data.paymentUrl, '_blank');
-            // Show success message
-            setSuccess(true);
-            setForm({
-              name: "",
-              phone: "",
-              email: "",
-              guest_count: 1,
-              date: "",
-              slot_id: "",
-              note: "",
-              pre_order_items: []
-            });
-            setSelectedTables([]);
-            setEndTime("");
-            setValidationError("");
-          } else {
-            throw new Error('Không thể tạo đơn đặt bàn');
-          }
-        } else {
-          throw new Error('Không thể tạo URL thanh toán');
-        }
-      }
-    } catch (error) {
-      console.error('Lỗi xử lý thanh toán:', error);
-      setError(error.response?.data?.message || error.message || 'Có lỗi xảy ra khi xử lý thanh toán');
-    } finally {
-      setPaymentLoading(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess(false);
 
-    // Check if user has pre-order items and needs to pay deposit
-    const hasPreOrderItems = form.pre_order_items && form.pre_order_items.length > 0 &&
-      form.pre_order_items.some(item => item.quantity > 0);
-
-    if (hasPreOrderItems) {
-      // If has pre-order items, require payment
-      await handlePayment();
-      return;
-    }
-
-    // Regular reservation without pre-order items
     // Validation
     if (
       !form.name ||
@@ -539,26 +610,30 @@ export default function ReservationForm() {
         contact_name: form.name,
         contact_phone: form.phone,
         contact_email: form.email,
-        notes: form.note,
         payment_status: 'pending'
       };
 
-      await customFetch.post("/reservations", reservationData);
+      const response = await customFetch.post("/reservations", reservationData);
 
-      setSuccess(true);
-      setForm({
-        name: "",
-        phone: "",
-        email: "",
-        guest_count: 1,
-        date: "",
-        slot_id: "",
-        note: "",
-        pre_order_items: []
-      });
-      setSelectedTables([]);
-      setEndTime("");
-      setValidationError("");
+      // Show success modal instead of immediate success message
+      if (response?.data?.data?._id) {
+        setReservationId(response.data.data._id);
+        setShowSuccessModal(true);
+        setSuccess(false); // Don't show the old success message
+
+        // Reset form
+        setForm({
+          name: "",
+          phone: "",
+          email: "",
+          guest_count: 1,
+          date: getTodayVietnam(),
+          slot_id: ""
+        });
+        setSelectedTables([]);
+        setEndTime("");
+        setValidationError("");
+      }
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Đặt bàn thất bại");
     } finally {
@@ -575,17 +650,56 @@ export default function ReservationForm() {
       `${slot.start_time}-${slot.end_time}`;
   };
 
-  const openMenuModal = () => {
-    setShowMenuModal(true);
-    setSelectedCategory("All");
-  };
-
-  const closeMenuModal = () => {
-    setShowMenuModal(false);
-  };
-
   const getSelectedItemsCount = () => {
-    return form.pre_order_items.reduce((total, item) => total + item.quantity, 0);
+    return preOrderItems.reduce((total, item) => total + item.quantity, 0);
+  };
+
+  // Handle skip pre-order
+  const handleSkipPreOrder = async () => {
+    try {
+      // Update reservation with note only
+      if (reservationNote.trim()) {
+        await customFetch.put(`/reservations/${reservationId}`, {
+          notes: reservationNote
+        });
+      }
+
+      setShowSuccessModal(false);
+      setReservationId(null);
+      setPreOrderItems([]);
+      setReservationNote("");
+      setSuccess(true);
+    } catch (error) {
+      console.error('Error updating reservation note:', error);
+      setShowSuccessModal(false);
+      setSuccess(true); // Still show success even if note update fails
+    }
+  };
+
+  // Handle confirm pre-order
+  const handleConfirmPreOrder = async () => {
+    try {
+      // Update reservation with pre-order items and note
+      const updateData = {
+        pre_order_items: preOrderItems.filter(item => item.quantity > 0),
+        notes: reservationNote,
+        total_amount: calculatePreOrderTotal(),
+        original_amount: calculateOriginalTotal(),
+        discount_amount: calculateOriginalTotal() - calculatePreOrderTotal(),
+        payment_status: 'pending_preorder'
+      };
+
+      await customFetch.put(`/reservations/${reservationId}`, updateData);
+
+      setShowSuccessModal(false);
+      setReservationId(null);
+      setPreOrderItems([]);
+      setReservationNote("");
+      setSuccess(true);
+    } catch (error) {
+      console.error('Error updating reservation with pre-order:', error);
+      setError('Có lỗi xảy ra khi cập nhật đơn đặt món');
+    }
   };
 
   const getFilteredMenuItems = () => {
@@ -684,7 +798,8 @@ export default function ReservationForm() {
                   {/* Selected tables summary */}
                   {selectedTables.length > 0 && (
                     <div className="selected-tables-summary">
-                      <h5>Bàn đã chọn ({selectedTables.length} bàn):</h5>
+                      <h5>✅ Bàn đã chọn ({selectedTables.length} bàn):</h5>
+
                       <div className="selected-tables-list">
                         {selectedTables.map(table => (
                           <div key={table._id} className="selected-table-item">
@@ -692,6 +807,7 @@ export default function ReservationForm() {
                             <button
                               className="remove-table-btn"
                               onClick={() => handleTableSelect(table)}
+                              title="Bỏ chọn bàn này"
                             >
                               ×
                             </button>
@@ -703,6 +819,11 @@ export default function ReservationForm() {
                         {getTotalCapacity() < form.guest_count && (
                           <span className="capacity-warning">
                             ⚠️ Cần thêm bàn để đủ {form.guest_count} người
+                          </span>
+                        )}
+                        {getTotalCapacity() >= form.guest_count && (
+                          <span className="capacity-ok">
+                            ✅ Đủ chỗ cho {form.guest_count} người
                           </span>
                         )}
                       </div>
@@ -803,14 +924,14 @@ export default function ReservationForm() {
             type="tel"
             required
           />
-          <label>Email</label>
+          {/* <label>Email</label>
           <input
             value={form.email}
             name="email"
             onChange={handleInput}
             placeholder="Email (không bắt buộc)"
             type="email"
-          />
+          /> */}
           <label>Số lượng khách*</label>
           <input
             type="number"
@@ -849,36 +970,6 @@ export default function ReservationForm() {
               Thời gian giữ bàn: {form.slot_id ? getSlotDisplayText(form.slot_id) : ''} ({RESERVE_DURATION} tiếng)
             </div>
           )}
-          <label>Ghi chú</label>
-          <textarea
-            value={form.note}
-            name="note"
-            onChange={handleInput}
-            placeholder="Ghi chú thêm (nếu có)"
-            rows={3}
-          />
-
-          {/* Pre-order button */}
-          <div className="pre-order-button-section">
-            <button
-              type="button"
-              className="pre-order-btn"
-              onClick={openMenuModal}
-            >
-              🍽️ Chọn món đặt trước ({getSelectedItemsCount()} món)
-            </button>
-            {form.pre_order_items && form.pre_order_items.length > 0 && (
-              <div className="pre-order-summary">
-                <div className="pre-order-details">
-                  <span>Tổng tiền: <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong></span>
-                  <span>Đặt cọc (50%): <strong className="deposit-amount">{calculateDepositAmount().toLocaleString()}đ</strong></span>
-                </div>
-                <div className="deposit-notice">
-                  💳 <strong>Lưu ý:</strong> Khi chọn món đặt trước, bạn cần đặt cọc 50% để xác nhận đơn hàng
-                </div>
-              </div>
-            )}
-          </div>
 
           {error && <div className="error-message">{error}</div>}
           {success && (
@@ -892,13 +983,91 @@ export default function ReservationForm() {
         </form>
       </div>
 
+      {/* Success Modal with Pre-order Option */}
+      {showSuccessModal && (
+        <div className="success-modal-overlay">
+          <div className="success-modal">
+            <div className="success-modal-header">
+              <h3>🎉 Đặt bàn thành công!</h3>
+              <p>Bàn của bạn đã được đặt thành công. Bạn có muốn đặt món trước để nhận ưu đãi 15% không?</p>
+            </div>
+
+            <div className="success-modal-content">
+              {/* Note section */}
+              <div className="note-section">
+                <label>Ghi chú cho đơn đặt bàn:</label>
+                <textarea
+                  value={reservationNote}
+                  onChange={(e) => setReservationNote(e.target.value)}
+                  placeholder="Ghi chú thêm (nếu có)"
+                  rows={3}
+                />
+              </div>
+
+              {/* Pre-order section */}
+              <div className="pre-order-section">
+                <h4>🍽️ Đặt món trước (Giảm 15%)</h4>
+                <p className="discount-info">
+                  💥 <strong>Ưu đãi đặc biệt:</strong> Đặt món trước ngay bây giờ để nhận giảm giá 15% cho toàn bộ đơn hàng!
+                </p>
+
+                {preOrderItems.length > 0 && (
+                  <div className="pre-order-summary">
+                    <div className="price-breakdown">
+                      <div className="original-price">
+                        Tổng gốc: <span className="strikethrough">{calculateOriginalTotal().toLocaleString()}đ</span>
+                      </div>
+                      <div className="discount-amount">
+                        Giảm 15%: <span className="discount">-{(calculateOriginalTotal() - calculatePreOrderTotal()).toLocaleString()}đ</span>
+                      </div>
+                      <div className="final-price">
+                        Thành tiền: <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  className="choose-menu-btn"
+                  onClick={() => setShowMenuModal(true)}
+                >
+                  {preOrderItems.length > 0 ?
+                    `✏️ Chỉnh sửa món (${getSelectedItemsCount()} món)` :
+                    "🍽️ Chọn món đặt trước"
+                  }
+                </button>
+              </div>
+            </div>
+
+            <div className="success-modal-footer">
+              <button
+                className="skip-btn"
+                onClick={() => handleSkipPreOrder()}
+              >
+                Bỏ qua, đặt bàn thôi
+              </button>
+              <button
+                className="confirm-preorder-btn"
+                onClick={() => handleConfirmPreOrder()}
+                disabled={preOrderItems.length === 0}
+              >
+                {preOrderItems.length > 0 ?
+                  `Xác nhận đặt món (${calculatePreOrderTotal().toLocaleString()}đ)` :
+                  "Chọn món để tiếp tục"
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Menu Selection Modal */}
       {showMenuModal && (
         <div className="menu-modal-overlay">
           <div className="menu-modal">
             <div className="menu-modal-header">
-              <h3>Chọn món đặt trước</h3>
-              <button className="close-modal-btn" onClick={closeMenuModal}>×</button>
+              <h3>Chọn món đặt trước (Giảm 15%)</h3>
+              <button className="close-modal-btn" onClick={() => setShowMenuModal(false)}>×</button>
             </div>
 
             <div className="menu-modal-content">
@@ -942,8 +1111,7 @@ export default function ReservationForm() {
                 ) : (
                   <div className="menu-items-grid">
                     {getFilteredMenuItems().map((item) => {
-                      const preOrderItem = (form.pre_order_items || [])
-                        .find(i => i.menu_item_id === item._id);
+                      const preOrderItem = preOrderItems.find(i => i.menu_item_id === item._id);
                       const quantity = preOrderItem ? preOrderItem.quantity : 0;
 
                       return (
@@ -986,7 +1154,7 @@ export default function ReservationForm() {
                 <span>Tổng tiền: <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong></span>
                 <span>Số món: <strong>{getSelectedItemsCount()}</strong></span>
               </div>
-              <button className="confirm-menu-btn" onClick={closeMenuModal}>
+              <button className="confirm-menu-btn" onClick={() => setShowMenuModal(false)}>
                 Xác nhận ({getSelectedItemsCount()} món)
               </button>
             </div>

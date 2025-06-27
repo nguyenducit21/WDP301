@@ -14,7 +14,7 @@ const ReservationSchema = new Schema({
     guest_count: { type: Number },
     contact_name: { type: String, required: true },
     contact_phone: { type: String, required: true },
-    contact_email: { type: String },
+    contact_email: { type: String, default: '' },
     created_by_staff: {//phân biệt khách đặt hay nhân viên đặt hộ
         type: Schema.Types.ObjectId,
         ref: 'User',
