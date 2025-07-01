@@ -7,11 +7,11 @@ const ConfirmModal = ({ title, message, onConfirm, onCancel, confirmText = 'Xác
                 <div className="modal-header">
                     <h3>{title}</h3>
                 </div>
-                
+
                 <div className="modal-body">
                     <p>{message}</p>
                 </div>
-                
+
                 <div className="modal-actions">
                     <button
                         type="button"

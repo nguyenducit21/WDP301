@@ -198,6 +198,24 @@
     background: #c82333;
 }
 
+.btn-warning {
+    background: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background: #e0a800;
+}
+
+.btn-success {
+    background: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background: #218838;
+}
+
 .btn-sm {
     padding: 6px 12px;
     font-size: 12px;
@@ -366,46 +384,46 @@
     .employee-management {
         padding: 15px;
     }
-    
+
     .page-header {
         flex-direction: column;
         gap: 15px;
         align-items: stretch;
     }
-    
+
     .filters {
         flex-direction: column;
     }
-    
+
     .filter-group {
         min-width: auto;
     }
-    
+
     .employee-table {
         font-size: 12px;
     }
-    
+
     .employee-table th,
     .employee-table td {
         padding: 8px 6px;
     }
-    
+
     .action-buttons {
         flex-direction: column;
     }
-    
+
     .form-row {
         flex-direction: column;
     }
-    
+
     .employee-form-modal {
         width: 95vw;
     }
-    
+
     .modal-header {
         padding: 15px;
     }
-    
+
     .employee-form {
         padding: 15px;
     }

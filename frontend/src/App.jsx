@@ -37,7 +37,7 @@ const App = () => {
   return (
     <>
       <div className="app">
-      {!isChefPage && <Navbar isPositionUnset={isTableBooking || isMenuPage} />}
+        {!isChefPage && <Navbar isPositionUnset={isTableBooking || isMenuPage} />}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/cart" element={<Cart />} />
@@ -48,7 +48,7 @@ const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/tables" element={<TableManagement />} />
-	  <Route path="/dashboard/employees" element={<EmployeeManagement />} />
+          <Route path="/dashboard/employees" element={<EmployeeManagement />} />
           <Route path="/table-booking" element={<Reservation />} />
           <Route path="/chef" element={<ChefLayout />}>
             <Route path="dashboard" element={<Dashboard />} />

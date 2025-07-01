@@ -5,8 +5,7 @@ const {
     getEmployeeById,
     createEmployee,
     updateEmployee,
-    deleteEmployee,
-    changeEmployeePassword
+    toggleEmployeeStatus
 } = require('../controllers/employee.controller');
 
 const authMiddleware = require('../middlewares/auth.middleware');
@@ -24,10 +23,7 @@ router.post('/', authMiddleware, resourcePermissionMiddleware('users', 'create')
 // Cập nhật thông tin nhân viên
 router.put('/:id', authMiddleware, resourcePermissionMiddleware('users', 'update'), updateEmployee);
 
-// Xóa nhân viên
-router.delete('/:id', authMiddleware, resourcePermissionMiddleware('users', 'delete'), deleteEmployee);
-
-// Đổi mật khẩu nhân viên
-router.put('/:id/change-password', authMiddleware, resourcePermissionMiddleware('users', 'update'), changeEmployeePassword);
+// Toggle trạng thái nhân viên (active/inactive)
+router.patch('/:id/toggle-status', authMiddleware, resourcePermissionMiddleware('users', 'update'), toggleEmployeeStatus);
 
 module.exports = router;

@@ -12,7 +12,7 @@ const EmployeeManagement = () => {
     const [editingEmployee, setEditingEmployee] = useState(null);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [employeeToDelete, setEmployeeToDelete] = useState(null);
-    
+
     // Filters and pagination
     const [filters, setFilters] = useState({
         search: '',
@@ -63,19 +63,20 @@ const EmployeeManagement = () => {
         setShowForm(true);
     };
 
-    const handleDeleteEmployee = (employee) => {
+    const handleToggleStatus = (employee) => {
         setEmployeeToDelete(employee);
         setShowConfirmModal(true);
     };
 
-    const confirmDelete = async () => {
+    const confirmToggleStatus = async () => {
         try {
-            await axios.delete(`/employees/${employeeToDelete._id}`);
-            alert('Xóa nhân viên thành công');
+            await axios.patch(`/employees/${employeeToDelete._id}/toggle-status`);
+            const action = employeeToDelete.status === 'active' ? 'vô hiệu hóa' : 'kích hoạt';
+            alert(`${action.charAt(0).toUpperCase() + action.slice(1)} nhân viên thành công`);
             fetchEmployees();
         } catch (error) {
-            console.error('Lỗi khi xóa nhân viên:', error);
-            alert('Lỗi khi xóa nhân viên');
+            console.error('Lỗi khi thay đổi trạng thái nhân viên:', error);
+            alert(error.response?.data?.message || 'Lỗi khi thay đổi trạng thái nhân viên');
         } finally {
             setShowConfirmModal(false);
             setEmployeeToDelete(null);
@@ -88,8 +89,8 @@ const EmployeeManagement = () => {
                 await axios.put(`/employees/${editingEmployee._id}`, formData);
                 alert('Cập nhật nhân viên thành công');
             } else {
-                await axios.post('/employees', formData);
-                alert('Tạo nhân viên thành công');
+                const response = await axios.post('/employees', formData);
+                alert(response.data.message || 'Tạo nhân viên thành công. Thông tin đăng nhập đã được gửi qua email.');
             }
             setShowForm(false);
             setEditingEmployee(null);
@@ -131,7 +132,7 @@ const EmployeeManagement = () => {
             waiter: 'waiter',
             warehouse_staff: 'warehouse'
         };
-        
+
         return (
             <span className={`role-badge ${roleColors[roleName] || 'default'}`}>
                 {roleName}
@@ -143,7 +144,7 @@ const EmployeeManagement = () => {
         <div className="employee-management">
             <div className="page-header">
                 <h1>Quản lý nhân viên</h1>
-                <button 
+                <button
                     className="btn btn-primary"
                     onClick={handleCreateEmployee}
                 >
@@ -162,7 +163,7 @@ const EmployeeManagement = () => {
                         className="search-input"
                     />
                 </div>
-                
+
                 <div className="filter-group">
                     <select
                         value={filters.role}
@@ -203,6 +204,7 @@ const EmployeeManagement = () => {
                                 <th>Họ tên</th>
                                 <th>Email</th>
                                 <th>Số điện thoại</th>
+                                <th>Ngày sinh</th>
                                 <th>Vai trò</th>
                                 <th>Trạng thái</th>
                                 <th>Ngày tạo</th>
@@ -216,23 +218,31 @@ const EmployeeManagement = () => {
                                     <td>{employee.full_name || '-'}</td>
                                     <td>{employee.email}</td>
                                     <td>{employee.phone || '-'}</td>
+                                    <td>
+                                        {employee.birth_date
+                                            ? new Date(employee.birth_date).toLocaleDateString('vi-VN')
+                                            : '-'
+                                        }
+                                    </td>
                                     <td>{getRoleBadge(employee.role_id?.name)}</td>
                                     <td>{getStatusBadge(employee.status)}</td>
                                     <td>{new Date(employee.created_at).toLocaleDateString('vi-VN')}</td>
                                     <td>
                                         <div className="action-buttons">
-                                            <button
-                                                className="btn btn-sm btn-secondary"
-                                                onClick={() => handleEditEmployee(employee)}
-                                            >
-                                                Sửa
-                                            </button>
                                             {employee.role_id?.name !== 'admin' && (
                                                 <button
-                                                    className="btn btn-sm btn-danger"
-                                                    onClick={() => handleDeleteEmployee(employee)}
+                                                    className="btn btn-sm btn-secondary"
+                                                    onClick={() => handleEditEmployee(employee)}
                                                 >
-                                                    Xóa
+                                                    Sửa
+                                                </button>
+                                            )}
+                                            {employee.role_id?.name !== 'admin' && (
+                                                <button
+                                                    className={`btn btn-sm ${employee.status === 'active' ? 'btn-warning' : 'btn-success'}`}
+                                                    onClick={() => handleToggleStatus(employee)}
+                                                >
+                                                    {employee.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'}
                                                 </button>
                                             )}
                                         </div>
@@ -254,11 +264,11 @@ const EmployeeManagement = () => {
                     >
                         Trước
                     </button>
-                    
+
                     <span className="page-info">
                         Trang {pagination.current_page} / {pagination.total_pages}
                     </span>
-                    
+
                     <button
                         className="btn btn-sm"
                         disabled={pagination.current_page === pagination.total_pages}
@@ -282,16 +292,17 @@ const EmployeeManagement = () => {
                 />
             )}
 
-            {/* Confirm Delete Modal */}
+            {/* Confirm Toggle Status Modal */}
             {showConfirmModal && (
                 <ConfirmModal
-                    title="Xác nhận xóa nhân viên"
-                    message={`Bạn có chắc chắn muốn xóa nhân viên "${employeeToDelete?.full_name || employeeToDelete?.username}"?`}
-                    onConfirm={confirmDelete}
+                    title={`Xác nhận ${employeeToDelete?.status === 'active' ? 'vô hiệu hóa' : 'kích hoạt'} nhân viên`}
+                    message={`Bạn có chắc chắn muốn ${employeeToDelete?.status === 'active' ? 'vô hiệu hóa' : 'kích hoạt'} nhân viên "${employeeToDelete?.full_name || employeeToDelete?.username}"?`}
+                    onConfirm={confirmToggleStatus}
                     onCancel={() => {
                         setShowConfirmModal(false);
                         setEmployeeToDelete(null);
                     }}
+                    confirmText={employeeToDelete?.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'}
                 />
             )}
         </div>

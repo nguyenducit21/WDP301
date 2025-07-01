@@ -4,9 +4,9 @@ const EmployeeForm = ({ employee, roles, onSubmit, onCancel }) => {
     const [formData, setFormData] = useState({
         username: '',
         email: '',
-        password: '',
         full_name: '',
         phone: '',
+        birth_date: '',
         role_name: '',
         status: 'active'
     });
@@ -15,12 +15,16 @@ const EmployeeForm = ({ employee, roles, onSubmit, onCancel }) => {
 
     useEffect(() => {
         if (employee) {
+            // Format birth_date for input[type="date"]
+            const birthDate = employee.birth_date ?
+                new Date(employee.birth_date).toISOString().split('T')[0] : '';
+
             setFormData({
                 username: employee.username || '',
                 email: employee.email || '',
-                password: '', // Không hiển thị password cũ
                 full_name: employee.full_name || '',
                 phone: employee.phone || '',
+                birth_date: birthDate,
                 role_name: employee.role_id?.name || '',
                 status: employee.status || 'active'
             });
@@ -40,10 +44,19 @@ const EmployeeForm = ({ employee, roles, onSubmit, onCancel }) => {
             newErrors.email = 'Email không hợp lệ';
         }
 
-        if (!employee && !formData.password.trim()) {
-            newErrors.password = 'Mật khẩu là bắt buộc khi tạo mới';
-        } else if (formData.password && formData.password.length < 6) {
-            newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự';
+        if (!formData.birth_date) {
+            newErrors.birth_date = 'Ngày sinh là bắt buộc';
+        } else {
+            // Kiểm tra tuổi (phải trên 18)
+            const birthDate = new Date(formData.birth_date);
+            const today = new Date();
+            const age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+
+            if (age < 18 || (age === 18 && monthDiff < 0) ||
+                (age === 18 && monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                newErrors.birth_date = 'Nhân viên phải đủ 18 tuổi trở lên';
+            }
         }
 
         if (!formData.role_name) {
@@ -56,20 +69,14 @@ const EmployeeForm = ({ employee, roles, onSubmit, onCancel }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         if (!validateForm()) {
             return;
         }
 
         setLoading(true);
         try {
-            // Chỉ gửi password nếu có giá trị (tạo mới hoặc đổi password)
-            const submitData = { ...formData };
-            if (!submitData.password) {
-                delete submitData.password;
-            }
-            
-            await onSubmit(submitData);
+            await onSubmit(formData);
         } catch (error) {
             console.error('Lỗi khi submit form:', error);
         } finally {
@@ -83,7 +90,7 @@ const EmployeeForm = ({ employee, roles, onSubmit, onCancel }) => {
             ...prev,
             [name]: value
         }));
-        
+
         // Xóa lỗi khi user bắt đầu nhập
         if (errors[name]) {
             setErrors(prev => ({
@@ -160,20 +167,18 @@ const EmployeeForm = ({ employee, roles, onSubmit, onCancel }) => {
 
                     <div className="form-row">
                         <div className="form-group">
-                            <label htmlFor="password">
-                                {employee ? 'Mật khẩu mới (để trống nếu không đổi)' : 'Mật khẩu *'}
-                            </label>
+                            <label htmlFor="birth_date">Ngày sinh *</label>
                             <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                value={formData.password}
+                                type="date"
+                                id="birth_date"
+                                name="birth_date"
+                                value={formData.birth_date}
                                 onChange={handleChange}
-                                className={errors.password ? 'error' : ''}
+                                className={errors.birth_date ? 'error' : ''}
                                 disabled={loading}
-                                placeholder={employee ? 'Nhập mật khẩu mới...' : ''}
+                                max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                             />
-                            {errors.password && <span className="error-text">{errors.password}</span>}
+                            {errors.birth_date && <span className="error-text">{errors.birth_date}</span>}
                         </div>
 
                         <div className="form-group">
