@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useBookingSlots } from "./BookingSlot/BookingSlot";
 import { useReservation } from "../../hooks/useReservation";
 import { useTableSelection } from "../../hooks/useTableSelection";
+import { usePreOrder } from "../../hooks/usePreOrder";
 import AreaTableSelection from "./TableSelection/AreaTableSelection";
 import BookingInfoForm from "./BookingInfoForm/BookingInfoForm";
-import SuccessModal from "./SuccessModal";
+import SuccessModal from "./MenuModal/SuccessModal";
 import MenuModal from "./MenuModal/MenuModal";
 import "./Reservation.css";
 
@@ -17,6 +18,7 @@ export default function ReservationForm() {
   // Custom hooks
   const reservationHook = useReservation();
   const tableSelectionHook = useTableSelection();
+  const preOrderHook = usePreOrder();
   const { slots } = useBookingSlots();
 
   // Destructure from hooks
@@ -28,7 +30,6 @@ export default function ReservationForm() {
     validationError,
     showSuccessModal,
     reservationId,
-    preOrderItems,
     isAuthenticated,
     todayStr,
     handleInput,
@@ -36,9 +37,24 @@ export default function ReservationForm() {
     submitReservation,
     setValidationError,
     setShowSuccessModal,
-    setPreOrderItems,
     validateBookingTime
   } = reservationHook;
+
+  const {
+    menuItems,
+    categories,
+    preOrderItems,
+    loadingMenu,
+    handleMenuItemChange,
+    calculateOriginalTotal,
+    calculatePreOrderTotal,
+    calculateDiscountAmount,
+    getSelectedItemsCount,
+    getFilteredMenuItems,
+    clearPreOrderItems,
+    getItemQuantity,
+    setPreOrderItems
+  } = preOrderHook;
 
   const {
     areas,
@@ -62,40 +78,7 @@ export default function ReservationForm() {
     setSelectedTables
   } = tableSelectionHook;
 
-  // Menu item management
-  const handleMenuItemChange = (menuItemId, quantity) => {
-    let updatedItems = preOrderItems.filter(item => item.menu_item_id !== menuItemId);
 
-    if (quantity > 0) {
-      updatedItems.push({
-        menu_item_id: menuItemId,
-        quantity: quantity
-      });
-    }
-
-    setPreOrderItems(updatedItems);
-  };
-
-  // Calculate pre-order totals
-  const calculatePreOrderTotal = () => {
-    if (!preOrderItems.length) return 0;
-
-    // This would need menu items data - you might want to pass this from MenuModal
-    // For now, returning 0 as placeholder
-    return 0;
-  };
-
-  const calculateOriginalTotal = () => {
-    if (!preOrderItems.length) return 0;
-
-    // This would need menu items data - you might want to pass this from MenuModal
-    // For now, returning 0 as placeholder
-    return 0;
-  };
-
-  const getSelectedItemsCount = () => {
-    return preOrderItems.reduce((total, item) => total + item.quantity, 0);
-  };
 
   // Handle form submission
   const handleSubmit = async (e) => {
@@ -111,6 +94,7 @@ export default function ReservationForm() {
   // Handle success modal close
   const handleSuccessModalClose = (shouldShowSuccess = false) => {
     setShowSuccessModal(false);
+    clearPreOrderItems(); // Clear pre-order items when modal closes
     if (shouldShowSuccess) {
       // Could navigate or show success message here
       console.log('Reservation completed successfully!');
@@ -205,6 +189,11 @@ export default function ReservationForm() {
         onMenuItemChange={handleMenuItemChange}
         calculatePreOrderTotal={calculatePreOrderTotal}
         getSelectedItemsCount={getSelectedItemsCount}
+        menuItems={menuItems}
+        categories={categories}
+        loadingMenu={loadingMenu}
+        getFilteredMenuItems={getFilteredMenuItems}
+        getItemQuantity={getItemQuantity}
       />
     </div>
   );

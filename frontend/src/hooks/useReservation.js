@@ -97,8 +97,7 @@ export const useReservation = () => {
     const [validationError, setValidationError] = useState("");
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [reservationId, setReservationId] = useState(null);
-    const [preOrderItems, setPreOrderItems] = useState([]);
-    const [reservationNote, setReservationNote] = useState("");
+
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
     // Ngày hôm nay (yyyy-mm-dd) - Vietnam timezone  
@@ -209,8 +208,7 @@ export const useReservation = () => {
         validationError,
         showSuccessModal,
         reservationId,
-        preOrderItems,
-        reservationNote,
+
         isAuthenticated,
         todayStr,
         handleInput,
@@ -221,8 +219,6 @@ export const useReservation = () => {
         setValidationError,
         setShowSuccessModal,
         setReservationId,
-        setPreOrderItems,
-        setReservationNote,
         validateBookingTime
     };
 }; 

@@ -355,7 +355,7 @@ body.reservation-form-open .navbar {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    z-index: 1001;
     padding: 20px;
 }
 
@@ -1100,7 +1100,7 @@ body.reservation-form-open .navbar {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1001;
+    z-index: 1000;
 }
 
 .success-modal {

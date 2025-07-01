@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import customFetch from '../../utils/axios.customize';
+import customFetch from '../../../utils/axios.customize';
 
 const SuccessModal = ({
     isOpen,

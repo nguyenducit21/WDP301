@@ -7,52 +7,14 @@ const MenuModal = ({
     preOrderItems,
     onMenuItemChange,
     calculatePreOrderTotal,
-    getSelectedItemsCount
+    getSelectedItemsCount,
+    menuItems,
+    categories,
+    loadingMenu,
+    getFilteredMenuItems,
+    getItemQuantity
 }) => {
-    const [menuItems, setMenuItems] = useState([]);
-    const [categories, setCategories] = useState([]);
     const [selectedCategory, setSelectedCategory] = useState("All");
-    const [loadingMenu, setLoadingMenu] = useState(false);
-
-    // Fetch menu items and categories
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const fetchMenuData = async () => {
-            try {
-                setLoadingMenu(true);
-
-                // Fetch menu items
-                const menuResponse = await customFetch.get('/menu-items');
-                if (menuResponse?.data?.success && Array.isArray(menuResponse.data.data)) {
-                    setMenuItems(menuResponse.data.data);
-                }
-
-                // Fetch categories
-                const categoriesResponse = await customFetch.get('/categories');
-                if (Array.isArray(categoriesResponse.data)) {
-                    setCategories(categoriesResponse.data);
-                } else if (Array.isArray(categoriesResponse.data?.data)) {
-                    setCategories(categoriesResponse.data.data);
-                }
-            } catch (error) {
-                console.error('Error fetching menu data:', error);
-            } finally {
-                setLoadingMenu(false);
-            }
-        };
-
-        fetchMenuData();
-    }, [isOpen]);
-
-    const getFilteredMenuItems = () => {
-        return menuItems.filter(
-            (item) =>
-                selectedCategory === "All" ||
-                item.category_id === selectedCategory ||
-                (item.category_id?._id && item.category_id._id === selectedCategory)
-        );
-    };
 
     if (!isOpen) return null;
 
@@ -104,9 +66,8 @@ const MenuModal = ({
                             <div className="loading">Đang tải menu...</div>
                         ) : (
                             <div className="menu-items-grid">
-                                {getFilteredMenuItems().map((item) => {
-                                    const preOrderItem = preOrderItems.find(i => i.menu_item_id === item._id);
-                                    const quantity = preOrderItem ? preOrderItem.quantity : 0;
+                                {getFilteredMenuItems(selectedCategory).map((item) => {
+                                    const quantity = getItemQuantity(item._id);
 
                                     return (
                                         <div key={item._id} className="menu-item-card">
