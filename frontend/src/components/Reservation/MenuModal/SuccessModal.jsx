@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import customFetch from '../../../utils/axios.customize';
+import PaymentModal from '../PaymentModal/PaymentModal';
 
 const SuccessModal = ({
     isOpen,
@@ -15,6 +16,7 @@ const SuccessModal = ({
 }) => {
     const [reservationNote, setReservationNote] = useState("");
     const [loading, setLoading] = useState(false);
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
 
     if (!isOpen) return null;
 
@@ -53,20 +55,37 @@ const SuccessModal = ({
                 total_amount: calculatePreOrderTotal(),
                 original_amount: calculateOriginalTotal(),
                 discount_amount: calculateOriginalTotal() - calculatePreOrderTotal(),
-                payment_status: 'pending_preorder'
+                payment_status: 'paid'
             };
 
             await customFetch.put(`/reservations/${reservationId}`, updateData);
 
-            setPreOrderItems([]);
-            setReservationNote("");
-            onClose(true); // Pass true to indicate success
+            // Show payment modal instead of closing
+            setShowPaymentModal(true);
         } catch (error) {
             console.error('Error updating reservation with pre-order:', error);
-            // Could show error message here
+            alert('Có lỗi xảy ra khi cập nhật đơn hàng. Vui lòng thử lại!');
         } finally {
             setLoading(false);
         }
+    };
+
+    // Handle payment modal close
+    const handlePaymentModalClose = (paymentSuccess) => {
+        setShowPaymentModal(false);
+        if (paymentSuccess) {
+            // Reset states and close success modal
+            setPreOrderItems([]);
+            setReservationNote("");
+            onClose(true);
+        }
+        // If payment failed, user stays on the success modal
+    };
+
+    // Generate order info for payment
+    const getOrderInfo = () => {
+        const itemCount = getSelectedItemsCount();
+        return `Đặt bàn + Đặt trước ${itemCount} món ăn (Giảm 15%)`;
     };
 
     return (
@@ -146,6 +165,15 @@ const SuccessModal = ({
                     </button>
                 </div>
             </div>
+
+            {/* Payment Modal */}
+            <PaymentModal
+                isOpen={showPaymentModal}
+                onClose={handlePaymentModalClose}
+                reservationId={reservationId}
+                totalAmount={calculatePreOrderTotal()}
+                orderInfo={getOrderInfo()}
+            />
         </div>
     );
 };

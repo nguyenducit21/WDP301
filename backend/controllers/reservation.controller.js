@@ -296,6 +296,8 @@ const validateBookingTime = async (date, slot_id) => {
 };
 
 // Hàm gửi thông báo cho nhân viên
+// TEMPORARILY DISABLED - Comment by user request
+/*
 const notifyStaff = async (reservation) => {
     try {
         const User = require('../models/user.model');
@@ -409,6 +411,7 @@ const notifyStaff = async (reservation) => {
         // Không throw error để không ảnh hưởng đến quá trình đặt bàn
     }
 };
+*/
 
 // Tạo đặt bàn mới
 const createReservation = async (req, res) => {
@@ -620,7 +623,8 @@ const createReservation = async (req, res) => {
         }
 
         // Gửi thông báo cho nhân viên
-        await notifyStaff(reservation);
+        // TEMPORARILY DISABLED - Comment by user request
+        // await notifyStaff(reservation);
 
         res.status(201).json({
             success: true,

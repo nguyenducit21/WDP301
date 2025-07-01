@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import customFetch from '../../../utils/axios.customize';
-import './Reservation.css';
+import '../Reservation.css';
 
 const STATUS_COLORS = {
     pending: '#ffc107',
