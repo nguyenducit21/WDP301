@@ -1,84 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import customFetch from '../utils/axios.customize';
 
-// Validation thời gian đặt bàn (Vietnam timezone)
-function validateBookingTime(date, time, todayVietnam) {
-    if (!date || !time) {
-        console.log('Skipping validation - missing date or time');
-        return null;
-    }
 
-    const now = new Date();
-    const currentHour = now.getHours();
-    const currentMinute = now.getMinutes();
-    const [inputHour, inputMinute] = time.split(':').map(Number);
 
-    console.log('=== VALIDATION DEBUG ===');
-    console.log('Input date:', date);
-    console.log('Input time:', time);
-    console.log('Today Vietnam (passed):', todayVietnam);
-    console.log('Local now:', now.toString());
-    console.log('Current time:', currentHour + ':' + currentMinute);
-    console.log('Input time:', inputHour + ':' + inputMinute);
-    console.log('Date comparison (string):', date, 'vs', todayVietnam);
-    console.log('Is past date (string)?', date < todayVietnam);
-    console.log('Is same date (string)?', date === todayVietnam);
-
-    const inputDate = new Date(date + 'T00:00:00');
-    const todayDate = new Date(todayVietnam + 'T00:00:00');
-
-    console.log('Input Date object:', inputDate);
-    console.log('Today Date object:', todayDate);
-    console.log('Input Date time:', inputDate.getTime());
-    console.log('Today Date time:', todayDate.getTime());
-    console.log('Is input date < today?', inputDate < todayDate);
-
-    if (inputDate < todayDate) {
-        console.log('REJECTED: Past date');
-        console.log('========================');
-        return "Không thể đặt bàn cho thời gian trong quá khứ";
-    }
-
-    if (inputDate.getTime() === todayDate.getTime()) {
-        const currentTotalMinutes = currentHour * 60 + currentMinute;
-        const inputTotalMinutes = inputHour * 60 + inputMinute;
-        const minBookingMinutes = currentTotalMinutes + 60;
-
-        console.log('Same day - checking time');
-        console.log('Current total minutes:', currentTotalMinutes);
-        console.log('Input total minutes:', inputTotalMinutes);
-        console.log('Min booking minutes (now + 60):', minBookingMinutes);
-        console.log('Is input time < min booking time?', inputTotalMinutes < minBookingMinutes);
-
-        if (inputTotalMinutes < minBookingMinutes) {
-            console.log('REJECTED: Too early');
-            console.log('========================');
-            return "Vui lòng đặt bàn trước ít nhất 1 giờ so với thời gian bắt đầu";
-        }
-    }
-
-    console.log('VALIDATED: OK');
-    console.log('========================');
-    return null;
-}
-
-// Get today's date in Vietnam timezone
-const getTodayVietnam = () => {
+// Get today's date
+const getTodayDate = () => {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    const todayVietnam = `${year}-${month}-${day}`;
-
-    console.log('=== getTodayVietnam() called ===');
-    console.log('Local Time:', now.toString());
-    console.log('Local Time ISO:', now.toISOString());
-    console.log('Vietnam Date (Local):', todayVietnam);
-    console.log('Current Hour:', now.getHours());
-    console.log('Current Minute:', now.getMinutes());
-    console.log('================================');
-
-    return todayVietnam;
+    return `${year}-${month}-${day}`;
 };
 
 export const useReservation = () => {
@@ -87,34 +18,41 @@ export const useReservation = () => {
         phone: "",
         email: "",
         guest_count: 1,
-        date: getTodayVietnam(),
+        date: getTodayDate(),
         slot_id: ""
     });
 
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState(false);
     const [error, setError] = useState("");
-    const [validationError, setValidationError] = useState("");
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [reservationId, setReservationId] = useState(null);
 
     const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-    // Ngày hôm nay (yyyy-mm-dd) - Vietnam timezone  
-    const todayStr = useMemo(() => {
-        const result = getTodayVietnam();
-        console.log('todayStr memoized:', result);
-        return result;
-    }, []);
-
-    // Check authentication status
+    // Check authentication status and auto-fill user info
     useEffect(() => {
         const userData = localStorage.getItem('user');
         if (userData) {
             try {
-                const user = JSON.parse(userData);
-                setIsAuthenticated(!!(user.user?.id || user.id || user._id));
+                const userResponse = JSON.parse(userData);
+                const user = userResponse.user || userResponse; // Handle both formats
+
+                if (user.id || user._id) {
+                    setIsAuthenticated(true);
+
+                    // Auto-fill form with user info
+                    setForm(prevForm => ({
+                        ...prevForm,
+                        name: user.full_name || user.name || prevForm.name,
+                        email: user.email || prevForm.email,
+                        // Keep existing values for phone, guest_count, date, slot_id
+                    }));
+                } else {
+                    setIsAuthenticated(false);
+                }
             } catch (e) {
+                console.error('Error parsing user data:', e);
                 setIsAuthenticated(false);
             }
         } else {
@@ -131,12 +69,30 @@ export const useReservation = () => {
     };
 
     const resetForm = () => {
+        // Check if user is logged in to preserve their info
+        const userData = localStorage.getItem('user');
+        let userName = "";
+        let userEmail = "";
+        let userPhone = "";
+
+        if (userData) {
+            try {
+                const userResponse = JSON.parse(userData);
+                const user = userResponse.user || userResponse;
+                userName = user.full_name || user.name || "";
+                userEmail = user.email || "";
+                userPhone = user.phone || "";
+            } catch (e) {
+                console.error('Error parsing user data in resetForm:', e);
+            }
+        }
+
         setForm({
-            name: "",
-            phone: "",
-            email: "",
+            name: userName, // Keep user name if logged in
+            phone: userPhone,
+            email: userEmail, // Keep user email if logged in
             guest_count: 1,
-            date: getTodayVietnam(),
+            date: getTodayDate(),
             slot_id: ""
         });
     };
@@ -154,11 +110,6 @@ export const useReservation = () => {
             !selectedTables.length
         ) {
             setError("Vui lòng nhập đầy đủ thông tin và chọn bàn!");
-            return false;
-        }
-
-        if (validationError) {
-            setError(validationError);
             return false;
         }
 
@@ -205,20 +156,16 @@ export const useReservation = () => {
         submitting,
         success,
         error,
-        validationError,
         showSuccessModal,
         reservationId,
 
         isAuthenticated,
-        todayStr,
         handleInput,
         handleSlotChange,
         submitReservation,
         setError,
         setSuccess,
-        setValidationError,
         setShowSuccessModal,
-        setReservationId,
-        validateBookingTime
+        setReservationId
     };
 }; 

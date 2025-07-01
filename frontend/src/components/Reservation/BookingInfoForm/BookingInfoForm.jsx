@@ -28,6 +28,7 @@ const BookingInfoForm = ({
             `${slot.start_time}-${slot.end_time}`;
     };
 
+
     return (
         <div className="reservation-right">
             <h3>Thông tin đặt bàn</h3>

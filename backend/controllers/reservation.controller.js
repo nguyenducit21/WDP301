@@ -256,29 +256,26 @@ const validateBookingTime = async (date, slot_id) => {
         throw new Error('Không tìm thấy slot thời gian');
     }
 
-    // Không cho đặt bàn trong quá khứ
-    if (bookingDate < now) {
+    // Tạo thời gian slot đầy đủ (ngày + giờ)
+    const [startHours, startMinutes] = bookingSlot.start_time.split(':');
+    const slotDateTime = new Date(bookingDate);
+    slotDateTime.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0);
+
+    // Kiểm tra nếu slot time đã qua
+    if (slotDateTime < now) {
+        console.log("slotDateTime, now", slotDateTime, now);
         throw new Error('Không thể đặt bàn cho thời gian trong quá khứ');
     }
 
-    // Nếu đặt trong ngày, kiểm tra giờ
+    // Nếu đặt trong ngày hiện tại, yêu cầu đặt trước ít nhất 1 giờ
     if (bookingDate.toDateString() === now.toDateString()) {
-        const [hours, minutes] = bookingSlot.start_time.split(':');
-        const slotTime = new Date(bookingDate);
-        slotTime.setHours(parseInt(hours), parseInt(minutes));
-
-        // Yêu cầu đặt bàn trước ít nhất 1 giờ
         const minBookingTime = new Date(now.getTime() + 60 * 60 * 1000);
-        if (slotTime < minBookingTime) {
+        if (slotDateTime < minBookingTime) {
             throw new Error('Vui lòng đặt bàn trước ít nhất 1 giờ so với thời gian bắt đầu');
         }
     }
 
     // Kiểm tra giờ mở cửa (ví dụ: 6:00 - 22:00)
-    const [startHours, startMinutes] = bookingSlot.start_time.split(':');
-    const slotStartTime = new Date(bookingDate);
-    slotStartTime.setHours(parseInt(startHours), parseInt(startMinutes));
-
     const [endHours, endMinutes] = bookingSlot.end_time.split(':');
     const slotEndTime = new Date(bookingDate);
     slotEndTime.setHours(parseInt(endHours), parseInt(endMinutes));
@@ -290,7 +287,7 @@ const validateBookingTime = async (date, slot_id) => {
     const closingTime = new Date(bookingDate);
     closingTime.setHours(22, 0, 0, 0); // 10:00 PM
 
-    if (slotStartTime < openingTime || slotEndTime > closingTime) {
+    if (slotDateTime < openingTime || slotEndTime > closingTime) {
         throw new Error('Chỉ có thể đặt bàn trong giờ mở cửa (6:00 - 22:00)');
     }
 };
@@ -588,18 +585,23 @@ const createReservation = async (req, res) => {
             updated_at: new Date()
         };
 
+        // Handle customer_id assignment
         if (customer_id) {
             try {
                 reservationData.customer_id = new mongoose.Types.ObjectId(customer_id);
             } catch (error) {
                 console.log('Invalid customer_id, skipping...', error);
             }
-        }
-
-        if (req.user && req.user.userId) {
+        } else if (req.user && req.user.userId) {
+            // If no customer_id provided but user is logged in
             const userRole = req.user.role || req.user.user?.role;
+
             if (['admin', 'manager', 'staff', 'waiter'].includes(userRole)) {
+                // Staff making reservation for customer
                 reservationData.created_by_staff = req.user.userId;
+            } else {
+                // Customer making their own reservation
+                reservationData.customer_id = new mongoose.Types.ObjectId(req.user.userId);
             }
         }
 
@@ -894,7 +896,7 @@ const cancelReservation = async (req, res) => {
             });
         }
 
-        if (['completed', 'no_show'].includes(reservation.status)) {
+        if (['no_show'].includes(reservation.status)) {
             return res.status(400).json({
                 success: false,
                 message: 'Không thể hủy đặt bàn đã hoàn thành hoặc không có mặt'
@@ -1455,6 +1457,156 @@ const checkoutTable = async (req, res) => {
     }
 };
 
+// Tự động hủy các đặt bàn hết hạn
+const autoCancelExpiredReservations = async (req, res) => {
+    try {
+        const now = new Date();
+        console.log(`🔄 Auto-cancel job started at: ${now.toLocaleString('vi-VN')}`);
+
+        // Tìm các reservation pending đã qua thời gian
+        const expiredReservations = await Reservation.find({
+            status: 'pending',
+            date: { $lt: now } // Ngày đặt bàn đã qua
+        }).populate([
+            { path: 'table_ids', select: 'name' },
+            { path: 'table_id', select: 'name' },
+            { path: 'slot_id', select: 'start_time end_time' }
+        ]);
+
+        if (expiredReservations.length === 0) {
+            console.log('✅ No expired reservations found');
+
+            if (res) {
+                return res.status(200).json({
+                    success: true,
+                    message: 'Không có đặt bàn hết hạn nào',
+                    cancelledCount: 0
+                });
+            }
+            return { success: true, cancelledCount: 0 };
+        }
+
+        // Lọc thêm theo thời gian cụ thể (slot_end_time)
+        const actuallyExpired = [];
+
+        for (const reservation of expiredReservations) {
+            if (reservation.slot_id && reservation.slot_id.end_time) {
+                const reservationDate = new Date(reservation.date);
+                const [endHours, endMinutes] = reservation.slot_id.end_time.split(':');
+                const slotEndDateTime = new Date(reservationDate);
+                slotEndDateTime.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
+
+                // Thêm buffer 30 phút trước khi auto-cancel
+                const bufferTime = 30 * 60 * 1000; // 30 minutes in milliseconds
+                const cancelTime = new Date(slotEndDateTime.getTime() + bufferTime);
+
+                if (now > cancelTime) {
+                    actuallyExpired.push(reservation);
+                }
+            } else {
+                // Nếu không có slot time, chỉ check theo ngày
+                actuallyExpired.push(reservation);
+            }
+        }
+
+        if (actuallyExpired.length === 0) {
+            console.log('✅ No reservations past their slot end time + buffer');
+
+            if (res) {
+                return res.status(200).json({
+                    success: true,
+                    message: 'Không có đặt bàn nào thực sự hết hạn',
+                    cancelledCount: 0
+                });
+            }
+            return { success: true, cancelledCount: 0 };
+        }
+
+        console.log(`📋 Found ${actuallyExpired.length} expired reservations to cancel`);
+
+        // Bulk update các reservation hết hạn
+        const reservationIds = actuallyExpired.map(r => r._id);
+
+        const updateResult = await Reservation.updateMany(
+            { _id: { $in: reservationIds } },
+            {
+                status: 'no_show',
+                auto_cancelled_at: now,
+                updated_at: now,
+                notes: function () {
+                    const existingNotes = this.notes || '';
+                    const autoNote = `[AUTO-CANCELLED] Tự động hủy do quá thời gian đặt bàn (${now.toLocaleString('vi-VN')})`;
+                    return existingNotes ? `${existingNotes}\n${autoNote}` : autoNote;
+                }()
+            }
+        );
+
+        // Cập nhật trạng thái các bàn về available
+        const tableIdsToUpdate = [];
+        actuallyExpired.forEach(reservation => {
+            if (reservation.table_ids && reservation.table_ids.length > 0) {
+                tableIdsToUpdate.push(...reservation.table_ids.map(t => t._id));
+            } else if (reservation.table_id) {
+                tableIdsToUpdate.push(reservation.table_id._id);
+            }
+        });
+
+        if (tableIdsToUpdate.length > 0) {
+            await Table.updateMany(
+                { _id: { $in: tableIdsToUpdate } },
+                {
+                    status: 'available',
+                    updated_at: now
+                }
+            );
+            console.log(`🪑 Updated ${tableIdsToUpdate.length} tables to available status`);
+        }
+
+        // Log chi tiết
+        actuallyExpired.forEach(reservation => {
+            const tableNames = reservation.table_ids && reservation.table_ids.length > 0
+                ? reservation.table_ids.map(t => t.name).join(', ')
+                : (reservation.table_id ? reservation.table_id.name : 'N/A');
+
+            console.log(`❌ Cancelled: ${reservation.contact_name} - ${tableNames} - ${reservation.date.toLocaleDateString('vi-VN')}`);
+        });
+
+        console.log(`✅ Auto-cancel completed: ${updateResult.modifiedCount} reservations cancelled`);
+
+        if (res) {
+            return res.status(200).json({
+                success: true,
+                message: `Đã tự động hủy ${updateResult.modifiedCount} đặt bàn hết hạn`,
+                cancelledCount: updateResult.modifiedCount,
+                details: actuallyExpired.map(r => ({
+                    id: r._id,
+                    customer: r.contact_name,
+                    date: r.date,
+                    slot: r.slot_id ? `${r.slot_id.start_time}-${r.slot_id.end_time}` : 'N/A'
+                }))
+            });
+        }
+
+        return {
+            success: true,
+            cancelledCount: updateResult.modifiedCount,
+            details: actuallyExpired
+        };
+
+    } catch (error) {
+        console.error('❌ Error in auto-cancel job:', error);
+
+        if (res) {
+            return res.status(500).json({
+                success: false,
+                message: 'Lỗi khi tự động hủy đặt bàn',
+                error: error.message
+            });
+        }
+
+        throw error;
+    }
+};
 
 module.exports = {
     getReservations,
@@ -1471,5 +1623,6 @@ module.exports = {
     seatCustomer,
     completeReservation,
     updatePaymentStatus,
-    checkoutTable
+    checkoutTable,
+    autoCancelExpiredReservations
 };

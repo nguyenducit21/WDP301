@@ -15,7 +15,8 @@ const {
     seatCustomer,
     completeReservation,
     updatePaymentStatus,
-    checkoutTable
+    checkoutTable,
+    autoCancelExpiredReservations
 } = require('../controllers/reservation.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware')
@@ -25,6 +26,9 @@ router.get('/', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'c
 
 // Lấy danh sách bàn có sẵn theo khu vực và thời gian
 router.get('/available-tables', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getAvailableTables);
+
+// Tự động hủy các đặt bàn hết hạn (có thể gọi thủ công)
+router.post('/auto-cancel-expired', authMiddleware, roleMiddleware(['admin', 'manager']), autoCancelExpiredReservations);
 
 // Lấy danh sách đặt bàn của khách hàng
 router.get('/my-reservations', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getCustomerReservationsByUserId);

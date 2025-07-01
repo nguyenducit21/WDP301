@@ -27,17 +27,13 @@ export default function ReservationForm() {
     submitting,
     success,
     error,
-    validationError,
     showSuccessModal,
     reservationId,
     isAuthenticated,
-    todayStr,
     handleInput,
     handleSlotChange,
     submitReservation,
-    setValidationError,
-    setShowSuccessModal,
-    validateBookingTime
+    setShowSuccessModal
   } = reservationHook;
 
   const {
@@ -87,7 +83,6 @@ export default function ReservationForm() {
     if (success) {
       setSelectedTables([]);
       setEndTime("");
-      setValidationError("");
     }
   };
 
@@ -103,24 +98,17 @@ export default function ReservationForm() {
 
   // Effects
 
-  // Khi chọn slot, tự động tính end_time và validate
+  // Khi chọn slot, tự động tính end_time
   useEffect(() => {
     if (form.slot_id) {
       const selectedSlot = slots.find(s => s._id === form.slot_id);
       if (selectedSlot) {
         setEndTime(selectedSlot.end_time);
-
-        // Validate thời gian
-        if (form.date) {
-          const validationError = validateBookingTime(form.date, selectedSlot.start_time, todayStr);
-          setValidationError(validationError);
-        }
       }
     } else {
       setEndTime("");
-      setValidationError("");
     }
-  }, [form.slot_id, form.date, slots, todayStr, validateBookingTime, setValidationError]);
+  }, [form.slot_id, slots]);
 
   // Update fetch parameters when dependencies change
   useEffect(() => {
@@ -128,10 +116,9 @@ export default function ReservationForm() {
       selectedArea?._id,
       form.date,
       form.slot_id,
-      form.guest_count,
-      validationError
+      form.guest_count
     );
-  }, [selectedArea, form.date, form.slot_id, form.guest_count, validationError, updateFetchParams]);
+  }, [selectedArea, form.date, form.slot_id, form.guest_count, updateFetchParams]);
 
   return (
     <div className="reservation-container">
@@ -140,7 +127,6 @@ export default function ReservationForm() {
         selectedArea={selectedArea}
         loadingAreas={loadingAreas}
         loadingTables={loadingTables}
-        validationError={validationError}
         availableTables={availableTables}
         selectedTables={selectedTables}
         guestCount={form.guest_count}
@@ -162,9 +148,7 @@ export default function ReservationForm() {
         submitting={submitting}
         error={error || tableError}
         success={success}
-        validationError={validationError}
         endTime={endTime}
-        todayStr={todayStr}
         getMaxPossibleCapacity={getMaxPossibleCapacity}
         isGuestCountExceeded={isGuestCountExceeded}
       />

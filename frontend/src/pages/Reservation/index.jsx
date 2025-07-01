@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import ReservationForm from '../../components/Reservation/ReservationForm';
-import MyReservations from '../../components/Reservation/UserReservations/UserReservations';
+import MyReservations from '../../components/Reservation/UserReservations/MyReservations';
 import './ReservationPage.css';
 
 const Reservation = () => {
