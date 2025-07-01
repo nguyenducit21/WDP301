@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import customFetch from '../../utils/axios.customize';
+import customFetch from '../../../utils/axios.customize';
 import './Reservation.css';
 
 const STATUS_COLORS = {

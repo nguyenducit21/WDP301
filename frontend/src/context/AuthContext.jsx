@@ -18,19 +18,28 @@ const AuthContextProvider = (props) => {
 
     const login = (userData) => {
         setUser(userData);
-        // console.log(userData);
+
+        // Lưu toàn bộ thông tin user
         localStorage.setItem('user', JSON.stringify(userData));
+
+        // Lưu token riêng để dễ truy cập
+        if (userData?.user?.token) {
+            localStorage.setItem('token', userData.user.token);
+        }
     };
 
     const logout = async () => {
         try {
+            // Lấy token đúng cách - có thể từ user.user.token hoặc token riêng
+            const token = user?.user?.token || localStorage.getItem('token');
+
             // Gọi API logout
             const response = await fetch('/user/logout', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${user?.token}`
+                    ...(token && { 'Authorization': `Bearer ${token}` })
                 }
             });
 
@@ -38,6 +47,7 @@ const AuthContextProvider = (props) => {
                 // Xóa thông tin người dùng khỏi state và localStorage
                 setUser(null);
                 localStorage.removeItem('user');
+                localStorage.removeItem('token');
                 return { success: true };
             } else {
                 const data = await response.json();
@@ -48,6 +58,7 @@ const AuthContextProvider = (props) => {
             // Nếu lỗi kết nối, vẫn xóa dữ liệu người dùng ở client
             setUser(null);
             localStorage.removeItem('user');
+            localStorage.removeItem('token');
             return { success: true, message: 'Đã đăng xuất nhưng có lỗi kết nối với server' };
         }
     };
@@ -57,7 +68,9 @@ const AuthContextProvider = (props) => {
         loading,
         login,
         logout,
-        isAuthenticated: !!user
+        isAuthenticated: !!user,
+        // Thêm helper function để lấy token dễ dàng
+        getToken: () => user?.user?.token || localStorage.getItem('token')
     };
 
     return (
