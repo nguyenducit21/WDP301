@@ -44,16 +44,16 @@ const ReservationSchema = new Schema({
   payment_order_id: { type: String }, // Payment gateway order ID
   payment_method: {
     type: String,
-    enum: ["vnpay", "momo", "cash", "credit_card"],
+    enum: ["vnpay", "momo", "cash", "credit_card", "bank_transfer"],
   },
   payment_date: { type: Date },
   payment_status: {
     type: String,
-    enum: ["pending", "pending", "partial", "paid", "refunded"],
+    enum: ["pending", "partial", "paid", "refunded"],
     default: "pending",
   },
   notes: { type: String },
-    auto_cancelled_at: { type: Date }, // Thời gian tự động hủy (nếu có)
+  auto_cancelled_at: { type: Date }, // Thời gian tự động hủy (nếu có)
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },
 });
