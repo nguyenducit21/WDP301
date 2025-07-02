@@ -26,6 +26,9 @@ import StockCheck from './pages/Chef/Inventory/StockCheck';
 import InventoryDetail from './pages/Chef/Inventory/InventoryDetail';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from "react-toastify";
+import AreaManagement from "./pages/TableManagement/AreaManagement";
+import Profile from "./pages/Profile/Profile"
+import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 
 const App = () => {
   const location = useLocation();
@@ -61,6 +64,10 @@ const App = () => {
             <Route path="stock-check" element={<StockCheck />} />
             <Route path="inventory/:id" element={<InventoryDetail />} />
           </Route>
+          <Route path="/dashboard/areas" element={<AreaManagement />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          
         </Routes>
         {!isChefPage && <ScrollToTopButton />}
         {!isChefPage && <Footer />}
