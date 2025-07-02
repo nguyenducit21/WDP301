@@ -250,15 +250,7 @@ const Profile = () => {
                                         onChange={handleFormChange}
                                     />
                                 </div>
-                                <div className="form-group">
-                                    <label>Số điện thoại:</label>
-                                    <input
-                                        type="text"
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={handleFormChange}
-                                    />
-                                </div>
+                            
                                 <div className="form-actions">
                                     <button type="submit" className="btn-save">Lưu thay đổi</button>
                                     <button
