@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import customFetch from '../../utils/axios.customize';
+import customFetch from '../../../utils/axios.customize';
 
 // Default time slots configuration
 const DEFAULT_SLOTS = [

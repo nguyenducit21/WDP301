@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import customFetch from '../../utils/axios.customize';
-import './Reservation.css';
+import customFetch from '../../../utils/axios.customize';
+import '../Reservation.css';
 
 const STATUS_COLORS = {
   pending: '#ffc107',
@@ -287,17 +287,19 @@ export default function MyReservations({ userId = null, title = "Danh sách đ�
                   </div>
 
                   <div className="reservation-actions">
-                    {reservation.status === 'pending' && !userId && (
-                      <button
-                        className="cancel-btn"
-                        onClick={() => handleCancelReservation(reservation._id)}
-                      >
-                        Hủy đặt bàn
-                      </button>
-                    )}
-                    {reservation.status === 'confirmed' && (
-                      <div className="confirmed-info">
-                        ✅ Đặt bàn đã được xác nhận. Vui lòng đến đúng giờ!
+                    {(reservation.status === 'pending' || reservation.status === 'confirmed') && !userId && (
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                        <button
+                          className="cancel-btn"
+                          onClick={() => handleCancelReservation(reservation._id)}
+                        >
+                          Hủy đặt bàn
+                        </button>
+                        {reservation.status === 'confirmed' && (
+                          <div className="confirmed-info">
+                            ✅ Đặt bàn đã được xác nhận. Vui lòng đến đúng giờ!
+                          </div>
+                        )}
                       </div>
                     )}
                     {reservation.status === 'seated' && (
