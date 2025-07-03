@@ -37,10 +37,7 @@ export const useTableSelection = () => {
 
     // Auto-select optimal table combination
     const autoSelectTables = useCallback((tables, combinations, guestCount) => {
-        console.log('Auto selecting tables for', guestCount, 'guests');
-        console.log('Available tables:', tables);
-        console.log('Combinations from API:', combinations);
-
+     
         if (!tables || tables.length === 0) return [];
 
         // For small groups (1-4 people), prioritize single table

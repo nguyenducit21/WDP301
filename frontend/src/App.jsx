@@ -29,6 +29,7 @@ import { ToastContainer } from "react-toastify";
 import AreaManagement from "./pages/TableManagement/AreaManagement";
 import Profile from "./pages/Profile/Profile"
 import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
+import Orders from "./pages/Chef/Orders/Orders";
 
 const App = () => {
   const location = useLocation();
@@ -39,7 +40,7 @@ const App = () => {
   return (
     <>
       <div className="app">
-      {!isChefPage && <Navbar isPositionUnset={isTableBooking || isMenuPage} />}
+        {!isChefPage && <Navbar isPositionUnset={isTableBooking || isMenuPage} />}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/cart" element={<Cart />} />
@@ -52,7 +53,7 @@ const App = () => {
           <Route path="/dashboard/tables" element={<TableManagement />} />
           <Route path="/table-booking" element={<Reservation />} />
           <Route path="/chef" element={<ChefLayout />}>
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="orders" element={<Orders />} />
             <Route path="products" element={<MenuItemManagement />} />
             <Route path="manage-categories" element={<CategoryManagement />} />
             <Route path="deleted-menu-items" element={<DeletedMenuItems />} />
@@ -67,7 +68,7 @@ const App = () => {
           <Route path="/dashboard/areas" element={<AreaManagement />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          
+
         </Routes>
         {!isChefPage && <ScrollToTopButton />}
         {!isChefPage && <Footer />}

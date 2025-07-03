@@ -73,14 +73,27 @@ const Login = () => {
 
             // Kiểm tra role và điều hướng tương ứng
             const userRole = response.data.user.role;
-            if (userRole === 'admin' || userRole === 'waiter' || userRole === 'manager') {
-                navigate('/dashboard');
-            } else if (userRole === 'customer') {
-                navigate('/');
-            } else {
-                // Redirect to home or intended page
-                const redirectTo = location.state?.from || '/';
-                navigate(redirectTo);
+
+            switch (userRole) {
+                case 'admin':
+                    navigate('/dashboard');
+                    break;
+                case 'manager':
+                    navigate('/dashboard');
+                    break;
+                case 'waiter':
+                    navigate('/dashboard');
+                    break;
+                case 'kitchen_staff':
+                    navigate('/chef/products');
+                    break;
+                case 'customer':
+                    navigate('/');
+                    break;
+                default:
+                    const redirectTo = location.state?.from || '/';
+                    navigate(redirectTo);
+                    showToast("Bạn không có quyền truy cập trang này", "warning");
             }
         } catch (error) {
             console.error('Login error:', error);

@@ -452,6 +452,87 @@ const cancelOrder = async (req, res) => {
     }
 };
 
+// Lấy orders cho chef (pre-orders đã thanh toán + orders được đặt bởi staff)
+const getChefOrders = async (req, res) => {
+    try {
+        // 1. Lấy pre-orders đã thanh toán từ Reservation
+        const paidPreOrders = await Reservation.find({
+            payment_status: 'paid',
+            'pre_order_items.0': { $exists: true }, // Có ít nhất 1 pre_order_item
+            status: { $in: ['pending', 'confirmed', 'seated'] }
+        })
+            .populate('customer_id', 'full_name phone')
+            .populate('table_ids', 'name')
+            .populate('pre_order_items.menu_item_id', 'name price image')
+            .sort({ created_at: -1 });
+
+        // 2. Lấy orders được đặt bởi staff
+        const staffOrders = await Order.find({
+            staff_id: { $exists: true, $ne: null },
+            status: { $in: ['pending', 'preparing'] }
+        })
+            .populate('table_id', 'name')
+            .populate('customer_id', 'full_name phone')
+            .populate('staff_id', 'full_name')
+            .populate('order_items.menu_item_id', 'name price image')
+            .sort({ created_at: -1 });
+
+        // 3. Format dữ liệu pre-orders
+        const formattedPreOrders = paidPreOrders.map(reservation => ({
+            id: reservation._id,
+            type: 'pre_order',
+            customer_name: reservation.contact_name,
+            customer_phone: reservation.contact_phone,
+            tables: reservation.table_ids?.map(table => table.name).join(', ') || 'N/A',
+            items: reservation.pre_order_items.map(item => ({
+                menu_item: item.menu_item_id,
+                quantity: item.quantity
+            })),
+            total_amount: reservation.total_amount,
+            created_at: reservation.created_at,
+            status: 'preparing', // Pre-orders luôn ở trạng thái preparing
+            note: reservation.notes || ''
+        }));
+
+        // 4. Format dữ liệu staff orders
+        const formattedStaffOrders = staffOrders.map(order => ({
+            id: order._id,
+            type: 'staff_order',
+            customer_name: order.customer_id?.full_name || 'Khách lẻ',
+            customer_phone: order.customer_id?.phone || 'N/A',
+            tables: order.table_id?.name || 'N/A',
+            items: order.order_items.map(item => ({
+                menu_item: item.menu_item_id,
+                quantity: item.quantity
+            })),
+            total_amount: order.order_items.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+            created_at: order.created_at,
+            status: order.status,
+            note: order.note || '',
+            staff_name: order.staff_id?.full_name || 'N/A'
+        }));
+
+        // 5. Kết hợp và sắp xếp theo thời gian tạo
+        const allOrders = [...formattedPreOrders, ...formattedStaffOrders]
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        res.status(200).json({
+            success: true,
+            data: {
+                pre_orders: formattedPreOrders,
+                staff_orders: formattedStaffOrders,
+                all_orders: allOrders
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy danh sách orders cho chef',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getOrders,
     getOrderById,
@@ -459,5 +540,6 @@ module.exports = {
     updateOrder,
     updateOrderStatus,
     updateOrderPayment,
-    cancelOrder
+    cancelOrder,
+    getChefOrders
 };

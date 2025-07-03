@@ -5,6 +5,7 @@ const MenuItem = require('../models/menuItems.model');
 const Log = require('../models/log.model');
 const Order = require('../models/order.model')
 const mongoose = require('mongoose');
+const User = require('../models/user.model');
 
 // Lấy tất cả đặt bàn
 const getReservations = async (req, res) => {
@@ -813,7 +814,7 @@ const updateReservation = async (req, res) => {
                     $lte: date ? new Date(date) : reservation.date
                 },
                 time: reservationTime,
-                status: { $in: ['confirmed', 'pending', 'seated'] }
+                status: { $in: ['confirmed', 'pending', 'no_show', 'completed', 'cancelled'] }
             });
 
             if (existingReservation) {
@@ -876,6 +877,7 @@ const updateReservation = async (req, res) => {
         });
     }
 };
+
 // Hủy đặt bàn
 const cancelReservation = async (req, res) => {
     try {
@@ -1608,6 +1610,128 @@ const autoCancelExpiredReservations = async (req, res) => {
     }
 };
 
+const getChefOrders = async (req, res) => {
+    try {
+        // 1. Pre-orders đã thanh toán
+        const paidPreOrders = await Reservation.find({
+            payment_status: 'paid',
+            'pre_order_items.0': { $exists: true },
+            status: { $in: ['pending', 'confirmed', 'completed'] }
+        })
+            .populate('customer_id', 'full_name phone')
+            .populate('table_ids', 'name')
+            .populate('pre_order_items.menu_item_id', 'name price image')
+            .sort({ created_at: -1 });
+
+        // 2. Orders được staff đặt hộ (created_by_staff khác null)
+        const staffReservations = await Reservation.find({
+            created_by_staff: { $exists: true, $ne: null },
+            status: { $in: ['pending', 'confirmed', 'completed'] }
+        })
+            .populate('customer_id', 'full_name phone')
+            .populate('created_by_staff', 'full_name')
+            .populate('table_ids', 'name')
+            .populate('pre_order_items.menu_item_id', 'name price image')
+            .sort({ created_at: -1 });
+
+        // Format dữ liệu
+        const formattedPreOrders = paidPreOrders.map(reservation => ({
+            id: reservation._id,
+            type: 'pre_order',
+            customer_name: reservation.contact_name,
+            customer_phone: reservation.contact_phone,
+            tables: reservation.table_ids?.map(table => table.name).join(', ') || 'N/A',
+            items: reservation.pre_order_items.map(item => ({
+                menu_item: item.menu_item_id,
+                quantity: item.quantity
+            })),
+            total_amount: reservation.total_amount,
+            created_at: reservation.created_at,
+            status: reservation.status,
+            note: reservation.notes || ''
+        }));
+
+        const formattedStaffOrders = staffReservations.map(reservation => ({
+            id: reservation._id,
+            type: 'staff_order',
+            customer_name: reservation.contact_name,
+            customer_phone: reservation.contact_phone,
+            tables: reservation.table_ids?.map(table => table.name).join(', ') || 'N/A',
+            items: reservation.pre_order_items.map(item => ({
+                menu_item: item.menu_item_id,
+                quantity: item.quantity
+            })),
+            total_amount: reservation.total_amount,
+            created_at: reservation.created_at,
+            status: reservation.status,
+            note: reservation.notes || '',
+            staff_name: reservation.created_by_staff?.full_name || 'N/A'
+        }));
+
+        // Gộp và sắp xếp theo thời gian tạo
+        const allOrders = [...formattedPreOrders, ...formattedStaffOrders]
+            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        res.status(200).json({
+            success: true,
+            data: {
+                pre_orders: formattedPreOrders,
+                staff_orders: formattedStaffOrders,
+                all_orders: allOrders
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy danh sách orders cho chef',
+            error: error.message
+        });
+    }
+};
+
+// Cập nhật status đặt bàn (dành cho chef)
+const updateReservationStatus = async (req, res) => {
+    try {
+        const { status } = req.body;
+        const { id } = req.params;
+
+        // Kiểm tra status hợp lệ
+        const validStatuses = ['pending', 'confirmed', 'cancelled', 'no_show', 'completed'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Trạng thái không hợp lệ'
+            });
+        }
+
+        const reservation = await Reservation.findById(id);
+        if (!reservation) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy đặt bàn'
+            });
+        }
+
+        // Cập nhật status
+        reservation.status = status;
+        reservation.updated_at = new Date();
+        await reservation.save();
+
+        res.status(200).json({
+            success: true,
+            message: 'Cập nhật trạng thái thành công',
+            data: reservation
+        });
+    } catch (error) {
+        console.error('Error in updateReservationStatus:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi cập nhật trạng thái đặt bàn',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     getReservations,
     getReservationById,
@@ -1624,5 +1748,7 @@ module.exports = {
     completeReservation,
     updatePaymentStatus,
     checkoutTable,
-    autoCancelExpiredReservations
+    autoCancelExpiredReservations,
+    getChefOrders,
+    updateReservationStatus
 };

@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import "./Navbar.css";
 import { assets } from "../../assets/assets";
 import { AuthContext } from "../../context/AuthContext";
+import { ToastContext } from "../../context/StoreContext";
 
 const Navbar = ({ setShowLogin, isPositionUnset }) => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -12,7 +13,7 @@ const Navbar = ({ setShowLogin, isPositionUnset }) => {
   const isHome = location.pathname === "/";
   const { user, logout, isAuthenticated } = useContext(AuthContext);
   const dropdownRef = useRef(null);
-
+  const { showToast } = useContext(ToastContext);
   useEffect(() => {
     if (!isHome) {
       setIsScrolled(true); // Trang khác: luôn shrink
@@ -51,6 +52,17 @@ const Navbar = ({ setShowLogin, isPositionUnset }) => {
     setShowDropdown(false);
   };
 
+
+  const handleBookingClick = () => {
+    if (isAuthenticated) {
+      navigate("/table-booking");
+    } else {
+      showToast("Bạn cần đăng nhập để đặt bàn", "warning");
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+    }
+  };
   return (
     <nav className={`navbar${isScrolled ? " shrink" : ""}${isPositionUnset ? " unset-position" : ""}`}>
       <Link to="/" className="logo-container">
@@ -86,7 +98,9 @@ const Navbar = ({ setShowLogin, isPositionUnset }) => {
       </ul>
 
       <div className="navbar-buttons">
-        <button onClick={() => navigate("/table-booking")} className="btn-book">ĐẶT BÀN</button>
+ 
+          <button onClick={handleBookingClick} className="btn-book">ĐẶT BÀN</button>
+      
         {isAuthenticated ? (
           <div className="user-profile" ref={dropdownRef}>
             <button

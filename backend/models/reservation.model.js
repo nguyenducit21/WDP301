@@ -26,7 +26,6 @@ const ReservationSchema = new Schema({
     enum: [
       "pending",
       "confirmed",
-      "seated",
       "cancelled",
       "no_show",
       "completed",

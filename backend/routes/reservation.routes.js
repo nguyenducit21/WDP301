@@ -16,37 +16,41 @@ const {
     completeReservation,
     updatePaymentStatus,
     checkoutTable,
-    autoCancelExpiredReservations
+    autoCancelExpiredReservations,
+    getChefOrders,
+    updateReservationStatus
 } = require('../controllers/reservation.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware')
 
 // Lấy tất cả đặt bàn
-router.get('/', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getReservations);
+router.get('/', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), getReservations);
+
+router.get('/orders', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), getChefOrders);
 
 // Lấy danh sách bàn có sẵn theo khu vực và thời gian
-router.get('/available-tables', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getAvailableTables);
+router.get('/available-tables', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), getAvailableTables);
 
 // Tự động hủy các đặt bàn hết hạn (có thể gọi thủ công)
 router.post('/auto-cancel-expired', authMiddleware, roleMiddleware(['admin', 'manager']), autoCancelExpiredReservations);
 
 // Lấy danh sách đặt bàn của khách hàng
-router.get('/my-reservations', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getCustomerReservationsByUserId);
+router.get('/my-reservations', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), getCustomerReservationsByUserId);
 
 // Lấy danh sách đặt bàn của khách hàng
-router.get('/my-reservations/:userId', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getCustomerReservations);
+router.get('/my-reservations/:userId', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), getCustomerReservations);
 
 // Lấy chi tiết một đặt bàn
-router.get('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), getReservationById);
+router.get('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), getReservationById);
 
 // Tạo đặt bàn mới
-router.post('/', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), createReservation);
+router.post('/', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), createReservation);
 
 // Cập nhật đặt bàn
-router.put('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), updateReservation);
+router.put('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), updateReservation);
 
 // Hủy đặt bàn
-router.patch('/:id/cancel', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), cancelReservation);
+router.patch('/:id/cancel', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), cancelReservation);
 
 // Chuyển bàn
 router.patch('/:id/move', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), moveReservation);
@@ -62,5 +66,8 @@ router.patch('/:id/complete', authMiddleware, roleMiddleware(['admin', 'manager'
 router.patch('/:id/payment-status', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), updatePaymentStatus);
 
 router.patch('/:id/checkout', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), checkoutTable)
+
+// Cập nhật status đặt bàn (dành cho chef)
+router.patch('/:id/status', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'kitchen_staff']), updateReservationStatus);
 
 module.exports = router;

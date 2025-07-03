@@ -12,15 +12,15 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
 
   // Xác định tab hiện tại dựa trên URL
   const getCurrentTab = () => {
-    if (location.pathname.includes("dashboard")) return "dashboard";
+    if (location.pathname.includes("orders")) return "orders";
     if (location.pathname.includes("manage-categories")) return "categories";
     if (location.pathname.includes("products")) return "products";
     if (location.pathname.includes("deleted-menu-items")) return "trash";
-    if (location.pathname.includes("inventory-list")) return "inventory-list"; // ✅ THÊM DÒNG NÀY
+    if (location.pathname.includes("inventory-list")) return "inventory-list";
     if (location.pathname.includes("inventory")) return "inventory";
     if (location.pathname.includes("recipes")) return "recipes";
     if (location.pathname.includes("import-receipts")) return "import-receipts";
-    return "dashboard";
+    return "orders";
   };
 
   const currentTab = getCurrentTab();
@@ -54,11 +54,11 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
       <ul className="chef-sidebar-menu">
         {/* Dashboard */}
         <li
-          className={currentTab === "dashboard" ? "active" : ""}
-          onClick={() => navigate("/chef/dashboard")}
+          className={currentTab === "orders" ? "active" : ""}
+          onClick={() => navigate("/chef/orders")}
         >
           <FaHome className="sidebar-icon" />
-          {!collapsed && <span>Dashboard</span>}
+          {!collapsed && <span>Đơn hàng</span>}
         </li>
 
         {/* Quản lý món ăn */}

@@ -12,6 +12,31 @@ const ChefLayout = () => {
   return (
     <div>
       <ChefSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      {collapsed && (
+        <button
+          onClick={() => setCollapsed(false)}
+          style={{
+            position: "fixed",
+            top: 20,
+            left: 90,
+            zIndex: 2000,
+            background: "#fff",
+            border: "1px solid #ccc",
+            borderRadius: "50%",
+            width: 40,
+            height: 40,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 24,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            cursor: "pointer"
+          }}
+          aria-label="Mở sidebar"
+        >
+          ☰
+        </button>
+      )}
       <div
         className="chef-main-content"
         style={{
@@ -20,7 +45,7 @@ const ChefLayout = () => {
           padding: "20px",
         }}
       >
-        {window.location.pathname === "/chef" && <Navigate to="/chef/dashboard" replace />}
+        {window.location.pathname === "/chef" && <Navigate to="/chef/orders" replace />}
         <Outlet />
       </div>
     </div>

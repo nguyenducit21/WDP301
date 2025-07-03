@@ -1,7 +1,9 @@
 import { createContext, useEffect, useState } from "react";
 import { food_list } from "../assets/assets";
+import { toast } from "react-toastify";
 
 export const StoreContext = createContext(null);
+export const ToastContext = createContext(null);
 
 const StoreContextProvider = (props) => {
   const [cartItems, setCartItems] = useState({});
@@ -44,6 +46,15 @@ const StoreContextProvider = (props) => {
     return totalAmount;
   };
 
+  // Toast context logic
+  const showToast = (message, type = "info") => {
+    toast[type](message);
+  };
+
+  const toastContextValue = {
+    showToast,
+  };
+
   const contextValue = {
     food_list,
     cartItems,
@@ -55,9 +66,11 @@ const StoreContextProvider = (props) => {
   };
 
   return (
-    <StoreContext.Provider value={contextValue}>
-      {props.children}
-    </StoreContext.Provider>
+    <ToastContext.Provider value={toastContextValue}>
+      <StoreContext.Provider value={contextValue}>
+        {props.children}
+      </StoreContext.Provider>
+    </ToastContext.Provider>
   );
 };
 

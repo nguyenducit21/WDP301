@@ -7,13 +7,17 @@ const {
     updateOrder,
     updateOrderStatus,
     updateOrderPayment,
-    cancelOrder
+    cancelOrder,
+    getChefOrders
 } = require('../controllers/order.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware');
 
 // Lấy tất cả đơn hàng
 router.get('/', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), getOrders);
+
+// Lấy orders cho chef (pre-orders + staff orders)
+router.get('/chef', authMiddleware, roleMiddleware(['kitchen_staff', 'admin']), getChefOrders);
 
 // Lấy chi tiết đơn hàng
 router.get('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), getOrderById);
