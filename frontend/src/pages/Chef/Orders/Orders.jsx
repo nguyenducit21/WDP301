@@ -10,7 +10,7 @@ const Orders = () => {
         all_orders: []
     });
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('all'); // 'all', 'pre_orders', 'staff_orders', 'completed'
+    const [activeTab, setActiveTab] = useState('all'); // 'all', 'pre_orders', 'staff_orders', 'completed', 'cancelled'
     const [editingOrderId, setEditingOrderId] = useState(null);
     const { showToast } = useContext(ToastContext);
 
@@ -71,13 +71,8 @@ const Orders = () => {
             { value: 'cancelled', label: 'Hủy đơn' }
         ];
 
-        if (orderType === 'completed') {
-            return allStatuses.filter(status => status.value !== currentStatus);
-        }
-
-        return allStatuses.filter(status =>
-            status.value !== currentStatus && status.value !== 'completed'
-        );
+        // Luôn trả về tất cả status trừ status hiện tại
+        return allStatuses.filter(status => status.value !== currentStatus);
     };
 
     const formatDateTime = (dateString) => {
@@ -204,13 +199,15 @@ const Orders = () => {
         const filtered = (() => {
             switch (activeTab) {
                 case 'pre_orders':
-                    return orders.pre_orders.filter(order => order.status !== 'completed');
+                    return orders.pre_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled');
                 case 'staff_orders':
-                    return orders.staff_orders.filter(order => order.status !== 'completed');
+                    return orders.staff_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled');
                 case 'completed':
                     return orders.all_orders.filter(order => order.status === 'completed');
+                case 'cancelled':
+                    return orders.all_orders.filter(order => order.status === 'cancelled');
                 default:
-                    return orders.all_orders.filter(order => order.status !== 'completed');
+                    return orders.all_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled');
             }
         })();
 
@@ -239,25 +236,31 @@ const Orders = () => {
                     className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
                     onClick={() => setActiveTab('all')}
                 >
-                    Tất cả ({orders.all_orders.filter(order => order.status !== 'completed').length})
+                    Tất cả ({orders.all_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled').length})
                 </button>
                 <button
                     className={`tab-btn ${activeTab === 'pre_orders' ? 'active' : ''}`}
                     onClick={() => setActiveTab('pre_orders')}
                 >
-                    Đặt trước ({orders.pre_orders.filter(order => order.status !== 'completed').length})
+                    Đặt trước ({orders.pre_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled').length})
                 </button>
                 <button
                     className={`tab-btn ${activeTab === 'staff_orders' ? 'active' : ''}`}
                     onClick={() => setActiveTab('staff_orders')}
                 >
-                    Nhân viên đặt ({orders.staff_orders.filter(order => order.status !== 'completed').length})
+                    Nhân viên đặt ({orders.staff_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled').length})
                 </button>
                 <button
                     className={`tab-btn ${activeTab === 'completed' ? 'active' : ''}`}
                     onClick={() => setActiveTab('completed')}
                 >
                     Đã hoàn thành ({orders.all_orders.filter(order => order.status === 'completed').length})
+                </button>
+                <button
+                    className={`tab-btn ${activeTab === 'cancelled' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('cancelled')}
+                >
+                    Đã hủy ({orders.all_orders.filter(order => order.status === 'cancelled').length})
                 </button>
             </div>
 

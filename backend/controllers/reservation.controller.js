@@ -1616,7 +1616,7 @@ const getChefOrders = async (req, res) => {
         const paidPreOrders = await Reservation.find({
             payment_status: 'paid',
             'pre_order_items.0': { $exists: true },
-            status: { $in: ['pending', 'confirmed', 'completed'] }
+            status: { $in: ['pending', 'confirmed', 'completed', 'cancelled'] }
         })
             .populate('customer_id', 'full_name phone')
             .populate('table_ids', 'name')
@@ -1626,7 +1626,7 @@ const getChefOrders = async (req, res) => {
         // 2. Orders được staff đặt hộ (created_by_staff khác null)
         const staffReservations = await Reservation.find({
             created_by_staff: { $exists: true, $ne: null },
-            status: { $in: ['pending', 'confirmed', 'completed'] }
+            status: { $in: ['pending', 'confirmed', 'completed', 'cancelled'] }
         })
             .populate('customer_id', 'full_name phone')
             .populate('created_by_staff', 'full_name')
