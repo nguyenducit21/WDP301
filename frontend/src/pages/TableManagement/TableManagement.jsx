@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import Sidebar from '../../components/Sidebar';
 import { AuthContext } from '../../context/AuthContext';
 import InvoicePrint from '../../components/InvoicePrint/InvoicePrint';
@@ -39,6 +40,12 @@ const TableManagement = () => {
     const [reservationPage, setReservationPage] = useState(1); // Separate pagination for reservations
     const [reservationsPerPage] = useState(10); // Number of reservations per page
     const [filterByDate, setFilterByDate] = useState(false); // Toggle for date filtering
+
+    // NEW: Notification states
+    const [notifications, setNotifications] = useState([]);
+    const [socket, setSocket] = useState(null);
+    const [isConnected, setIsConnected] = useState(false);
+    const [showNotificationPanel, setShowNotificationPanel] = useState(false);
 
     //Date selector state
     const [selectedDate, setSelectedDate] = useState(() => {
@@ -270,6 +277,102 @@ const TableManagement = () => {
     useEffect(() => {
         loadReservations();
     }, [loadReservations, statusFilter, filterByDate]); // Add filterByDate dependency
+
+    // NEW: WebSocket connection for notifications
+    useEffect(() => {
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        // Connect to WebSocket
+        const newSocket = io('http://localhost:3000');
+        setSocket(newSocket);
+
+        newSocket.on('connect', () => {
+            console.log('TableManagement: Connected to WebSocket server');
+            setIsConnected(true);
+
+            // Join waiter room
+            newSocket.emit('join-waiter-room');
+        });
+
+        newSocket.on('disconnect', () => {
+            console.log('TableManagement: Disconnected from WebSocket server');
+            setIsConnected(false);
+        });
+
+        // Listen for new reservation notifications
+        newSocket.on('new_reservation', (data) => {
+            console.log('TableManagement: Received new reservation notification:', data);
+
+            const newNotification = {
+                id: Date.now(),
+                type: 'new_reservation',
+                title: '🆕 Đặt bàn mới',
+                message: `Khách hàng ${data.reservation.customer_name} vừa đặt bàn`,
+                data: data.reservation,
+                timestamp: new Date(),
+                read: false
+            };
+
+            setNotifications(prev => [newNotification, ...prev]);
+
+            // Show browser notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Đặt bàn mới', {
+                    body: `Khách hàng ${data.reservation.customer_name} vừa đặt bàn ${data.reservation.tables}`,
+                    icon: '/favicon.ico'
+                });
+            }
+
+            // Auto-refresh reservations list
+            loadReservations();
+        });
+
+        // Cleanup
+        return () => {
+            newSocket.close();
+        };
+    }, []);
+
+    // NEW: Notification helper functions
+    const markNotificationAsRead = (notificationId) => {
+        setNotifications(prev =>
+            prev.map(notif =>
+                notif.id === notificationId
+                    ? { ...notif, read: true }
+                    : notif
+            )
+        );
+    };
+
+    const removeNotification = (notificationId) => {
+        setNotifications(prev =>
+            prev.filter(notif => notif.id !== notificationId)
+        );
+    };
+
+    const markAllAsRead = () => {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    };
+
+    const clearAllNotifications = () => {
+        setNotifications([]);
+    };
+
+    const formatDateTime = (dateString) => {
+        const date = new Date(dateString);
+        return date.toLocaleString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    };
+
+    const unreadCount = notifications.filter(n => !n.read).length;
 
     // Filter tables by area and update status based on reservations
     useEffect(() => {
@@ -1469,27 +1572,88 @@ const TableManagement = () => {
                             Danh sách đặt bàn
                         </button>
                     </div>
-                </div>
 
-                {/* NEW: Date Selector */}
-                {/* <div className="date-selector-container">
-                        <div className="date-selector">
-                            <label>Chọn ngày:</label>
-                            <input
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => handleDateChange(e.target.value)}
-                                className="date-input"
-                            />
+                    {/* NEW: Notification Bell */}
+                    <div className="notification-section">
+                        <div className="notification-bell" onClick={() => setShowNotificationPanel(!showNotificationPanel)}>
+                            <div className="bell-icon">
+                                🔔
+                                {unreadCount > 0 && (
+                                    <span className="notification-badge">{unreadCount}</span>
+                                )}
+                            </div>
+                            <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
+                                {isConnected ? '🟢' : '🔴'}
+                            </div>
                         </div>
-                        <button
-                            className="btn-add-table"
-                            onClick={() => openModal('createTable')}
-                            disabled={loading}
-                        >
-                            Thêm bàn ăn
-                        </button>
-                    </div> */}
+
+                        {/* Notification Panel */}
+                        {showNotificationPanel && notifications.length > 0 && (
+                            <div className="notification-panel">
+                                <div className="notification-header">
+                                    <h3>Thông báo ({unreadCount} mới)</h3>
+                                    <div className="notification-actions">
+                                        <button
+                                            className="mark-all-read-btn"
+                                            onClick={markAllAsRead}
+                                        >
+                                            Đánh dấu đã đọc
+                                        </button>
+                                        <button
+                                            className="clear-all-btn"
+                                            onClick={clearAllNotifications}
+                                        >
+                                            Xóa tất cả
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="notification-list">
+                                    {notifications.map(notification => (
+                                        <div
+                                            key={notification.id}
+                                            className={`notification-item ${notification.read ? 'read' : 'unread'}`}
+                                            onClick={() => markNotificationAsRead(notification.id)}
+                                        >
+                                            <div className="notification-content">
+                                                <div className="notification-title">
+                                                    {notification.title}
+                                                </div>
+                                                <div className="notification-message">
+                                                    {notification.message}
+                                                </div>
+                                                {notification.data && (
+                                                    <div className="notification-details">
+                                                        <p><strong>Bàn:</strong> {notification.data.tables}</p>
+                                                        <p><strong>Số khách:</strong> {notification.data.guest_count}</p>
+                                                        <p><strong>Thời gian:</strong> {notification.data.slot_time}</p>
+                                                        <p><strong>Ngày:</strong> {formatDateTime(notification.data.date)}</p>
+                                                        {notification.data.pre_order_items && notification.data.pre_order_items.length > 0 && (
+                                                            <p><strong>Đặt trước:</strong> {notification.data.pre_order_items.length} món</p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                <div className="notification-time">
+                                                    {formatDateTime(notification.timestamp)}
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                className="remove-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    removeNotification(notification.id);
+                                                }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
 
                 {error && (
                     <div className="error-message">

@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
+import Notification from "./Notification/Notification";
 
 const SIDEBAR_ITEMS = [
     "Thống kê", "Hóa đơn", "Đặt bàn", "Mặt hàng",
@@ -6,12 +8,23 @@ const SIDEBAR_ITEMS = [
 ];
 
 export default function Sidebar() {
+    const { user } = useContext(AuthContext);
+
+    // Kiểm tra xem user có phải là waiter không
+    const isWaiter = user?.role === 'waiter' || user?.user?.role === 'waiter';
+
     return (
         <div style={{
             width: 240, background: "#fff", boxShadow: "1px 0 8px #f0f4fb", minHeight: "100vh", paddingTop: 36
         }}>
-            <div style={{ fontWeight: 700, fontSize: 22, paddingLeft: 32, color: "#2073c8", marginBottom: 24 }}>
-                <span style={{ marginRight: 8 }}>🧑‍💻</span> Administration
+            <div style={{
+                fontWeight: 700, fontSize: 22, paddingLeft: 32, color: "#2073c8", marginBottom: 24,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: 16
+            }}>
+                <span>
+                    <span style={{ marginRight: 8 }}>🧑‍💻</span> Administration
+                </span>
+                {isWaiter && <Notification />}
             </div>
             <ul style={{ listStyle: "none", padding: 0 }}>
                 {SIDEBAR_ITEMS.map(item => (

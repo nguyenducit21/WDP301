@@ -625,9 +625,27 @@ const createReservation = async (req, res) => {
             console.log('Populate error (non-critical):', populateError);
         }
 
-        // Gửi thông báo cho nhân viên
-        // TEMPORARILY DISABLED - Comment by user request
-        // await notifyStaff(reservation);
+        // Gửi thông báo WebSocket cho waiter khi có reservation mới từ customer
+        if (global.io && !reservationData.created_by_staff) {
+            // Chỉ gửi thông báo khi reservation được tạo bởi customer (không phải staff)
+            const notificationData = {
+                type: 'new_reservation',
+                reservation: {
+                    id: reservation._id,
+                    customer_name: reservation.contact_name,
+                    customer_phone: reservation.contact_phone,
+                    tables: reservation.table_ids?.map(table => table.name).join(', ') || 'N/A',
+                    guest_count: reservation.guest_count,
+                    date: reservation.date,
+                    slot_time: `${reservation.slot_start_time} - ${reservation.slot_end_time}`,
+                    pre_order_items: reservation.pre_order_items,
+                    created_at: reservation.created_at
+                }
+            };
+
+            global.io.to('waiters').emit('new_reservation', notificationData);
+            console.log('📢 Sent new reservation notification to waiters');
+        }
 
         res.status(201).json({
             success: true,
