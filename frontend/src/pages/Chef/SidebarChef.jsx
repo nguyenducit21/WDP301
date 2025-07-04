@@ -1,5 +1,15 @@
 import React, { useState } from "react";
-import { FaHome, FaUtensils, FaChevronDown, FaList, FaTrash, FaBoxes, FaReceipt, FaFileInvoice } from "react-icons/fa";
+import {
+  FaHome,
+  FaUtensils,
+  FaChevronDown,
+  FaList,
+  FaTrash,
+  FaBoxes,
+  FaReceipt,
+  FaFileInvoice,
+  FaChartLine
+} from "react-icons/fa";
 import "./SidebarChef.css";
 import logo from "../../assets/logo.png";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -10,12 +20,12 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Xác định tab hiện tại dựa trên URL
   const getCurrentTab = () => {
     if (location.pathname.includes("orders")) return "orders";
     if (location.pathname.includes("manage-categories")) return "categories";
     if (location.pathname.includes("products")) return "products";
     if (location.pathname.includes("deleted-menu-items")) return "trash";
+    if (location.pathname.includes("inventory/analytics")) return "inventory-analytics";
     if (location.pathname.includes("inventory-list")) return "inventory-list";
     if (location.pathname.includes("inventory")) return "inventory";
     if (location.pathname.includes("recipes")) return "recipes";
@@ -35,7 +45,6 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
 
   return (
     <div className={`chef-sidebar ${collapsed ? "collapsed" : ""}`}>
-      {/* Logo + Toggle button */}
       <div className="chef-sidebar-header">
         <img
           src={logo}
@@ -52,7 +61,6 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
       </div>
 
       <ul className="chef-sidebar-menu">
-        {/* Dashboard */}
         <li
           className={currentTab === "orders" ? "active" : ""}
           onClick={() => navigate("/chef/orders")}
@@ -61,7 +69,6 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
           {!collapsed && <span>Đơn hàng</span>}
         </li>
 
-        {/* Quản lý món ăn */}
         <li
           className={`menu-parent ${collapsed ? "collapsed" : ""}`}
           onClick={() => setMobileMenu((v) => !v)}
@@ -75,9 +82,15 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
           )}
         </li>
 
-        {/* Submenu món ăn */}
         {!collapsed && (
           <ul className={`chef-sidebar-submenu ${mobileMenu ? "open" : ""}`}>
+            <li
+              className={currentTab === "menu-dashboard" ? "active" : ""}
+              onClick={() => navigate("/chef/menu/dashboard")}
+            >
+              <FaChartLine className="sidebar-icon" />
+              <span>Dashboard Menu</span>
+            </li>
             <li
               className={currentTab === "categories" ? "active" : ""}
               onClick={() => navigate("/chef/manage-categories")}
@@ -102,7 +115,6 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
           </ul>
         )}
 
-        {/* Quản lý nguyên liệu */}
         <li
           className={`menu-parent ${collapsed ? "collapsed" : ""}`}
           onClick={() => setInventoryMenu((v) => !v)}
@@ -116,10 +128,15 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
           )}
         </li>
 
-        {/* Submenu nguyên liệu - ✅ SỬA ĐỒNG NHẤT */}
         {!collapsed && (
           <ul className={`chef-sidebar-submenu ${inventoryMenu ? "open" : ""}`}>
-            {/* ✅ SỬA: Sử dụng cấu trúc li giống các nút khác */}
+            <li
+              className={currentTab === "inventory-analytics" ? "active" : ""}
+              onClick={() => navigate("/chef/inventory/analytics")}
+            >
+              <FaChartLine className="sidebar-icon" />
+              <span>Dashboard Đề Xuất</span>
+            </li>
             <li
               className={currentTab === "inventory-list" ? "active" : ""}
               onClick={() => navigate("/chef/inventory-list")}

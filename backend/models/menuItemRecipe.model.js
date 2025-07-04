@@ -24,7 +24,7 @@ const IngredientItemSchema = new Schema({
 const MenuItemRecipeSchema = new Schema({
     menu_item_id: { 
         type: Schema.Types.ObjectId, 
-        ref: 'menuItem', 
+        ref: 'MenuItem', 
         required: true,
         unique: true // ✅ ĐẢM BẢO CHỈ 1 RECORD CHO 1 MÓN ĂN
     },

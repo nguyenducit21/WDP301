@@ -10,7 +10,7 @@ import AboutPage from "./pages/AboutPage/AboutPage";
 import ScrollToTopButton from "./components/Scroll/ScrollToTopButton";
 import Login from "../src/pages/Login/Login"
 import Register from "../src/pages/Register/Register"
-import Dashboard from "./pages/Dashboard/Dashboard";
+import Dashboard from "./pages/Dashboard-Inventory/Dashboard";
 import TableManagement from "./pages/TableManagement/TableManagement";
 import Reservation from "./pages/Reservation";
 import ChefLayout from "./pages/Chef/ChefLayout";
@@ -24,6 +24,8 @@ import ImportReceiptDetail from "./pages/Chef/ImportReceipt/ImportReceiptDetail"
 import InventoryList from "./pages/Chef/Inventory/InventoryList";
 import StockCheck from './pages/Chef/Inventory/StockCheck';
 import InventoryDetail from './pages/Chef/Inventory/InventoryDetail';
+import MenuDashboard from "./pages/Chef/Menu-Dashboard/MenuDashboard";
+import ChefDashboard from "./pages/Chef/Dashboard/ChefDashboard";
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from "react-toastify";
 import AreaManagement from "./pages/TableManagement/AreaManagement";
@@ -54,6 +56,9 @@ const App = () => {
           <Route path="/table-booking" element={<Reservation />} />
           <Route path="/chef" element={<ChefLayout />}>
             <Route path="orders" element={<Orders />} />
+            <Route path="dashboard" element={<ChefDashboard />} />
+            <Route path="inventory/analytics" element={<Dashboard />} />
+            <Route path="menu/dashboard" element={<MenuDashboard />} />
             <Route path="products" element={<MenuItemManagement />} />
             <Route path="manage-categories" element={<CategoryManagement />} />
             <Route path="deleted-menu-items" element={<DeletedMenuItems />} />

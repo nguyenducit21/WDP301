@@ -1,4 +1,4 @@
-// pages/Chef/Inventory/EditInventoryModal.jsx
+// pages/Chef/Inventory/EditInventoryModal.jsx - CÓ THÊM STORAGETYPE
 import React, { useState, useEffect } from 'react';
 import './Modal.css';
 
@@ -8,10 +8,18 @@ const EditInventoryModal = ({ isOpen, onClose, onSubmit, inventory }) => {
     unit: '',
     costperunit: '',
     supplier: '',
-    minstocklevel: ''
+    minstocklevel: '',
+    storageType: 'perishable' // ✅ THÊM STORAGETYPE
   });
 
   const units = ['kg', 'g', 'lít', 'ml', 'cái', 'gói', 'lon', 'hộp', 'thùng'];
+  
+  // ✅ THÊM DANH SÁCH LOẠI BẢO QUẢN
+  const storageTypes = [
+    { value: 'perishable', label: '🥬 Tươi sống (2 ngày)', description: 'Rau củ tươi, bánh phở, thực phẩm dễ hỏng' },
+    { value: 'semi_perishable', label: '🥩 Bán tươi (4 ngày)', description: 'Thịt, cá, hải sản tươi' },
+    { value: 'dry', label: '🌾 Khô/đông lạnh (7 ngày)', description: 'Gia vị, ngũ cốc, đồ khô, đông lạnh' }
+  ];
 
   useEffect(() => {
     if (inventory) {
@@ -20,7 +28,8 @@ const EditInventoryModal = ({ isOpen, onClose, onSubmit, inventory }) => {
         unit: inventory.unit,
         costperunit: inventory.costperunit.toString(),
         supplier: inventory.supplier,
-        minstocklevel: inventory.minstocklevel.toString()
+        minstocklevel: inventory.minstocklevel.toString(),
+        storageType: inventory.storageType || 'perishable' // ✅ THÊM STORAGETYPE VỚI FALLBACK
       });
     }
   }, [inventory]);
@@ -33,7 +42,7 @@ const EditInventoryModal = ({ isOpen, onClose, onSubmit, inventory }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.unit || !formData.costperunit || !formData.supplier) {
+    if (!formData.name || !formData.unit || !formData.costperunit || !formData.supplier || !formData.storageType) {
       alert('Vui lòng điền đầy đủ thông tin bắt buộc');
       return;
     }
@@ -43,7 +52,8 @@ const EditInventoryModal = ({ isOpen, onClose, onSubmit, inventory }) => {
       unit: formData.unit,
       costperunit: parseFloat(formData.costperunit),
       supplier: formData.supplier,
-      minstocklevel: parseInt(formData.minstocklevel)
+      minstocklevel: parseInt(formData.minstocklevel),
+      storageType: formData.storageType // ✅ THÊM STORAGETYPE
     };
 
     onSubmit(submitData);
@@ -75,6 +85,27 @@ const EditInventoryModal = ({ isOpen, onClose, onSubmit, inventory }) => {
               placeholder="Nhập tên nguyên liệu"
               required
             />
+          </div>
+
+          {/* ✅ THÊM TRƯỜNG LOẠI BẢO QUẢN */}
+          <div className="form-group">
+            <label>Loại bảo quản *</label>
+            <select
+              name="storageType"
+              value={formData.storageType}
+              onChange={handleChange}
+              required
+              className="storage-type-select"
+            >
+              {storageTypes.map(type => (
+                <option key={type.value} value={type.value}>
+                  {type.label}
+                </option>
+              ))}
+            </select>
+            <small className="storage-description">
+              {storageTypes.find(t => t.value === formData.storageType)?.description}
+            </small>
           </div>
 
           <div className="form-row">
@@ -135,6 +166,7 @@ const EditInventoryModal = ({ isOpen, onClose, onSubmit, inventory }) => {
 
           <div className="current-stock-info">
             <p><strong>Số lượng hiện tại:</strong> {inventory?.currentstock} {inventory?.unit}</p>
+            <p><strong>Loại bảo quản hiện tại:</strong> {storageTypes.find(t => t.value === inventory?.storageType)?.label || 'Chưa xác định'}</p>
           </div>
 
           <div className="modal-footer">
