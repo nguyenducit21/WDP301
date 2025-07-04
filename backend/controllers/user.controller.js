@@ -251,12 +251,7 @@ const forgotPassword = async (req, res) => {
         // Tạo mã code 6 số
         const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Tạo JWT chứa email, code, hết hạn 10 phút
-        const resetToken = jwt.sign(
-            { email: user.email, code },
-            process.env.JWT_SECRET,
-            { expiresIn: '10m' }
-        );
+        
 
         // Gửi mã code qua email
         const transporter = nodemailer.createTransport({
