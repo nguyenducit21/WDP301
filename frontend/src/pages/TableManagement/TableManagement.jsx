@@ -41,6 +41,11 @@ const TableManagement = () => {
     const [reservationsPerPage] = useState(10); // Number of reservations per page
     const [filterByDate, setFilterByDate] = useState(false); // Toggle for date filtering
 
+    // NEW: Notification states (split)
+    const [orderNotifications, setOrderNotifications] = useState([]);
+    const [reservationNotifications, setReservationNotifications] = useState([]);
+    const [activeNotificationTab, setActiveNotificationTab] = useState('order'); // 'order' | 'reservation'
+
     // NEW: Notification states
     const [notifications, setNotifications] = useState([]);
     const [socket, setSocket] = useState(null);
@@ -328,6 +333,33 @@ const TableManagement = () => {
 
             // Auto-refresh reservations list
             loadReservations();
+        });
+
+
+
+        // Listen for completed reservation notifications
+        newSocket.on('reservation_completed', (data) => {
+            console.log('TableManagement: Received reservation completed notification:', data);
+
+            const newNotification = {
+                id: Date.now(),
+                type: 'reservation_completed',
+                title: '✅ Đặt bàn đã hoàn thành',
+                message: `Bàn ${data.tables} đã hoàn thành. Khách: ${data.customer}, Số khách: ${data.guest_count}` + (data.note ? `\nGhi chú: ${data.note}` : ''),
+                data,
+                timestamp: new Date(),
+                read: false
+            };
+
+            setNotifications(prev => [newNotification, ...prev]);
+
+            // Show browser notification
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('Đặt bàn đã hoàn thành', {
+                    body: `Bàn ${data.tables} đã hoàn thành. Khách: ${data.customer}, Số khách: ${data.guest_count}` + (data.note ? `\nGhi chú: ${data.note}` : ''),
+                    icon: '/favicon.ico'
+                });
+            }
         });
 
         // Cleanup

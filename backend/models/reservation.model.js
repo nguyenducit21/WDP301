@@ -29,6 +29,7 @@ const ReservationSchema = new Schema({
       "cancelled",
       "no_show",
       "completed",
+      "seated"
     ],
     default: "pending",
   },

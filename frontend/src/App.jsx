@@ -70,7 +70,7 @@ const App = () => {
             <Route path="stock-check" element={<StockCheck />} />
             <Route path="inventory/:id" element={<InventoryDetail />} />
           </Route>
-          <Route path="/dashboard/areas" element={<AreaManagement />} />
+          <Route path="/  /areas" element={<AreaManagement />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 

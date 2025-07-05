@@ -879,6 +879,8 @@ const updateReservation = async (req, res) => {
             { path: 'pre_order_items.menu_item_id', select: 'name price' }
         ]);
 
+       
+
         res.status(200).json({
             success: true,
             message: ['admin', 'manager', 'waiter'].includes(userRole)
@@ -1298,6 +1300,9 @@ const completeReservation = async (req, res) => {
             { path: 'created_by_staff', select: 'username full_name' }
         ]);
 
+        // Notify waiters if reservation is completed
+     
+
         res.status(200).json({
             success: true,
             message: 'Đặt bàn đã hoàn thành',
@@ -1403,6 +1408,8 @@ const updatePaymentStatus = async (req, res) => {
             { path: 'created_by_staff', select: 'username full_name' },
             { path: 'pre_order_items.menu_item_id', select: 'name price' }
         ]);
+
+     
 
         res.status(200).json({
             success: true,
@@ -1734,6 +1741,23 @@ const updateReservationStatus = async (req, res) => {
         reservation.status = status;
         reservation.updated_at = new Date();
         await reservation.save();
+
+        // Notify waiters if reservation is completed
+        if (status === 'completed' && global.io) {
+            await reservation.populate([
+                { path: 'table_id', select: 'name capacity area_id' },
+                { path: 'customer_id', select: 'username full_name email phone' },
+                { path: 'created_by_staff', select: 'username full_name' }
+            ]);
+            global.io.to('waiters').emit('reservation_completed', {
+                id: reservation._id,
+                tables: reservation.table_id?.name || '',
+                customer: reservation.customer_id?.full_name || reservation.contact_name || '',
+                guest_count: reservation.guest_count,
+                time: reservation.updated_at,
+                note: reservation.notes || ''
+            });
+        }
 
         res.status(200).json({
             success: true,

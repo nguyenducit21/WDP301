@@ -332,6 +332,22 @@ const updateOrderStatus = async (req, res) => {
             { path: 'staff_id', select: 'username full_name' }
         ]);
 
+        // Notify waiters if order is completed
+        if (status === 'completed' && global.io) {
+            global.io.to('waiters').emit('order_completed', {
+                id: order._id,
+                table: order.table_id?.name || '',
+                items: order.order_items?.map(item => ({
+                    name: item.menu_item_id?.name || '',
+                    quantity: item.quantity
+                })) || [],
+                customer: order.customer_id?.full_name || order.customer_id?.username || 'Khách lẻ',
+                staff: order.staff_id?.full_name || order.staff_id?.username || '',
+                time: order.updated_at,
+                note: order.note || ''
+            });
+        }
+
         res.status(200).json({
             success: true,
             message: 'Cập nhật trạng thái đơn hàng thành công',
