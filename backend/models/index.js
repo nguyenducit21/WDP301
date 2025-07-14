@@ -2,6 +2,7 @@
 
 const User = require("./user.model");
 const Role = require("./role.model");
+const Permission = require("./permission.model");
 const Table = require("./table.model");
 const MenuItem = require("./menuItems.model");
 const Category = require("./category.model");
@@ -18,6 +19,7 @@ const ImportReceipt = require("./importReceipt.model");
 module.exports = {
   User,
   Role,
+  Permission,
   Table,
   MenuItem,
   Category,

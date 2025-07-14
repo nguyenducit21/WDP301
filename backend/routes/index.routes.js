@@ -11,6 +11,8 @@ const dashboardRoutes = require("./dashboard.route");
 const inventoryRoutes = require('./inventory.routes');
 const recipeRoutes = require('./menuItemRecipe.routes');
 const importReceiptRoutes = require('./importReceipt.routes');
+const employeeRoutes = require('./employee.routes');
+const permissionRoutes = require('./permission.routes');
 
 
 const orderRoutes = require("./order.routes");
@@ -27,6 +29,8 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/inventory', inventoryRoutes);
 router.use('/recipes', recipeRoutes);
 router.use('/import-receipt', importReceiptRoutes);
+router.use('/employees', employeeRoutes);
+router.use('/permissions', permissionRoutes);
 
 
 router.use('/orders', orderRoutes);

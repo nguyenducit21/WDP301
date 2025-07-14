@@ -25,6 +25,7 @@ import InventoryList from "./pages/Chef/Inventory/InventoryList";
 import StockCheck from './pages/Chef/Inventory/StockCheck';
 import InventoryDetail from './pages/Chef/Inventory/InventoryDetail';
 import EmployeeManagement from './pages/EmployeeManagement/EmployeeManagement';
+import PermissionManagement from './pages/PermissionManagement/PermissionManagement';
 import 'react-toastify/dist/ReactToastify.css';
 import { ToastContainer } from "react-toastify";
 import AreaManagement from "./pages/TableManagement/AreaManagement";
@@ -52,6 +53,7 @@ const App = () => {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/tables" element={<TableManagement />} />
           <Route path="/dashboard/employees" element={<EmployeeManagement />} />
+          <Route path="/dashboard/permissions" element={<PermissionManagement />} />
           <Route path="/table-booking" element={<Reservation />} />
           <Route path="/chef" element={<ChefLayout />}>
             <Route path="dashboard" element={<Dashboard />} />
@@ -69,7 +71,7 @@ const App = () => {
           <Route path="/dashboard/areas" element={<AreaManagement />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          
+
         </Routes>
         {!isChefPage && <ScrollToTopButton />}
         {!isChefPage && <Footer />}
