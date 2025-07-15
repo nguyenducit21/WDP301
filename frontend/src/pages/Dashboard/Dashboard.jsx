@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sidebar from '../../components/Sidebar';
 import './Dashboard.css';
 
 const Dashboard = () => {
+    const [collapsed, setCollapsed] = useState(false);
+
     return (
         <div className="dashboard-container">
-            <Sidebar />
-            <div className="dashboard-content">
+            <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+            <div className="dashboard-content" style={{
+                marginLeft: collapsed ? '80px' : '250px',
+                transition: 'margin-left 0.2s'
+            }}>
                 <h1>Dashboard</h1>
                 <p>Welcome to the administration dashboard.</p>
 

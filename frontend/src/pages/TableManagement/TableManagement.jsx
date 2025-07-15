@@ -9,6 +9,7 @@ import axios from '../../utils/axios.customize';
 const TableManagement = () => {
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     // States
     const [activeTab, setActiveTab] = useState('tables');
@@ -1445,17 +1446,15 @@ const TableManagement = () => {
 
     return (
         <div className="table-management">
-            <Sidebar />
-            <div className="table-management-content">
+            <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+            <div className="table-management-content" style={{
+                marginLeft: sidebarCollapsed ? '80px' : '250px',
+                transition: 'margin-left 0.2s'
+            }}>
                 <div className="table-management-header">
                     <h1>Quản lý bàn ăn</h1>
                     <div className="tab-navigation">
-                        <button
-                            className={`tab-button ${activeTab === 'areas' ? 'active' : ''}`}
-                            onClick={() => navigate('/dashboard/areas')}
-                        >
-                            Quản lý khu vực
-                        </button>
+
                         <button
                             className={`tab-button ${activeTab === 'tables' ? 'active' : ''}`}
                             onClick={() => handleTabChange('tables')}
@@ -1470,26 +1469,6 @@ const TableManagement = () => {
                         </button>
                     </div>
                 </div>
-
-                {/* NEW: Date Selector */}
-                {/* <div className="date-selector-container">
-                        <div className="date-selector">
-                            <label>Chọn ngày:</label>
-                            <input
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => handleDateChange(e.target.value)}
-                                className="date-input"
-                            />
-                        </div>
-                        <button
-                            className="btn-add-table"
-                            onClick={() => openModal('createTable')}
-                            disabled={loading}
-                        >
-                            Thêm bàn ăn
-                        </button>
-                    </div> */}
 
                 {error && (
                     <div className="error-message">
@@ -3066,7 +3045,7 @@ const TableManagement = () => {
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 };
 

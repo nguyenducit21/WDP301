@@ -4,6 +4,7 @@ import './PermissionManagement.css';
 import RoleForm from './RoleForm';
 import PermissionMatrix from './PermissionMatrix';
 import ConfirmModal from '../EmployeeManagement/ConfirmModal';
+import Sidebar from '../../components/Sidebar';
 
 const PermissionManagement = () => {
     const [activeTab, setActiveTab] = useState('roles');
@@ -15,6 +16,7 @@ const PermissionManagement = () => {
     const [editingRole, setEditingRole] = useState(null);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [roleToDelete, setRoleToDelete] = useState(null);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     useEffect(() => {
         fetchData();
@@ -119,168 +121,193 @@ const PermissionManagement = () => {
     };
 
     if (loading) {
-        return <div className="loading">Đang tải...</div>;
+        return (
+            <div className="permission-management-container">
+                <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+                <div className="permission-management" style={{
+                    marginLeft: sidebarCollapsed ? '80px' : '250px',
+                    transition: 'margin-left 0.2s'
+                }}>
+                    <div className="loading">Đang tải...</div>
+                </div>
+            </div>
+        );
     }
 
     return (
-        <div className="permission-management">
-            <div className="page-header">
-                <h1>Quản lý phân quyền</h1>
-                <button
-                    className="btn btn-primary"
-                    onClick={handleCreateRole}
-                >
-                    Tạo vai trò mới
-                </button>
-            </div>
+        <div className="permission-management-container">
+            <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+            <div className="permission-management" style={{
+                marginLeft: sidebarCollapsed ? '80px' : '250px',
+                transition: 'margin-left 0.2s'
+            }}>
+                <div className="page-header">
+                    <h1>Quản lý phân quyền</h1>
+                    <button
+                        className="btn btn-primary"
+                        onClick={handleCreateRole}
+                    >
+                        Tạo vai trò mới
+                    </button>
+                </div>
 
-            {/* Tabs */}
-            <div className="tabs">
-                <button
-                    className={`tab ${activeTab === 'roles' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('roles')}
-                >
-                    Quản lý vai trò
-                </button>
-                <button
-                    className={`tab ${activeTab === 'matrix' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('matrix')}
-                >
-                    Ma trận phân quyền
-                </button>
-                <button
-                    className={`tab ${activeTab === 'permissions' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('permissions')}
-                >
-                    Danh sách quyền
-                </button>
-            </div>
+                {/* Tabs */}
+                <div className="tabs">
+                    <button
+                        className={`tab ${activeTab === 'roles' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('roles')}
+                    >
+                        Quản lý vai trò
+                    </button>
+                    <button
+                        className={`tab ${activeTab === 'matrix' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('matrix')}
+                    >
+                        Ma trận phân quyền
+                    </button>
+                    <button
+                        className={`tab ${activeTab === 'permissions' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('permissions')}
+                    >
+                        Danh sách quyền
+                    </button>
+                </div>
 
-            {/* Tab Content */}
-            <div className="tab-content">
-                {activeTab === 'roles' && (
-                    <div className="roles-tab">
-                        <div className="table-container">
-                            <table className="roles-table">
-                                <thead>
-                                    <tr>
-                                        <th>Tên vai trò</th>
-                                        <th>Mô tả</th>
-                                        <th>Loại</th>
-                                        <th>Số quyền</th>
-                                        <th>Trạng thái</th>
-                                        <th>Thao tác</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {roles.map(role => (
-                                        <tr key={role._id}>
-                                            <td className="role-name">{role.name}</td>
-                                            <td>{role.description || '-'}</td>
-                                            <td>{getRoleStatusBadge(role)}</td>
-                                            <td>
-                                                <span className="permission-count">
-                                                    {role.permissions?.length || 0} quyền
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className={`status-badge ${role.status || 'active'}`}>
-                                                    {role.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <div className="action-buttons">
-                                                    <button
-                                                        className="btn btn-sm btn-secondary"
-                                                        onClick={() => handleEditRole(role)}
-                                                    >
-                                                        Sửa
-                                                    </button>
-                                                    {!role.is_system_role && (
-                                                        <button
-                                                            className="btn btn-sm btn-danger"
-                                                            onClick={() => handleDeleteRole(role)}
-                                                        >
-                                                            Xóa
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
+                {/* Tab Content */}
+                <div className="tab-content">
+                    {activeTab === 'roles' && (
+                        <div className="roles-tab">
+                            <div className="table-container">
+                                <table className="roles-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tên vai trò</th>
+                                            <th>Mô tả</th>
+                                            <th>Loại</th>
+                                            <th>Số quyền</th>
+                                            <th>Trạng thái</th>
+                                            <th>Thao tác</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {roles.length > 0 ? (
+                                            roles.map(role => (
+                                                <tr key={role._id}>
+                                                    <td className="role-name">{role.name}</td>
+                                                    <td>{role.description || '-'}</td>
+                                                    <td>{getRoleStatusBadge(role)}</td>
+                                                    <td>
+                                                        <span className="permission-count">
+                                                            {role.permissions?.length || 0} quyền
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <span className={`status-badge ${role.status || 'active'}`}>
+                                                            {role.status === 'active' ? 'Hoạt động' : 'Không hoạt động'}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <div className="action-buttons">
+                                                            <button
+                                                                className="btn btn-sm btn-secondary"
+                                                                onClick={() => handleEditRole(role)}
+                                                            >
+                                                                Sửa
+                                                            </button>
+                                                            {!role.is_system_role && (
+                                                                <button
+                                                                    className="btn btn-sm btn-danger"
+                                                                    onClick={() => handleDeleteRole(role)}
+                                                                >
+                                                                    Xóa
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan="6" style={{ textAlign: 'center' }}>
+                                                    Không có dữ liệu
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
 
-                {activeTab === 'matrix' && (
-                    <PermissionMatrix
-                        matrix={matrix}
-                        onPermissionChange={handlePermissionChange}
+                    {activeTab === 'matrix' && (
+                        <PermissionMatrix
+                            matrix={matrix}
+                            onPermissionChange={handlePermissionChange}
+                        />
+                    )}
+
+                    {activeTab === 'permissions' && (
+                        <div className="permissions-tab">
+                            <div className="permissions-by-module">
+                                {Object.entries(getPermissionsByModule()).map(([module, modulePermissions]) => (
+                                    <div key={module} className="module-section">
+                                        <h3 className="module-title">{module}</h3>
+                                        <div className="permissions-grid">
+                                            {modulePermissions.map(permission => (
+                                                <div key={permission._id} className="permission-card">
+                                                    <div className="permission-header">
+                                                        <span className="permission-name">{permission.name}</span>
+                                                        <span className={`action-badge ${permission.action}`}>
+                                                            {permission.action}
+                                                        </span>
+                                                    </div>
+                                                    <div className="permission-details">
+                                                        <div className="permission-resource">
+                                                            Resource: {permission.resource}
+                                                        </div>
+                                                        {permission.description && (
+                                                            <div className="permission-description">
+                                                                {permission.description}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Role Form Modal */}
+                {showRoleForm && (
+                    <RoleForm
+                        role={editingRole}
+                        permissions={permissions}
+                        onSubmit={handleRoleFormSubmit}
+                        onCancel={() => {
+                            setShowRoleForm(false);
+                            setEditingRole(null);
+                        }}
                     />
                 )}
 
-                {activeTab === 'permissions' && (
-                    <div className="permissions-tab">
-                        <div className="permissions-by-module">
-                            {Object.entries(getPermissionsByModule()).map(([module, modulePermissions]) => (
-                                <div key={module} className="module-section">
-                                    <h3 className="module-title">{module}</h3>
-                                    <div className="permissions-grid">
-                                        {modulePermissions.map(permission => (
-                                            <div key={permission._id} className="permission-card">
-                                                <div className="permission-header">
-                                                    <span className="permission-name">{permission.name}</span>
-                                                    <span className={`action-badge ${permission.action}`}>
-                                                        {permission.action}
-                                                    </span>
-                                                </div>
-                                                <div className="permission-details">
-                                                    <div className="permission-resource">
-                                                        Resource: {permission.resource}
-                                                    </div>
-                                                    {permission.description && (
-                                                        <div className="permission-description">
-                                                            {permission.description}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                {/* Confirm Delete Modal */}
+                {showConfirmModal && (
+                    <ConfirmModal
+                        title="Xác nhận xóa vai trò"
+                        message={`Bạn có chắc chắn muốn xóa vai trò "${roleToDelete?.name}"?`}
+                        onConfirm={confirmDeleteRole}
+                        onCancel={() => {
+                            setShowConfirmModal(false);
+                            setRoleToDelete(null);
+                        }}
+                        confirmText="Xóa"
+                    />
                 )}
             </div>
-
-            {/* Role Form Modal */}
-            {showRoleForm && (
-                <RoleForm
-                    role={editingRole}
-                    permissions={permissions}
-                    onSubmit={handleRoleFormSubmit}
-                    onCancel={() => {
-                        setShowRoleForm(false);
-                        setEditingRole(null);
-                    }}
-                />
-            )}
-
-            {/* Confirm Delete Modal */}
-            {showConfirmModal && (
-                <ConfirmModal
-                    title="Xác nhận xóa vai trò"
-                    message={`Bạn có chắc chắn muốn xóa vai trò "${roleToDelete?.name}"? Hành động này không thể hoàn tác.`}
-                    onConfirm={confirmDeleteRole}
-                    onCancel={() => {
-                        setShowConfirmModal(false);
-                        setRoleToDelete(null);
-                    }}
-                />
-            )}
         </div>
     );
 };

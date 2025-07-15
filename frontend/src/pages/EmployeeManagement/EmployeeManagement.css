@@ -1,8 +1,17 @@
 /* Employee Management Styles */
+.employee-management-container {
+    display: flex;
+    min-height: 100vh;
+}
+
 .employee-management {
-    padding: 20px;
-    max-width: 1200px;
+    padding: 30px;
+    width: 100%;
+    /* max-width: 1400px; */
     margin: 0 auto;
+    margin-top: 50px;
+    background-color: #f7fafd;
+    min-height: 100vh;
 }
 
 .page-header {
@@ -10,12 +19,12 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 30px;
-    padding-bottom: 15px;
+    padding-bottom: 20px;
     border-bottom: 2px solid #e0e0e0;
 }
 
 .page-header h1 {
-    color: #333;
+    color: #151f46;
     margin: 0;
     font-size: 28px;
     font-weight: 600;
@@ -27,9 +36,10 @@
     gap: 15px;
     margin-bottom: 25px;
     padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
+    background: #fff;
+    border-radius: 10px;
     flex-wrap: wrap;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .filter-group {
@@ -40,25 +50,25 @@
 .search-input,
 .filter-select {
     width: 100%;
-    padding: 10px 12px;
+    padding: 12px 15px;
     border: 1px solid #ddd;
-    border-radius: 6px;
+    border-radius: 8px;
     font-size: 14px;
-    transition: border-color 0.3s;
+    transition: all 0.3s;
 }
 
 .search-input:focus,
 .filter-select:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: #f4a70b;
+    box-shadow: 0 0 0 2px rgba(244, 167, 11, 0.25);
 }
 
 /* Table */
 .table-container {
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
     overflow: hidden;
     margin-bottom: 20px;
 }
@@ -70,16 +80,16 @@
 
 .employee-table th {
     background: #f8f9fa;
-    padding: 15px 12px;
+    padding: 18px 15px;
     text-align: left;
     font-weight: 600;
-    color: #333;
+    color: #151f46;
     border-bottom: 2px solid #e0e0e0;
     font-size: 14px;
 }
 
 .employee-table td {
-    padding: 12px;
+    padding: 15px;
     border-bottom: 1px solid #e0e0e0;
     font-size: 14px;
     vertical-align: middle;
@@ -92,12 +102,13 @@
 /* Status and Role Badges */
 .status-badge,
 .role-badge {
-    padding: 4px 8px;
-    border-radius: 12px;
+    padding: 6px 10px;
+    border-radius: 20px;
     font-size: 12px;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    display: inline-block;
 }
 
 .status-badge.active {
@@ -143,13 +154,13 @@
 /* Action Buttons */
 .action-buttons {
     display: flex;
-    gap: 8px;
+    gap: 10px;
 }
 
 .btn {
-    padding: 8px 16px;
+    padding: 10px 18px;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
     font-weight: 500;
@@ -160,8 +171,8 @@
 }
 
 .btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
 }
 
 .btn:disabled {
@@ -172,12 +183,12 @@
 }
 
 .btn-primary {
-    background: #007bff;
+    background: #f4a70b;
     color: white;
 }
 
 .btn-primary:hover {
-    background: #0056b3;
+    background: #e09000;
 }
 
 .btn-secondary {
@@ -217,8 +228,9 @@
 }
 
 .btn-sm {
-    padding: 6px 12px;
+    padding: 8px 14px;
     font-size: 12px;
+    border-radius: 6px;
 }
 
 /* Pagination */
@@ -227,7 +239,7 @@
     justify-content: center;
     align-items: center;
     gap: 15px;
-    margin-top: 20px;
+    margin-top: 30px;
 }
 
 .page-info {
@@ -238,7 +250,7 @@
 /* Loading */
 .loading {
     text-align: center;
-    padding: 40px;
+    padding: 60px;
     color: #666;
     font-size: 16px;
 }
@@ -255,87 +267,99 @@
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    backdrop-filter: blur(3px);
 }
 
 .modal-content {
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    max-width: 90vw;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
 }
 
 .employee-form-modal {
-    width: 600px;
+    width: 90%;
+    max-width: 700px;
 }
 
 .confirm-modal {
-    width: 400px;
+    width: 90%;
+    max-width: 450px;
 }
 
 .modal-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px;
+    padding: 20px 25px;
     border-bottom: 1px solid #e0e0e0;
+    background: #f8f9fa;
 }
 
 .modal-header h2,
 .modal-header h3 {
     margin: 0;
-    color: #333;
+    color: #151f46;
+    font-size: 20px;
+    font-weight: 600;
 }
 
 .close-btn {
     background: none;
     border: none;
     font-size: 24px;
-    cursor: pointer;
     color: #666;
-    padding: 0;
-    width: 30px;
-    height: 30px;
+    cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    transition: all 0.3s;
 }
 
 .close-btn:hover {
+    background: #f1f1f1;
     color: #333;
 }
 
 .modal-body {
-    padding: 20px;
+    padding: 25px;
 }
 
 .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    padding: 20px;
+    gap: 15px;
+    padding: 20px 25px;
     border-top: 1px solid #e0e0e0;
+    background: #f8f9fa;
 }
 
-/* Form Styles */
 .employee-form {
-    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
 }
 
 .form-row {
     display: flex;
-    gap: 15px;
-    margin-bottom: 20px;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
 .form-group {
     flex: 1;
+    min-width: 250px;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
     font-weight: 500;
     color: #333;
     font-size: 14px;
@@ -344,18 +368,18 @@
 .form-group input,
 .form-group select {
     width: 100%;
-    padding: 10px 12px;
+    padding: 12px 15px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 14px;
-    transition: border-color 0.3s;
+    transition: all 0.3s;
 }
 
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    border-color: #f4a70b;
+    box-shadow: 0 0 0 2px rgba(244, 167, 11, 0.25);
 }
 
 .form-group input.error,
@@ -367,19 +391,16 @@
     color: #dc3545;
     font-size: 12px;
     margin-top: 5px;
-    display: block;
+    font-weight: 500;
 }
 
 .form-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    margin-top: 30px;
-    padding-top: 20px;
-    border-top: 1px solid #e0e0e0;
+    gap: 15px;
+    margin-top: 20px;
 }
 
-/* Responsive */
 @media (max-width: 768px) {
     .employee-management {
         padding: 15px;
@@ -387,8 +408,8 @@
 
     .page-header {
         flex-direction: column;
+        align-items: flex-start;
         gap: 15px;
-        align-items: stretch;
     }
 
     .filters {
@@ -396,20 +417,21 @@
     }
 
     .filter-group {
-        min-width: auto;
+        width: 100%;
     }
 
     .employee-table {
-        font-size: 12px;
+        font-size: 13px;
     }
 
     .employee-table th,
     .employee-table td {
-        padding: 8px 6px;
+        padding: 10px 8px;
     }
 
     .action-buttons {
         flex-direction: column;
+        gap: 5px;
     }
 
     .form-row {
@@ -417,7 +439,7 @@
     }
 
     .employee-form-modal {
-        width: 95vw;
+        width: 95%;
     }
 
     .modal-header {
@@ -425,6 +447,6 @@
     }
 
     .employee-form {
-        padding: 15px;
+        gap: 15px;
     }
 }
