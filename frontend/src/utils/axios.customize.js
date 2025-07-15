@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from 'react-toastify';
 
 const baseUrl = "http://localhost:3000";
 
@@ -37,6 +38,22 @@ customFetch.interceptors.request.use(
 customFetch.interceptors.response.use(
     (response) => response,
     (error) => {
+        // Handle inactive account
+        if (error.response?.status === 403 && error.response?.data?.inactive) {
+            // Clear user data
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+
+            // Show toast notification and redirect to login
+            toast.error("Tài khoản của bạn đã bị khóa", {
+                onClose: () => {
+                    window.location.href = '/login';
+                }
+            });
+            return Promise.reject(error);
+        }
+
+        // Handle unauthorized
         if (error.response?.status === 401) {
             // Token expired or invalid - clear localStorage
             localStorage.removeItem('user');

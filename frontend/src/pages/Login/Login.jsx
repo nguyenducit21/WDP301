@@ -84,12 +84,20 @@ const Login = () => {
             }
         } catch (error) {
             console.error('Login error:', error);
-            setErrors({
-                form:
-                    error.response?.data?.message ||
-                    error.message ||
-                    'Login failed. Please check your credentials.'
-            });
+    
+            // Xử lý trường hợp tài khoản bị khóa
+            if (error.response?.status === 403 && error.response?.data?.inactive) {
+                setErrors({
+                    form: error.response.data.message || 'Tài khoản của bạn đã bị khóa, vui lòng liên hệ quản trị viên'
+                });
+            } else {
+                setErrors({
+                    form:
+                        error.response?.data?.message ||
+                        error.message ||
+                        'Đăng nhập thất bại. Vui lòng kiểm tra thông tin đăng nhập.'
+                });
+            }
         } finally {
             setIsLoading(false);
         }

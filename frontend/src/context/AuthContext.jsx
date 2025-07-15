@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
 import axios from '../utils/axios.customize';
+import { toast } from 'react-toastify';
 
 export const AuthContext = createContext(null);
 
@@ -12,9 +13,27 @@ const AuthContextProvider = (props) => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
             setUser(JSON.parse(storedUser));
+
+            // Verify user status on initial load
+            verifyUserStatus();
         }
         setLoading(false);
     }, []);
+
+    // Function to verify if user account is still active
+    const verifyUserStatus = async () => {
+        try {
+            await axios.get('/user/verify-status');
+        } catch (error) {
+            if (error.response?.status === 403 && error.response?.data?.inactive) {
+                // Account is inactive, handled by axios interceptor
+                // Just to be safe, we'll also clear user data here
+                setUser(null);
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+            }
+        }
+    };
 
     const login = (userData) => {
         setUser(userData);
