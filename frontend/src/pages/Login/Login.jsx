@@ -76,16 +76,16 @@ const Login = () => {
 
             switch (userRole) {
                 case 'admin':
-                    navigate('/dashboard');
+                    navigate('/admin/dashboard');
                     break;
                 case 'manager':
-                    navigate('/dashboard');
+                    navigate('/manager/dashboard');
                     break;
                 case 'waiter':
-                    navigate('/dashboard');
+                    navigate('/waiter/dashboard');
                     break;
                 case 'kitchen_staff':
-                    navigate('/chef/products');
+                    navigate('/chef/orders');
                     break;
                 case 'customer':
                     navigate('/');

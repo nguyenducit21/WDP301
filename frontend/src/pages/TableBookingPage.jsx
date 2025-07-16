@@ -24,7 +24,6 @@ export default function TableBookingPage() {
 
     return (
         <div style={{ display: "flex", height: "100vh", background: "#f7fafd" }}>
-            <Sidebar />
             <div style={{ flex: 1 }}>
                 {/* Header */}
                 <div style={{

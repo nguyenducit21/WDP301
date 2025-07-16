@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Sidebar from '../../components/Sidebar';
-import { AuthContext } from '../../context/AuthContext';
+import { AuthContext } from '../../../context/AuthContext';
 import './AreaManagement.css';
-import axios from '../../utils/axios.customize';
+import axios from '../../../utils/axios.customize';
+import Header from '../Header';
 
 const AreaManagement = () => {
     const navigate = useNavigate();
@@ -176,7 +176,6 @@ const AreaManagement = () => {
     if (loading && areas.length === 0) {
         return (
             <div className="area-management">
-                <Sidebar />
                 <div className="area-management-content">
                     <div className="loading-container">
                         <div className="loading-spinner"></div>
@@ -189,10 +188,9 @@ const AreaManagement = () => {
 
     return (
         <div className="area-management">
-            <Sidebar />
             <div className="area-management-content">
                 <div className="area-management-header">
-                    <h1>Quản lý khu vực</h1>
+                    <Header pageName="Quản lý khu vực" activeTab="areas" />
                     {canModify() && (
                         <button
                             className="action-button create"
