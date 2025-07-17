@@ -157,7 +157,7 @@ const ReservationHistory = ({ userId }) => {
           <option value="đã xác nhận">Đã xác nhận</option>
           <option value="đã hủy">Đã hủy</option>
           <option value="hoàn thành">Hoàn thành</option>
-          
+          <option value="không đến">Không đến</option>
         </select>
       </div>
 
@@ -199,7 +199,9 @@ const ReservationHistory = ({ userId }) => {
                   <span>
                     <b>Ngày đặt:</b> {formatDate(rsv.date)} {formatTime(rsv.time)}
                   </span>
-                  
+                  <span>
+                    <b>Mã đặt bàn:</b> #{rsv._id?.slice(-6) || rsv._id}
+                  </span>
                   <span>
                     <b>Số người:</b> {rsv.guest_count || 0}
                   </span>
