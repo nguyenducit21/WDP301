@@ -33,7 +33,7 @@ const App = () => {
           <Route path="/dashboard/tables" element={<TableManagement />} />
           <Route path="/dashboard/areas" element={<AreaManagement />} />
           <Route path="/profile" element={<Profile />} />
-          
+          <Route path="/forgot-password" element={<ForgotPassword />} />
           
         </Routes>
         <ScrollToTopButton />
