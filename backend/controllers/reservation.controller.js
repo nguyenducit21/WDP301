@@ -128,12 +128,7 @@ const getReservationById = async (req, res) => {
             .populate('table_id', 'name capacity area_id')
             .populate('pre_order_items.menu_item_id', 'name price category');
 
-        if (!reservation) {
-            return res.status(404).json({
-                success: false,
-                message: 'Không tìm thấy đặt bàn'
-            });
-        }
+       
 
         res.status(200).json({
             success: true,
