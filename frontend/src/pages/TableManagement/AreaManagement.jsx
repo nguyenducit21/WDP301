@@ -8,6 +8,7 @@ import axios from '../../utils/axios.customize';
 const AreaManagement = () => {
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     // States
     const [areas, setAreas] = useState([]);
@@ -176,8 +177,11 @@ const AreaManagement = () => {
     if (loading && areas.length === 0) {
         return (
             <div className="area-management">
-                <Sidebar />
-                <div className="area-management-content">
+                <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+                <div className="area-management-content" style={{
+                    marginLeft: sidebarCollapsed ? '80px' : '250px',
+                    transition: 'margin-left 0.2s'
+                }}>
                     <div className="loading-container">
                         <div className="loading-spinner"></div>
                         <p>Đang tải dữ liệu...</p>
@@ -189,8 +193,11 @@ const AreaManagement = () => {
 
     return (
         <div className="area-management">
-            <Sidebar />
-            <div className="area-management-content">
+            <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+            <div className="area-management-content" style={{
+                marginLeft: sidebarCollapsed ? '80px' : '250px',
+                transition: 'margin-left 0.2s'
+            }}>
                 <div className="area-management-header">
                     <h1>Quản lý khu vực</h1>
                     {canModify() && (

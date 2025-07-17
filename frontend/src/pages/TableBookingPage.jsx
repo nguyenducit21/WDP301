@@ -19,13 +19,18 @@ const TABLES = [
 export default function TableBookingPage() {
     const [selectedArea, setSelectedArea] = useState(1);
     const [selectedTable, setSelectedTable] = useState(null);
+    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     const handleSelectTable = (tableId) => setSelectedTable(tableId);
 
     return (
         <div style={{ display: "flex", height: "100vh", background: "#f7fafd" }}>
-            <Sidebar />
-            <div style={{ flex: 1 }}>
+            <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
+            <div style={{
+                flex: 1,
+                marginLeft: sidebarCollapsed ? '80px' : '250px',
+                transition: 'margin-left 0.2s'
+            }}>
                 {/* Header */}
                 <div style={{
                     background: "#fff", display: "flex", alignItems: "center",

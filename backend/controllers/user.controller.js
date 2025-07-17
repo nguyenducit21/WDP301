@@ -103,6 +103,14 @@ const login = async (req, res) => {
             return res.status(400).json({ message: "Tên đăng nhập hoặc mật khẩu không chính xác" });
         }
 
+        // Kiểm tra trạng thái tài khoản
+        if (user.status === 'inactive') {
+            return res.status(403).json({ 
+                message: "Tài khoản của bạn đã bị khóa, vui lòng liên hệ quản trị viên",
+                inactive: true 
+            });
+        }
+
         // Lấy tên role
         const roleName = user.role_id ? user.role_id.name : 'customer';
 
@@ -314,4 +322,30 @@ const resetPassword = async (req, res) => {
     }
 };
 
-module.exports = { test, register, login, logout, updateProfile, changePassword, getUserProfile, forgotPassword, resetPassword }
+// Verify user status (active/inactive)
+const verifyStatus = async (req, res) => {
+    try {
+        const userId = req.userId;
+        const user = await User.findById(userId);
+
+        if (!user) {
+            return res.status(404).json({ message: "Không tìm thấy người dùng" });
+        }
+
+        if (user.status === 'inactive') {
+            return res.status(403).json({
+                message: "Tài khoản của bạn đã bị khóa",
+                inactive: true
+            });
+        }
+
+        res.status(200).json({
+            message: "Tài khoản đang hoạt động",
+            status: user.status
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+module.exports = { test, register, login, logout, updateProfile, changePassword, getUserProfile, forgotPassword, resetPassword, verifyStatus }
