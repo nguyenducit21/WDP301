@@ -10,7 +10,8 @@ import AboutPage from "./pages/AboutPage/AboutPage";
 import ScrollToTopButton from "./components/Scroll/ScrollToTopButton";
 import Login from "../src/pages/Login/Login"
 import Register from "../src/pages/Register/Register"
-import Dashboard from "./pages/Dashboard-Inventory/Dashboard";
+import InventoryDashboard from "./pages/Dashboard-Inventory/Dashboard";
+import Dashboard from "./pages/Dashboard/Dashboard";
 import TableManagement from "./pages/TableManagement/TableManagement";
 import Reservation from "./pages/Reservation";
 import ChefLayout from "./pages/Chef/ChefLayout";
@@ -65,7 +66,7 @@ const App = () => {
           <Route path="/chef" element={<ChefLayout />}>
             <Route path="orders" element={<Orders />} />
             <Route path="dashboard" element={<ChefDashboard />} />
-            <Route path="inventory/analytics" element={<Dashboard />} />
+            <Route path="inventory/analytics" element={<InventoryDashboard />} />
             <Route path="menu/dashboard" element={<MenuDashboard />} />
             <Route path="products" element={<MenuItemManagement />} />
             <Route path="manage-categories" element={<CategoryManagement />} />
