@@ -46,8 +46,7 @@ export const useReservation = () => {
                         ...prevForm,
                         name: user.full_name || user.name || prevForm.name,
                         email: user.email || prevForm.email,
-                        phone: user.phone || prevForm.phone, // Thêm dòng này
-                        // Keep existing values for guest_count, date, slot_id
+                        // Keep existing values for phone, guest_count, date, slot_id
                     }));
                 } else {
                     setIsAuthenticated(false);
@@ -152,62 +151,6 @@ export const useReservation = () => {
         }
     };
 
-    // Validate các trường đặt bàn
-    const nameRegex = /^[a-zA-ZÀ-ỹ\s]+$/;
-    const phoneRegex = /^0\d{9}$/;
-    const MAX_CAPACITY = 23; // Có thể cho truyền vào nếu cần
-
-    const validateField = (name, value, getMaxPossibleCapacity = () => MAX_CAPACITY) => {
-        let error = '';
-        if (name === 'name') {
-            if (!value.trim()) {
-                error = 'Họ và tên không được để trống';
-            } else if (!nameRegex.test(value.trim())) {
-                error = 'Họ và tên chỉ được chứa chữ cái và khoảng trắng';
-            }
-        }
-        if (name === 'phone') {
-            if (!value.trim()) {
-                error = 'Số điện thoại không được để trống';
-            } else if (!phoneRegex.test(value.trim())) {
-                error = 'Số điện thoại phải gồm 10 số và bắt đầu bằng 0';
-            }
-        }
-        if (name === 'guest_count') {
-            const guestCount = Number(value);
-            if (!guestCount || guestCount < 1) {
-                error = 'Số lượng khách phải lớn hơn hoặc bằng 1';
-            } else if (guestCount > getMaxPossibleCapacity()) {
-                error = `Số lượng khách vượt quá sức chứa tối đa (${getMaxPossibleCapacity()})`;
-            }
-        }
-        return error;
-    };
-
-    const validateForm = (formData = form, getMaxPossibleCapacity = () => MAX_CAPACITY) => {
-        const errors = {};
-        if (!formData.name.trim()) {
-            errors.name = 'Họ và tên không được để trống';
-        } else if (!nameRegex.test(formData.name.trim())) {
-            errors.name = 'Họ và tên chỉ được chứa chữ cái và khoảng trắng';
-        }
-        if (!formData.phone.trim()) {
-            errors.phone = 'Số điện thoại không được để trống';
-        } else if (!phoneRegex.test(formData.phone.trim())) {
-            errors.phone = 'Số điện thoại phải gồm 10 số và bắt đầu bằng 0';
-        }
-        const guestCount = Number(formData.guest_count);
-        if (!guestCount || guestCount < 1) {
-            errors.guest_count = 'Số lượng khách phải lớn hơn hoặc bằng 1';
-        } else if (guestCount > getMaxPossibleCapacity()) {
-            errors.guest_count = `Số lượng khách vượt quá sức chứa tối đa (${getMaxPossibleCapacity()})`;
-        }
-        return {
-            isValid: Object.keys(errors).length === 0,
-            errors
-        };
-    };
-
     return {
         form,
         submitting,
@@ -223,10 +166,6 @@ export const useReservation = () => {
         setError,
         setSuccess,
         setShowSuccessModal,
-        setReservationId,
-
-        // validate
-        validateForm,
-        validateField
+        setReservationId
     };
 }; 

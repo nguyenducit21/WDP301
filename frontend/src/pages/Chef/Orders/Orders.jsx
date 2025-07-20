@@ -86,20 +86,6 @@ const Orders = () => {
         });
     };
 
-    const formatReservationTime = (order) => {
-        if (order.reservation_date && order.slot_start_time) {
-            const date = new Date(order.reservation_date);
-            const formattedDate = date.toLocaleDateString('vi-VN', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-            });
-            return `${formattedDate} - ${order.slot_start_time}`;
-        }
-        // Fallback to created_at if no reservation time
-        return formatDateTime(order.created_at);
-    };
-
     const getStatusColor = (status) => {
         switch (status) {
             case 'pending':
@@ -174,7 +160,7 @@ const Orders = () => {
                     <div className="customer-info">
                         <h4>👤 Khách hàng: {order.customer_name}</h4>
                         <h4>🪑 Bàn: {order.tables}</h4>
-                        <h4>📅 Thời gian đến: {formatReservationTime(order)}</h4>
+                        <h4>📅 Thời gian: {formatDateTime(order.created_at)}</h4>
                         {order.staff_name && <p>👨‍💼 Nhân viên: {order.staff_name}</p>}
                     </div>
 

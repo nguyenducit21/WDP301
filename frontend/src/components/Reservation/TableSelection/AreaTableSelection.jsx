@@ -65,10 +65,6 @@ const AreaTableSelection = ({
     );
 
     const renderTableSelection = () => {
-        if (guestCount < 1) {
-            return <span>Vui lòng nhập số lượng khách hợp lệ để xem bàn hiện có</span>;
-        }
-
         if (availableTables.length === 0) {
             return <span>Hãy điền thông tin đặt bàn để xem bàn hiện có</span>;
         }

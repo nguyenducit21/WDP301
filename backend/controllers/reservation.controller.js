@@ -879,7 +879,7 @@ const updateReservation = async (req, res) => {
             { path: 'pre_order_items.menu_item_id', select: 'name price' }
         ]);
 
-
+       
 
         res.status(200).json({
             success: true,
@@ -1301,7 +1301,7 @@ const completeReservation = async (req, res) => {
         ]);
 
         // Notify waiters if reservation is completed
-
+     
 
         res.status(200).json({
             success: true,
@@ -1409,7 +1409,7 @@ const updatePaymentStatus = async (req, res) => {
             { path: 'pre_order_items.menu_item_id', select: 'name price' }
         ]);
 
-
+     
 
         res.status(200).json({
             success: true,
@@ -1672,10 +1672,6 @@ const getChefOrders = async (req, res) => {
             })),
             total_amount: reservation.total_amount,
             created_at: reservation.created_at,
-            // Thêm thông tin thời gian khách đến ăn
-            reservation_date: reservation.date,
-            slot_start_time: reservation.slot_start_time,
-            slot_end_time: reservation.slot_end_time,
             status: reservation.status,
             note: reservation.notes || ''
         }));
@@ -1692,10 +1688,6 @@ const getChefOrders = async (req, res) => {
             })),
             total_amount: reservation.total_amount,
             created_at: reservation.created_at,
-            // Thêm thông tin thời gian khách đến ăn
-            reservation_date: reservation.date,
-            slot_start_time: reservation.slot_start_time,
-            slot_end_time: reservation.slot_end_time,
             status: reservation.status,
             note: reservation.notes || '',
             staff_name: reservation.created_by_staff?.full_name || 'N/A'
