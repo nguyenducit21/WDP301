@@ -1,0 +1,478 @@
+/* ReservationManagement.css - Sử dụng chung với TableManagement */
+@import url('./TableManagement.css');
+
+/* Specific styles for ReservationManagement */
+.reservations-view {
+    padding: 20px;
+}
+
+.reservations-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.reservations-header h3 {
+    margin: 0;
+    color: #2c3e50;
+}
+
+.reservations-actions {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.date-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filter-by-date-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.filter-by-date-toggle input[type="checkbox"] {
+    margin: 0;
+}
+
+.filter-by-date-toggle label {
+    font-weight: 500;
+    color: #495057;
+    margin: 0;
+}
+
+.date-input {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background: white;
+    transition: border-color 0.2s;
+}
+
+.date-input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.date-input:disabled {
+    background: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+.status-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.status-filter label {
+    font-weight: 500;
+    color: #495057;
+    margin: 0;
+}
+
+.status-filter-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background: white;
+    min-width: 150px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.status-filter-select:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+.add-reservation {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.add-reservation:hover {
+    background: #218838;
+}
+
+.add-reservation:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
+.reservations-table {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.reservations-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.reservations-table th,
+.reservations-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.reservations-table th {
+    background: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.reservations-table tr:hover {
+    background: #f8f9fa;
+}
+
+.reservations-table tr.selected {
+    background: #e3f2fd;
+}
+
+.reservations-table tr.status-pending {
+    border-left: 4px solid #ffc107;
+}
+
+.reservations-table tr.status-confirmed {
+    border-left: 4px solid #17a2b8;
+}
+
+.reservations-table tr.status-seated {
+    border-left: 4px solid #007bff;
+}
+
+.reservations-table tr.status-completed {
+    border-left: 4px solid #28a745;
+}
+
+.reservations-table tr.status-cancelled {
+    border-left: 4px solid #dc3545;
+}
+
+.reservations-table tr.status-no_show {
+    border-left: 4px solid #6c757d;
+}
+
+.loading-cell,
+.empty-cell {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+}
+
+.mini-spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 8px;
+}
+
+.has-pre-order {
+    background: #d4edda;
+    color: #155724;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.no-pre-order {
+    color: #6c757d;
+    font-size: 12px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.action-buttons .action-button {
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.action-buttons .action-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.action-buttons .edit {
+    background: #ffc107;
+    color: #212529;
+}
+
+.action-buttons .edit:hover {
+    background: #e0a800;
+}
+
+.action-buttons .confirm {
+    background: #17a2b8;
+    color: white;
+}
+
+.action-buttons .confirm:hover {
+    background: #138496;
+}
+
+.action-buttons .seat {
+    background: #007bff;
+    color: white;
+}
+
+.action-buttons .seat:hover {
+    background: #0056b3;
+}
+
+.action-buttons .invoice {
+    background: #6f42c1;
+    color: white;
+}
+
+.action-buttons .invoice:hover {
+    background: #5a32a3;
+}
+
+.action-buttons .move {
+    background: #fd7e14;
+    color: white;
+}
+
+.action-buttons .move:hover {
+    background: #e8680e;
+}
+
+.action-buttons .delete {
+    background: #dc3545;
+    color: white;
+}
+
+.action-buttons .delete:hover {
+    background: #c82333;
+}
+
+.action-buttons .add-menu {
+    background: #28a745;
+    color: white;
+}
+
+.action-buttons .add-menu:hover {
+    background: #218838;
+}
+
+/* Reservation Details Panel */
+.reservation-details {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.reservation-details h3 {
+    margin: 0 0 20px 0;
+    color: #2c3e50;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+.reservation-info-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.reservation-info-details p {
+    margin: 0;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 4px;
+}
+
+.pre-order-section,
+.related-orders {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.pre-order-section h4,
+.related-orders h4 {
+    margin: 0 0 15px 0;
+    color: #495057;
+}
+
+.pre-order-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.pre-order-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 4px;
+    border-left: 4px solid #28a745;
+}
+
+.order-item {
+    background: white;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 10px;
+    border-left: 4px solid #007bff;
+}
+
+.order-item:last-child {
+    margin-bottom: 0;
+}
+
+.order-item p {
+    margin: 5px 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .reservations-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+
+    .reservations-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .date-filter,
+    .status-filter {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .reservations-table {
+        overflow-x: auto;
+    }
+
+    .reservations-table table {
+        min-width: 1000px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .reservation-info-details {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Pre-order modal styles */
+.pre-order-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.pre-order-total-row,
+.pre-order-discount-row,
+.pre-order-final-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: white;
+    border-radius: 4px;
+    border-left: 4px solid #007bff;
+}
+
+.pre-order-discount-row {
+    border-left-color: #dc3545;
+    color: #dc3545;
+}
+
+.pre-order-final-total-row {
+    border-left-color: #28a745;
+    background: #d4edda;
+    font-weight: bold;
+}
+
+.edit-pre-order-btn,
+.add-pre-order-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    margin-top: 10px;
+}
+
+.edit-pre-order-btn:hover,
+.add-pre-order-btn:hover {
+    background: #0056b3;
+}
+
+.no-pre-order {
+    text-align: center;
+    padding: 20px;
+    color: #6c757d;
+}
+
+.no-pre-order p {
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+.pre-order-pricing {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+}
+
+.pre-order-pricing span:last-child {
+    font-size: 16px;
+    color: #28a745;
+    font-weight: bold;
+}

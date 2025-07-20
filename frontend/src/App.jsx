@@ -34,6 +34,8 @@ import AreaManagement from "./pages/TableManagement/AreaManagement";
 import Profile from "./pages/Profile/Profile"
 import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 import Orders from "./pages/Chef/Orders/Orders";
+import TableLayout from "./pages/TableManagement/TableLayout";
+import ReservationManagement from "./pages/TableManagement/ReservationManagement";
 
 const App = () => {
   const location = useLocation();
@@ -55,6 +57,8 @@ const App = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/tables" element={<TableManagement />} />
+          <Route path="//table-layout" element={<TableLayout />} />
+          <Route path="/reservation-management" element={<ReservationManagement />} />
           <Route path="/dashboard/employees" element={<EmployeeManagement />} />
           <Route path="/dashboard/permissions" element={<PermissionManagement />} />
           <Route path="/table-booking" element={<Reservation />} />
@@ -74,7 +78,7 @@ const App = () => {
             <Route path="stock-check" element={<StockCheck />} />
             <Route path="inventory/:id" element={<InventoryDetail />} />
           </Route>
-          <Route path="/  /areas" element={<AreaManagement />} />
+          <Route path="/areas" element={<AreaManagement />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 

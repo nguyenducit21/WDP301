@@ -214,7 +214,7 @@ body.reservation-form-open .navbar {
 }
 
 .table-card.selected {
-    background: #7a6c2f;
+    background: #e9dda7;
     color: #fff;
     border: 2px solid #f7b731;
 }
@@ -222,10 +222,6 @@ body.reservation-form-open .navbar {
 .table-card:hover {
     background: #e0e0e0;
     border-color: #7a6c2f;
-}
-
-.table-card.selected:hover {
-    background: #6a5c1f;
 }
 
 .reservation-right h3 {

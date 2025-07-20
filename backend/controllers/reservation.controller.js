@@ -854,7 +854,7 @@ const updateReservation = async (req, res) => {
             ...(contact_phone && { contact_phone }),
             ...(contact_email !== undefined && { contact_email }),
             ...(status && { status }),
-            ...(pre_order_items && { pre_order_items }),
+            ...(pre_order_items !== undefined && { pre_order_items }),
             ...(deposit_amount !== undefined && { deposit_amount }),
             ...(payment_status && { payment_status }),
             ...(notes !== undefined && { notes }),
@@ -879,7 +879,7 @@ const updateReservation = async (req, res) => {
             { path: 'pre_order_items.menu_item_id', select: 'name price' }
         ]);
 
-       
+
 
         res.status(200).json({
             success: true,
@@ -1186,6 +1186,12 @@ const confirmReservation = async (req, res) => {
 
         // Cập nhật reservation
         reservation.status = 'confirmed';
+
+        // Nếu có pre_order_items và chưa thanh toán, cập nhật thành partial để báo hiệu cần cọc
+        if (reservation.pre_order_items && reservation.pre_order_items.length > 0 && reservation.payment_status === 'pending') {
+            reservation.payment_status = 'partial';
+        }
+
         reservation.updated_at = new Date();
         await reservation.save();
 
@@ -1235,6 +1241,12 @@ const seatCustomer = async (req, res) => {
 
         // Cập nhật reservation
         reservation.status = 'seated';
+
+        // Nếu có pre_order_items và chưa thanh toán, cập nhật thành partial để báo hiệu cần cọc
+        if (reservation.pre_order_items && reservation.pre_order_items.length > 0 && reservation.payment_status === 'pending') {
+            reservation.payment_status = 'partial';
+        }
+
         reservation.updated_at = new Date();
         await reservation.save();
 
@@ -1301,7 +1313,7 @@ const completeReservation = async (req, res) => {
         ]);
 
         // Notify waiters if reservation is completed
-     
+
 
         res.status(200).json({
             success: true,
@@ -1409,7 +1421,7 @@ const updatePaymentStatus = async (req, res) => {
             { path: 'pre_order_items.menu_item_id', select: 'name price' }
         ]);
 
-     
+
 
         res.status(200).json({
             success: true,

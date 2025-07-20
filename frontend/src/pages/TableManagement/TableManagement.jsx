@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import Sidebar from '../../components/Sidebar';
 import { AuthContext } from '../../context/AuthContext';
 import InvoicePrint from '../../components/InvoicePrint/InvoicePrint';
-import './TableManagement.css';
+// import './TableManagement.css';
 import axios from '../../utils/axios.customize';
 
 const TableManagement = () => {

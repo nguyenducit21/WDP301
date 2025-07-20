@@ -91,14 +91,21 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
                     <ul className={`chef-sidebar-submenu ${reservationMenu ? "open" : ""}`}>
                         <li
                             className={currentTab === "tables" ? "active" : ""}
-                            onClick={() => navigate("/dashboard/tables")}
+                            onClick={() => navigate("/table-layout")}
                         >
                             <FaList className="sidebar-icon" />
                             <span>Quản lý bàn</span>
                         </li>
                         <li
+                            className={currentTab === "reservations" ? "active" : ""}
+                            onClick={() => navigate("/reservation-management")}
+                        >
+                            <FaList className="sidebar-icon" />
+                            <span>Quản lý đặt bàn</span>
+                        </li>
+                        <li
                             className={currentTab === "areas" ? "active" : ""}
-                            onClick={() => navigate("/dashboard/areas")}
+                            onClick={() => navigate("/areas")}
                         >
                             <FaList className="sidebar-icon" />
                             <span>Quản lý khu vực</span>
