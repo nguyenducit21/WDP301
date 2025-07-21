@@ -257,41 +257,40 @@ const validateBookingTime = async (date, slot_id) => {
         throw new Error('Không tìm thấy slot thời gian');
     }
 
-    // Tạo thời gian slot đầy đủ (ngày + giờ)
+    // Tạo thời gian slot đầy đủ
     const [startHours, startMinutes] = bookingSlot.start_time.split(':');
     const slotDateTime = new Date(bookingDate);
     slotDateTime.setHours(parseInt(startHours), parseInt(startMinutes), 0, 0);
 
-    // Kiểm tra nếu slot time đã qua
+    // Kiểm tra nếu slot đã qua (chỉ kiểm tra nghiêm ngặt)
     if (slotDateTime < now) {
-        console.log("slotDateTime, now", slotDateTime, now);
         throw new Error('Không thể đặt bàn cho thời gian trong quá khứ');
     }
 
-    // Nếu đặt trong ngày hiện tại, yêu cầu đặt trước ít nhất 1 giờ
+    // Giảm yêu cầu đặt trước từ 1 giờ xuống 30 phút
     if (bookingDate.toDateString() === now.toDateString()) {
-        const minBookingTime = new Date(now.getTime() + 60 * 60 * 1000);
+        const minBookingTime = new Date(now.getTime() + 30 * 60 * 1000); // 30 phút
         if (slotDateTime < minBookingTime) {
-            throw new Error('Vui lòng đặt bàn trước ít nhất 1 giờ so với thời gian bắt đầu');
+            throw new Error('Vui lòng đặt bàn trước ít nhất 30 phút so với thời gian bắt đầu');
         }
     }
 
-    // Kiểm tra giờ mở cửa (ví dụ: 6:00 - 22:00)
+    // Kiểm tra giờ mở cửa (mở rộng thời gian)
+    const openingTime = new Date(bookingDate);
+    openingTime.setHours(5, 30, 0, 0); // 5:30 AM
+
+    const closingTime = new Date(bookingDate);
+    closingTime.setHours(23, 0, 0, 0); // 11:00 PM
+
     const [endHours, endMinutes] = bookingSlot.end_time.split(':');
     const slotEndTime = new Date(bookingDate);
     slotEndTime.setHours(parseInt(endHours), parseInt(endMinutes));
 
-    // Kiểm tra slot có trong giờ mở cửa không
-    const openingTime = new Date(bookingDate);
-    openingTime.setHours(6, 0, 0, 0); // 6:00 AM
-
-    const closingTime = new Date(bookingDate);
-    closingTime.setHours(22, 0, 0, 0); // 10:00 PM
-
     if (slotDateTime < openingTime || slotEndTime > closingTime) {
-        throw new Error('Chỉ có thể đặt bàn trong giờ mở cửa (6:00 - 22:00)');
+        throw new Error('Chỉ có thể đặt bàn trong giờ mở cửa (5:30 - 23:00)');
     }
 };
+
 
 // Hàm gửi thông báo cho nhân viên
 // TEMPORARILY DISABLED - Comment by user request
@@ -416,8 +415,8 @@ const createReservation = async (req, res) => {
     try {
         const {
             customer_id,
-            table_id, // For backward compatibility
-            table_ids, // New field for multiple tables
+            table_id,
+            table_ids,
             date,
             slot_id,
             guest_count,
@@ -428,7 +427,6 @@ const createReservation = async (req, res) => {
             notes
         } = req.body;
 
-        // Determine which tables to use
         let tablesToReserve = [];
         if (table_ids && Array.isArray(table_ids) && table_ids.length > 0) {
             tablesToReserve = table_ids;
@@ -441,7 +439,6 @@ const createReservation = async (req, res) => {
             });
         }
 
-        // Kiểm tra thông tin bắt buộc
         if (!date || !slot_id || !contact_name || !contact_phone) {
             return res.status(400).json({
                 success: false,
@@ -449,7 +446,6 @@ const createReservation = async (req, res) => {
             });
         }
 
-        // Validate guest_count
         if (!guest_count || guest_count < 1) {
             return res.status(400).json({
                 success: false,
@@ -457,7 +453,6 @@ const createReservation = async (req, res) => {
             });
         }
 
-        // Check maximum capacity limit for online booking
         const MAX_ONLINE_CAPACITY = 23;
         if (guest_count > MAX_ONLINE_CAPACITY) {
             return res.status(400).json({
@@ -466,7 +461,6 @@ const createReservation = async (req, res) => {
             });
         }
 
-        // Validate thời gian đặt bàn
         try {
             await validateBookingTime(date, slot_id);
         } catch (validationError) {
@@ -476,10 +470,8 @@ const createReservation = async (req, res) => {
             });
         }
 
-        // Kiểm tra slot_id có tồn tại
         const BookingSlot = require('../models/BookingSlot');
         const bookingSlot = await BookingSlot.findById(slot_id);
-
         if (!bookingSlot) {
             return res.status(404).json({
                 success: false,
@@ -487,7 +479,6 @@ const createReservation = async (req, res) => {
             });
         }
 
-        // Kiểm tra tất cả các bàn có tồn tại và tính tổng sức chứa
         const tables = await Table.find({ _id: { $in: tablesToReserve } });
         if (tables.length !== tablesToReserve.length) {
             return res.status(404).json({
@@ -495,7 +486,6 @@ const createReservation = async (req, res) => {
                 message: 'Một số bàn không tồn tại'
             });
         }
-
         const totalCapacity = tables.reduce((sum, table) => sum + table.capacity, 0);
         if (guest_count > totalCapacity) {
             return res.status(400).json({
@@ -504,42 +494,28 @@ const createReservation = async (req, res) => {
             });
         }
 
-        // Sửa logic check trùng lặp theo slot_id
         const reservationDate = new Date(date);
         const startOfDay = new Date(reservationDate);
         startOfDay.setHours(0, 0, 0, 0);
         const endOfDay = new Date(reservationDate);
         endOfDay.setHours(23, 59, 59, 999);
 
-        // Kiểm tra các bàn đã được đặt trong slot này chưa
         const existingReservations = await Reservation.find({
-            $or: [
-                { table_id: { $in: tablesToReserve } },
-                { table_ids: { $in: tablesToReserve } }
-            ],
-            date: {
-                $gte: startOfDay,
-                $lte: endOfDay
-            },
+            $or: [{ table_id: { $in: tablesToReserve } }, { table_ids: { $in: tablesToReserve } }],
+            date: { $gte: startOfDay, $lte: endOfDay },
             slot_id,
             status: { $in: ['pending', 'confirmed', 'seated'] }
         });
 
         if (existingReservations.length > 0) {
-            const reservedTables = existingReservations.map(r =>
-                r.table_id || (r.table_ids && r.table_ids[0])
-            ).filter(Boolean);
-            const conflictingTables = tablesToReserve.filter(id =>
-                reservedTables.some(reservedId => reservedId.toString() === id.toString())
-            );
-
+            const reservedTables = existingReservations.map(r => r.table_id || (r.table_ids && r.table_ids[0])).filter(Boolean);
+            const conflictingTables = tablesToReserve.filter(id => reservedTables.some(reservedId => reservedId.toString() === id.toString()));
             return res.status(400).json({
                 success: false,
                 message: `Các bàn sau đã được đặt trong khung giờ này: ${conflictingTables.join(', ')}`
             });
         }
 
-        // Xử lý pre-order items và kiểm tra tồn kho
         let processedPreOrderItems = [];
         let inventoryWarning = false;
 
@@ -551,7 +527,6 @@ const createReservation = async (req, res) => {
                         message: 'Thông tin món đặt trước không hợp lệ'
                     });
                 }
-
                 const menuItem = await MenuItem.findById(item.menu_item_id);
                 if (!menuItem) {
                     return res.status(400).json({
@@ -566,10 +541,12 @@ const createReservation = async (req, res) => {
             }
         }
 
-        // Tạo đặt bàn mới
+        const now = new Date();
+        console.log('Current server time:', now.toISOString(), 'Timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+
         const reservationData = {
             table_ids: tablesToReserve,
-            table_id: tablesToReserve[0], // For backward compatibility
+            table_id: tablesToReserve[0],
             date: reservationDate,
             slot_id,
             slot_start_time: bookingSlot.start_time,
@@ -582,11 +559,10 @@ const createReservation = async (req, res) => {
             notes: notes ? notes.trim() : '',
             status: 'pending',
             payment_status: 'pending',
-            created_at: new Date(),
-            updated_at: new Date()
+            created_at: now,
+            updated_at: now
         };
 
-        // Handle customer_id assignment
         if (customer_id) {
             try {
                 reservationData.customer_id = new mongoose.Types.ObjectId(customer_id);
@@ -594,14 +570,10 @@ const createReservation = async (req, res) => {
                 console.log('Invalid customer_id, skipping...', error);
             }
         } else if (req.user && req.user.userId) {
-            // If no customer_id provided but user is logged in
             const userRole = req.user.role || req.user.user?.role;
-
             if (['admin', 'manager', 'staff', 'waiter'].includes(userRole)) {
-                // Staff making reservation for customer
                 reservationData.created_by_staff = req.user.userId;
             } else {
-                // Customer making their own reservation
                 reservationData.customer_id = new mongoose.Types.ObjectId(req.user.userId);
             }
         }
@@ -616,18 +588,13 @@ const createReservation = async (req, res) => {
                 { path: 'customer_id', select: 'username full_name email phone' },
                 { path: 'created_by_staff', select: 'username full_name' },
                 { path: 'slot_id', select: 'name start_time end_time' },
-                {
-                    path: 'pre_order_items.menu_item_id',
-                    select: 'name price category_id description'
-                }
+                { path: 'pre_order_items.menu_item_id', select: 'name price category_id description' }
             ]);
         } catch (populateError) {
             console.log('Populate error (non-critical):', populateError);
         }
 
-        // Gửi thông báo WebSocket cho waiter khi có reservation mới từ customer
         if (global.io && !reservationData.created_by_staff) {
-            // Chỉ gửi thông báo khi reservation được tạo bởi customer (không phải staff)
             const notificationData = {
                 type: 'new_reservation',
                 reservation: {
@@ -642,7 +609,6 @@ const createReservation = async (req, res) => {
                     created_at: reservation.created_at
                 }
             };
-
             global.io.to('waiters').emit('new_reservation', notificationData);
             console.log('📢 Sent new reservation notification to waiters');
         }
@@ -655,7 +621,6 @@ const createReservation = async (req, res) => {
             data: reservation,
             inventoryWarning
         });
-
     } catch (error) {
         console.error('Error in createReservation:', error);
         res.status(500).json({
@@ -666,6 +631,34 @@ const createReservation = async (req, res) => {
     }
 };
 
+// API để assign nhân viên cho reservation
+const assignStaffToReservation = async (req, res) => {
+    try {
+        const { reservationId, staffId } = req.body;
+        
+        const reservation = await Reservation.findByIdAndUpdate(
+            reservationId,
+            { 
+                assigned_staff: staffId,
+                status: 'confirmed',
+                updated_at: new Date()
+            },
+            { new: true }
+        ).populate('assigned_staff', 'full_name');
+
+        res.json({
+            success: true,
+            data: reservation,
+            message: 'Đã assign nhân viên thành công'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi assign nhân viên',
+            error: error.message
+        });
+    }
+};
 
 // Lấy danh sách đặt bàn của khách hàng
 const getCustomerReservations = async (req, res) => {
@@ -1167,114 +1160,118 @@ const getInvoiceData = async (req, res) => {
 
 
 // Xác nhận đặt bàn
+// Xác nhận đặt bàn
 const confirmReservation = async (req, res) => {
     try {
+        const { assigned_staff } = req.body || {};
+        
         const reservation = await Reservation.findById(req.params.id);
+        
         if (!reservation) {
             return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy đặt bàn'
-            });
-        }
-
-        if (reservation.status !== 'pending') {
-            return res.status(400).json({
-                success: false,
-                message: 'Chỉ có thể xác nhận đặt bàn đang chờ xác nhận'
+                message: 'Không tìm thấy reservation'
             });
         }
 
         // Cập nhật reservation
-        reservation.status = 'confirmed';
+        const updateData = {
+            status: 'confirmed',
+            updated_at: new Date()
+        };
 
-        // Nếu có pre_order_items và chưa thanh toán, cập nhật thành partial để báo hiệu cần cọc
-        if (reservation.pre_order_items && reservation.pre_order_items.length > 0 && reservation.payment_status === 'pending') {
-            reservation.payment_status = 'partial';
+        // TỰ ĐỘNG ASSIGN STAFF nếu có
+        if (assigned_staff) {
+            updateData.assigned_staff = assigned_staff;
+        } else if (req.user && req.user.userId) {
+            // Nếu không có assigned_staff, tự động assign cho user hiện tại (nếu là staff)
+            const userRole = req.user.role || req.user.user?.role;
+            if (['waiter', 'staff', 'manager'].includes(userRole)) {
+                updateData.assigned_staff = req.user.userId;
+            }
         }
 
-        reservation.updated_at = new Date();
-        await reservation.save();
-
-        // Cập nhật trạng thái bàn từ available → occupied (thay đổi từ reserved sang occupied)
-        await Table.findByIdAndUpdate(reservation.table_id, {
-            status: 'occupied',
-            updated_at: new Date()
-        });
-
-        await reservation.populate([
+        const updatedReservation = await Reservation.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            { new: true }
+        ).populate([
             { path: 'table_id', select: 'name capacity area_id' },
+            { path: 'table_ids', select: 'name capacity area_id' },
             { path: 'customer_id', select: 'username full_name email phone' },
-            { path: 'created_by_staff', select: 'username full_name' }
+            { path: 'assigned_staff', select: 'username full_name' }
         ]);
 
-        res.status(200).json({
+        res.json({
             success: true,
-            message: 'Xác nhận đặt bàn thành công',
-            data: reservation
+            data: updatedReservation,
+            message: 'Đã xác nhận reservation thành công'
         });
     } catch (error) {
+        console.error('Error confirming reservation:', error);
         res.status(500).json({
             success: false,
-            message: 'Lỗi khi xác nhận đặt bàn',
+            message: 'Lỗi khi xác nhận reservation',
             error: error.message
         });
     }
 };
+
+
+
+
 
 // Khách vào bàn
 const seatCustomer = async (req, res) => {
     try {
+        const { assigned_staff } = req.body || {};
+        
         const reservation = await Reservation.findById(req.params.id);
+        
         if (!reservation) {
             return res.status(404).json({
                 success: false,
-                message: 'Không tìm thấy đặt bàn'
+                message: 'Không tìm thấy reservation'
             });
         }
 
-        if (reservation.status !== 'confirmed') {
-            return res.status(400).json({
-                success: false,
-                message: 'Chỉ có thể đưa khách vào bàn đã được xác nhận'
-            });
-        }
-
-        // Cập nhật reservation
-        reservation.status = 'seated';
-
-        // Nếu có pre_order_items và chưa thanh toán, cập nhật thành partial để báo hiệu cần cọc
-        if (reservation.pre_order_items && reservation.pre_order_items.length > 0 && reservation.payment_status === 'pending') {
-            reservation.payment_status = 'partial';
-        }
-
-        reservation.updated_at = new Date();
-        await reservation.save();
-
-        // Cập nhật trạng thái bàn từ reserved → occupied
-        await Table.findByIdAndUpdate(reservation.table_id, {
-            status: 'occupied',
+        const updateData = {
+            status: 'seated',
             updated_at: new Date()
-        });
+        };
 
-        await reservation.populate([
-            { path: 'table_id', select: 'name capacity area_id' },
-            { path: 'customer_id', select: 'username full_name email phone' },
-            { path: 'created_by_staff', select: 'username full_name' }
-        ]);
+        // Assign staff khi khách vào bàn
+        if (assigned_staff) {
+            updateData.assigned_staff = assigned_staff;
+        } else if (req.user && req.user.userId) {
+            const userRole = req.user.role || req.user.user?.role;
+            if (['waiter', 'staff', 'manager'].includes(userRole)) {
+                updateData.assigned_staff = req.user.userId;
+            }
+        }
 
-        res.status(200).json({
+        const updatedReservation = await Reservation.findByIdAndUpdate(
+            req.params.id,
+            updateData,
+            { new: true }
+        ).populate('assigned_staff', 'username full_name');
+
+        res.json({
             success: true,
-            message: 'Khách đã vào bàn',
-            data: reservation
+            data: updatedReservation,
+            message: 'Khách đã vào bàn thành công'
         });
     } catch (error) {
+        console.error('Error seating customer:', error);
         res.status(500).json({
             success: false,
-            message: 'Lỗi khi cập nhật trạng thái',
+            message: 'Lỗi khi xử lý khách vào bàn',
             error: error.message
         });
     }
 };
+
+
 
 // Hoàn thành đặt bàn
 const completeReservation = async (req, res) => {
@@ -1804,5 +1801,6 @@ module.exports = {
     checkoutTable,
     autoCancelExpiredReservations,
     getChefOrders,
-    updateReservationStatus
+    updateReservationStatus,
+    assignStaffToReservation
 };

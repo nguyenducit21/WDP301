@@ -6,6 +6,9 @@ const http = require('http');
 const socketIo = require('socket.io');
 
 const app = express();
+// Cấu hình múi giờ UTC+7
+process.env.TZ = 'Asia/Ho_Chi_Minh'; // Hoặc 'UTC+07:00'
+console.log('Current timezone:', new Date().toString());
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {

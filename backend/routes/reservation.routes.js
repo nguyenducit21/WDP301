@@ -18,7 +18,8 @@ const {
     checkoutTable,
     autoCancelExpiredReservations,
     getChefOrders,
-    updateReservationStatus
+    updateReservationStatus,
+    assignStaffToReservation
 } = require('../controllers/reservation.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware')
@@ -66,8 +67,9 @@ router.patch('/:id/complete', authMiddleware, roleMiddleware(['admin', 'manager'
 router.patch('/:id/payment-status', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), updatePaymentStatus);
 
 router.patch('/:id/checkout', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), checkoutTable)
-
+router.put('/confirm/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), confirmReservation);
 // Cập nhật status đặt bàn (dành cho chef)
 router.patch('/:id/status', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'kitchen_staff']), updateReservationStatus);
+router.put('/assign-staff/:reservationId', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), assignStaffToReservation);
 
 module.exports = router;

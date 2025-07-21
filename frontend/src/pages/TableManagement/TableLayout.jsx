@@ -712,6 +712,28 @@ const TableLayout = () => {
                                 <p><strong>Mô tả:</strong> {selectedTable.description}</p>
                             )}
                         </div>
+
+                        {/* Show reservations for selected table */}
+                        {selectedTable.status === 'occupied' && (
+                            <div className="table-reservations">
+                                <h4>Thông tin đặt bàn (Ngày {new Date(selectedDate).toLocaleDateString()})</h4>
+                                {getTableReservations(selectedTable._id).map(res => (
+                                    <div key={res._id} className="reservation-item">
+                                        <p><strong>Khách hàng:</strong> {res.contact_name}</p>
+                                        <p><strong>SĐT:</strong> {res.contact_phone}</p>
+                                        <p><strong>Thời gian:</strong> {getSlotDisplayText(safeGet(res, 'slot_id._id') || res.slot_id)}</p>
+                                        <p><strong>Số khách:</strong> {res.guest_count}</p>
+                                        <p><strong>Trạng thái:</strong>
+                                            <span className={`status-badge ${res.status}`}>
+                                                {getReservationStatusLabel(res.status)}
+                                            </span>
+                                        </p>
+                                        <p><strong>Nguồn:</strong> {getStaffName(res)}</p>
+                                        {res.notes && <p><strong>Ghi chú:</strong> {res.notes}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

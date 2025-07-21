@@ -37,7 +37,7 @@ import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 import Orders from "./pages/Chef/Orders/Orders";
 import TableLayout from "./pages/TableManagement/TableLayout";
 import ReservationManagement from "./pages/TableManagement/ReservationManagement";
-import ManagerDashboard from "./pages/Dashboard/ManagerDashboard";
+import ManagerDashboard from "./";
 
 const App = () => {
   const location = useLocation();
