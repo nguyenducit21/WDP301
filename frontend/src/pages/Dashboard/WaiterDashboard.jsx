@@ -1,129 +1,201 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     FaTable,
     FaClipboardList,
-    FaClock,
-    FaCheckCircle,
-    FaExclamationCircle,
+    FaMoneyBillWave,
+    FaCalendarAlt,
     FaUtensils,
-    FaBell,
-    FaMoneyBillWave
+    FaReceipt,
+    FaSync,
+    FaFilter,
+    FaCalendarDay,
+    FaCalendarWeek,
+    FaCheckCircle
 } from 'react-icons/fa';
 import axios from '../../utils/axios.customize';
 import './WaiterDashboard.css';
 
 const WaiterDashboard = () => {
+    const navigate = useNavigate();
     const [myTables, setMyTables] = useState([]);
     const [myOrders, setMyOrders] = useState([]);
-    const [notifications, setNotifications] = useState([]);
     const [stats, setStats] = useState({
         assignedTables: 0,
-        activeOrders: 0,
-        completedOrders: 0,
-        totalTips: 0,
-        averageServiceTime: 0
+        todayOrders: 0,
+        todayRevenue: 0,
+        activeOrders: 0
     });
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    // Filter giống ManagerDashboard
+    const [waiterFilter, setWaiterFilter] = useState({
+        period: 'today',
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date().toISOString().split('T')[0]
+    });
 
     useEffect(() => {
-        fetchWaiterData();
-        fetchMyOrders();
-        fetchNotifications();
-    }, []);
+        fetchAllData();
+    }, [waiterFilter]);
+
+    const fetchAllData = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            await Promise.all([
+                fetchWaiterData(),
+                fetchMyTables(),
+                fetchMyOrders()
+            ]);
+        } catch (err) {
+            setError('Lỗi khi tải dữ liệu: ' + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const fetchWaiterData = async () => {
         try {
-            const response = await axios.get('/dashboard/waiter');
+            const params = {
+                period: waiterFilter.period,
+                startDate: waiterFilter.startDate,
+                endDate: waiterFilter.endDate
+            };
+
+            const response = await axios.get('/dashboard/waiter', { params });
+
             if (response.data.success) {
                 setStats(response.data.data);
-
-                // Simulate table data - in real app, this would come from API
-                setMyTables([
-                    { id: 1, number: 'Bàn 1', status: 'occupied', customers: 4, orderTime: '19:30', orderValue: 450000 },
-                    { id: 2, number: 'Bàn 3', status: 'available', customers: 0, orderTime: null, orderValue: 0 },
-                    { id: 3, number: 'Bàn 5', status: 'occupied', customers: 2, orderTime: '20:15', orderValue: 320000 },
-                    { id: 4, number: 'Bàn 7', status: 'reserved', customers: 0, orderTime: '21:00', orderValue: 0 },
-                    { id: 5, number: 'Bàn 9', status: 'occupied', customers: 6, orderTime: '19:45', orderValue: 680000 }
-                ]);
             } else {
-                console.error('Failed to fetch waiter stats:', response.data.message);
-                setStats({
-                    assignedTables: 0,
-                    activeOrders: 0,
-                    completedOrders: 0,
-                    totalTips: 0,
-                    averageServiceTime: 0
-                });
+                console.error('API error:', response.data.message);
+                setError('API error: ' + response.data.message);
             }
-            setLoading(false);
         } catch (error) {
-            console.error('Error fetching waiter data:', error);
-            setStats({
-                assignedTables: 0,
-                activeOrders: 0,
-                completedOrders: 0,
-                totalTips: 0,
-                averageServiceTime: 0
-            });
-            setLoading(false);
+            console.error('Network error:', error.response || error);
+            setError('Không thể tải dữ liệu: ' + error.message);
+        }
+    };
+
+    const fetchMyTables = async () => {
+        try {
+            const response = await axios.get('/dashboard/waiter/my-tables');
+            if (response.data.success) {
+                setMyTables(response.data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching tables:', error);
         }
     };
 
     const fetchMyOrders = async () => {
         try {
-            setTimeout(() => {
-                setMyOrders([
-                    {
-                        id: '#1234',
-                        table: 'Bàn 1',
-                        status: 'preparing',
-                        items: ['Phở Bò', 'Cơm Tấm'],
-                        time: '5 phút trước',
-                        priority: 'high'
-                    },
-                    {
-                        id: '#1235',
-                        table: 'Bàn 5',
-                        status: 'ready',
-                        items: ['Bánh Mì', 'Cà Phê'],
-                        time: '2 phút trước',
-                        priority: 'urgent'
-                    },
-                    {
-                        id: '#1236',
-                        table: 'Bàn 9',
-                        status: 'pending',
-                        items: ['Bún Bò Huế', 'Chè'],
-                        time: '8 phút trước',
-                        priority: 'normal'
-                    },
-                    {
-                        id: '#1237',
-                        table: 'Bàn 1',
-                        status: 'served',
-                        items: ['Nước Ngọt'],
-                        time: '15 phút trước',
-                        priority: 'normal'
-                    }
-                ]);
-            }, 800);
+            const response = await axios.get('/dashboard/waiter/my-orders');
+            if (response.data.success) {
+                setMyOrders(response.data.data);
+            }
         } catch (error) {
             console.error('Error fetching orders:', error);
         }
     };
 
-    const fetchNotifications = async () => {
+    // Event handlers
+    const handleRefresh = () => {
+        fetchAllData();
+    };
+
+    const handlePeriodChange = (period) => {
+        const today = new Date();
+        let startDate = new Date();
+        let endDate = new Date();
+
+        switch (period) {
+            case 'today':
+                startDate = endDate = new Date();
+                break;
+            case 'week':
+                startDate = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
+                break;
+            case 'month':
+                startDate = new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000);
+                break;
+            default:
+                if (period !== 'custom') return;
+        }
+
+        setWaiterFilter(prev => ({
+            ...prev,
+            period,
+            ...(period !== 'custom' && {
+                startDate: startDate.toISOString().split('T')[0],
+                endDate: endDate.toISOString().split('T')[0]
+            })
+        }));
+    };
+
+    const handleFilterChange = (key, value) => {
+        setWaiterFilter(prev => ({ ...prev, [key]: value }));
+    };
+
+    const getPeriodLabel = (period) => {
+        const labels = {
+            today: 'Hôm nay',
+            week: '7 ngày qua',
+            month: '30 ngày qua',
+            custom: 'Tùy chỉnh'
+        };
+        return labels[period] || period;
+    };
+
+    // Action handlers cho reservations
+    const handleConfirmReservation = async (reservationId) => {
         try {
-            setTimeout(() => {
-                setNotifications([
-                    { id: 1, type: 'order_ready', message: 'Đơn hàng #1235 đã sẵn sàng phục vụ', time: '2 phút trước', urgent: true },
-                    { id: 2, type: 'table_request', message: 'Bàn 1 yêu cầu thêm nước', time: '5 phút trước', urgent: false },
-                    { id: 3, type: 'reservation', message: 'Bàn 7 có khách đặt lúc 21:00', time: '10 phút trước', urgent: false },
-                    { id: 4, type: 'payment', message: 'Bàn 3 yêu cầu thanh toán', time: '12 phút trước', urgent: true }
-                ]);
-            }, 600);
+            const response = await axios.patch(`/reservations/${reservationId}/confirm`);
+            if (response.data.success) {
+                fetchMyOrders();
+                alert('Đã xác nhận đặt bàn');
+            }
         } catch (error) {
-            console.error('Error fetching notifications:', error);
+            console.error('Error confirming reservation:', error);
+            alert('Lỗi khi xác nhận đặt bàn');
+        }
+    };
+
+    const handleSeatReservation = async (reservationId) => {
+        try {
+            const response = await axios.patch(`/reservations/${reservationId}/seat`);
+            if (response.data.success) {
+                fetchMyOrders();
+                fetchMyTables();
+                alert('Khách đã vào bàn');
+            }
+        } catch (error) {
+            console.error('Error seating reservation:', error);
+            alert('Lỗi khi xử lý khách vào bàn');
+        }
+    };
+
+    const handleCompleteReservation = async (reservationId) => {
+        try {
+            const response = await axios.patch(`/reservations/${reservationId}/complete`);
+            if (response.data.success) {
+                fetchMyOrders();
+                fetchMyTables();
+                alert('Đã hoàn thành phục vụ');
+            }
+        } catch (error) {
+            console.error('Error completing reservation:', error);
+            alert('Lỗi khi hoàn thành phục vụ');
+        }
+    };
+
+    const handleSeatCustomers = async (reservationId) => {
+        try {
+            await axios.patch(`/reservations/${reservationId}/seat`);
+            fetchMyTables();
+        } catch (error) {
+            console.error('Error seating customers:', error);
         }
     };
 
@@ -139,7 +211,6 @@ const WaiterDashboard = () => {
             case 'available': return 'success';
             case 'occupied': return 'warning';
             case 'reserved': return 'info';
-            case 'cleaning': return 'secondary';
             default: return 'secondary';
         }
     };
@@ -149,27 +220,31 @@ const WaiterDashboard = () => {
             case 'available': return 'Trống';
             case 'occupied': return 'Có khách';
             case 'reserved': return 'Đã đặt';
-            case 'cleaning': return 'Đang dọn';
             default: return status;
         }
     };
 
-    const getOrderStatusColor = (status) => {
+    // Functions cho reservation status (thay thế order status)
+    const getReservationStatusColor = (status) => {
         switch (status) {
             case 'pending': return 'warning';
-            case 'preparing': return 'info';
-            case 'ready': return 'success';
-            case 'served': return 'primary';
+            case 'confirmed': return 'info';
+            case 'seated': return 'primary';
+            case 'cancelled': return 'danger';
+            case 'no_show': return 'secondary';
+            case 'completed': return 'success';
             default: return 'secondary';
         }
     };
 
-    const getOrderStatusText = (status) => {
+    const getReservationStatusText = (status) => {
         switch (status) {
-            case 'pending': return 'Chờ xử lý';
-            case 'preparing': return 'Đang chuẩn bị';
-            case 'ready': return 'Sẵn sàng';
-            case 'served': return 'Đã phục vụ';
+            case 'pending': return 'Chờ xác nhận';
+            case 'confirmed': return 'Đã xác nhận';
+            case 'seated': return 'Đang phục vụ';
+            case 'cancelled': return 'Đã hủy';
+            case 'no_show': return 'Không đến';
+            case 'completed': return 'Hoàn thành';
             default: return status;
         }
     };
@@ -187,151 +262,201 @@ const WaiterDashboard = () => {
 
     return (
         <div className="waiter-dashboard">
+            {/* Header */}
             <div className="dashboard-header">
-                <h1>Dashboard Phục Vụ</h1>
-                <p>Quản lý bàn và đơn hàng của bạn</p>
-            </div>
-
-            {/* Waiter Stats */}
-            <div className="waiter-stats-grid">
-                <div className="waiter-stat-card tables">
-                    <div className="stat-icon">
-                        <FaTable />
-                    </div>
-                    <div className="stat-content">
-                        <h3>Bàn Được Giao</h3>
-                        <p className="stat-number">{stats.assignedTables}</p>
-                        <span className="stat-detail">Đang phục vụ</span>
-                    </div>
+                <div className="header-content">
+                    <h1>Dashboard Phục Vụ</h1>
+                    <p>Quản lý bàn và đơn hàng của bạn</p>
                 </div>
 
-                <div className="waiter-stat-card orders">
-                    <div className="stat-icon">
-                        <FaClipboardList />
-                    </div>
-                    <div className="stat-content">
-                        <h3>Đơn Hàng Hiện Tại</h3>
-                        <p className="stat-number">{stats.activeOrders}</p>
-                        <span className="stat-detail">{stats.completedOrders} đã hoàn thành</span>
-                    </div>
-                </div>
-
-                <div className="waiter-stat-card tips">
-                    <div className="stat-icon">
-                        <FaMoneyBillWave />
-                    </div>
-                    <div className="stat-content">
-                        <h3>Tips Hôm Nay</h3>
-                        <p className="stat-number">{formatCurrency(stats.totalTips)}</p>
-                        <span className="stat-detail">Từ khách hàng</span>
-                    </div>
-                </div>
-
-                <div className="waiter-stat-card time">
-                    <div className="stat-icon">
-                        <FaClock />
-                    </div>
-                    <div className="stat-content">
-                        <h3>Thời Gian Phục Vụ TB</h3>
-                        <p className="stat-number">{stats.averageServiceTime} phút</p>
-                        <span className="stat-detail">Rất tốt!</span>
-                    </div>
+                <div className="dashboard-controls">
+                    <button onClick={handleRefresh} disabled={loading} className="refresh-btn">
+                        <FaSync className={loading ? 'fa-spin' : ''} />
+                        {loading ? 'Đang tải...' : 'Làm mới'}
+                    </button>
+                    {error && <div className="error-message">{error}</div>}
                 </div>
             </div>
 
-            {/* Notifications */}
-            <div className="waiter-notifications">
-                <h2>
-                    <FaBell /> Thông Báo Quan Trọng
-                </h2>
-                <div className="notifications-list">
-                    {notifications.map(notification => (
-                        <div key={notification.id} className={`notification-item ${notification.urgent ? 'urgent' : ''}`}>
-                            <div className="notification-content">
-                                <p>{notification.message}</p>
-                                <span className="notification-time">{notification.time}</span>
-                            </div>
-                            {notification.urgent && <FaExclamationCircle className="urgent-icon" />}
+            {/* Stats với Filter */}
+            <div className="stats-section">
+                <div className="section-header">
+                    <h2>Thống kê phục vụ</h2>
+                    <div className="dashboard-filters">
+                        <div className="quick-filters">
+                            {['today', 'week', 'month', 'custom'].map(period => (
+                                <button
+                                    key={period}
+                                    className={`filter-btn ${waiterFilter.period === period ? 'active' : ''}`}
+                                    onClick={() => handlePeriodChange(period)}
+                                >
+                                    {period === 'today' && <FaCalendarDay />}
+                                    {period === 'week' && <FaCalendarWeek />}
+                                    {period === 'month' && <FaCalendarAlt />}
+                                    {period === 'custom' && <FaFilter />}
+                                    {getPeriodLabel(period)}
+                                </button>
+                            ))}
                         </div>
-                    ))}
+
+                        {waiterFilter.period === 'custom' && (
+                            <div className="custom-date-range">
+                                <input
+                                    type="date"
+                                    value={waiterFilter.startDate}
+                                    onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                                />
+                                <span>đến</span>
+                                <input
+                                    type="date"
+                                    value={waiterFilter.endDate}
+                                    onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="waiter-stats-grid">
+                    <div className="waiter-stat-card tables">
+                        <div className="stat-icon">
+                            <FaTable />
+                        </div>
+                        <div className="stat-content">
+                            <h3>Bàn Phụ Trách</h3>
+                            <p className="stat-number">{stats.assignedTables}</p>
+                            <span className="stat-detail">{myTables.length} đang phục vụ</span>
+                        </div>
+                    </div>
+
+                    <div className="waiter-stat-card orders">
+                        <div className="stat-icon">
+                            <FaClipboardList />
+                        </div>
+                        <div className="stat-content">
+                            <h3>Đơn {getPeriodLabel(waiterFilter.period).toLowerCase()}</h3>
+                            <p className="stat-number">{stats.todayOrders}</p>
+                            <span className="stat-detail">{stats.assignedTables} đang phục vụ</span>
+                        </div>
+                    </div>
+
+                    <div className="waiter-stat-card earnings">
+                        <div className="stat-icon">
+                            <FaMoneyBillWave />
+                        </div>
+                        <div className="stat-content">
+                            <h3>Doanh thu {getPeriodLabel(waiterFilter.period).toLowerCase()}</h3>
+                            <p className="stat-number">{formatCurrency(stats.todayRevenue)}</p>
+                            <span className="stat-detail">Từ các đơn hàng</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
+            {/* Main Content */}
             <div className="waiter-content-grid">
-                {/* My Tables */}
+                {/* Bàn của tôi */}
                 <div className="my-tables">
-                    <h2>Bàn Của Tôi</h2>
+                    <h2>Bàn Của Tôi ({myTables.length})</h2>
                     <div className="tables-grid">
-                        {myTables.map(table => (
+                        {myTables.length > 0 ? myTables.map(table => (
                             <div key={table.id} className={`table-card ${table.status}`}>
                                 <div className="table-header">
-                                    <h3>{table.number}</h3>
+                                    <h3>{table.name}</h3>
                                     <span className={`table-status ${getTableStatusColor(table.status)}`}>
                                         {getTableStatusText(table.status)}
                                     </span>
                                 </div>
                                 <div className="table-details">
-                                    {table.customers > 0 && (
-                                        <p>👥 {table.customers} khách</p>
-                                    )}
-                                    {table.orderTime && (
-                                        <p>🕐 {table.orderTime}</p>
-                                    )}
-                                    {table.orderValue > 0 && (
-                                        <p>💰 {formatCurrency(table.orderValue)}</p>
+                                    <p>👥 {table.customers} khách</p>
+                                    <p>🕐 {table.orderTime}</p>
+                                    {table.currentOrderValue > 0 && (
+                                        <p>💰 {formatCurrency(table.currentOrderValue)}</p>
                                     )}
                                 </div>
                             </div>
-                        ))}
+                        )) : (
+                            <p className="no-data">Chưa có bàn nào được giao</p>
+                        )}
                     </div>
                 </div>
 
-                {/* My Orders */}
+                {/* Đặt bàn cần xử lý */}
                 <div className="my-orders">
-                    <h2>Đơn Hàng Của Tôi</h2>
+                    <h2>Đặt Bàn Cần Xử Lý ({myOrders.length})</h2>
                     <div className="orders-list">
-                        {myOrders.map(order => (
+                        {myOrders.length > 0 ? myOrders.map(order => (
                             <div key={order.id} className={`order-item ${order.priority}`}>
                                 <div className="order-header">
                                     <span className="order-id">{order.id}</span>
                                     <span className="order-table">{order.table}</span>
-                                    <span className={`order-status ${getOrderStatusColor(order.status)}`}>
-                                        {getOrderStatusText(order.status)}
+                                    <span className={`order-status ${getReservationStatusColor(order.status)}`}>
+                                        {getReservationStatusText(order.status)}
                                     </span>
                                 </div>
-                                <div className="order-items">
-                                    <FaUtensils />
-                                    <span>{order.items.join(', ')}</span>
+
+                                <div className="order-customer-info">
+                                    <div className="customer-details">
+                                        <h4>Thông tin khách hàng</h4>
+                                        <span className="customer-name">👤 {order.customer}</span>
+                                        <span className="customer-phone">📞 {order.phone}</span>
+                                        <span className="guest-count">👥 {order.guestCount} khách</span>
+                                    </div>
+                                    <div className="reservation-details">
+                                        <h4>Thời gian đặt bàn</h4>
+                                        <span className="booking-date">📅 Khách đặt: {order.bookingDateTime}</span>
+                                        <span className="dining-date">🍽️ Ngày ăn: {order.diningDate}</span>
+                                        <span className="slot-time">🕐 Khung giờ: {order.slotTime}</span>
+                                    </div>
                                 </div>
-                                <div className="order-time">
-                                    <FaClock />
-                                    <span>{order.time}</span>
+
+                                {order.totalValue > 0 && (
+                                    <div className="order-value-section">
+                                        <span className="order-value">💰 Tổng tiền: {formatCurrency(order.totalValue)}</span>
+                                    </div>
+                                )}
+
+                                <div className="order-actions">
+                                    <button
+                                        className="action-btn detail"
+                                        onClick={() => navigate(`/reservation-management?reservation=${order.reservationId}`)}
+                                    >
+                                        👁️Chi Tiết & Xử Lý
+                                    </button>
                                 </div>
                             </div>
-                        ))}
+                        )) : (
+                            <p className="no-data">Không có đặt bàn cần xử lý</p>
+                        )}
                     </div>
                 </div>
+
             </div>
 
             {/* Quick Actions */}
             <div className="waiter-quick-actions">
                 <h2>Thao Tác Nhanh</h2>
                 <div className="quick-actions-grid">
-                    <button className="quick-action-btn">
+                    <button
+                        className="quick-action-btn"
+                        onClick={() => navigate('/table-layout')}
+                    >
                         <FaTable />
-                        <span>Quản Lý Bàn</span>
+                        <span>Sơ Đồ Bàn</span>
                     </button>
-                    <button className="quick-action-btn">
-                        <FaClipboardList />
-                        <span>Tạo Đơn Hàng</span>
+                    <button
+                        className="quick-action-btn"
+                        onClick={() => navigate('/reservation-management')}
+                    >
+                        <FaCalendarAlt />
+                        <span>Lịch Đặt Bàn</span>
                     </button>
-                    <button className="quick-action-btn">
-                        <FaCheckCircle />
-                        <span>Xác Nhận Phục Vụ</span>
-                    </button>
-                    <button className="quick-action-btn">
-                        <FaMoneyBillWave />
-                        <span>Thanh Toán</span>
+                    <button
+                        className="quick-action-btn"
+                        onClick={() => navigate('/menu')}
+                    >
+                        <FaUtensils />
+                        <span>Xem Menu</span>
                     </button>
                 </div>
             </div>
