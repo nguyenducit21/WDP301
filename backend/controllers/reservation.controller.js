@@ -1786,5 +1786,6 @@ module.exports = {
     autoCancelExpiredReservations,
     getChefOrders,
     updateReservationStatus,
-    updateReservationItems
+    updateReservationItems,
+    assignStaffToReservation
 };

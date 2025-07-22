@@ -19,7 +19,8 @@ const {
     autoCancelExpiredReservations,
     getChefOrders,
     updateReservationStatus,
-    updateReservationItems
+    updateReservationItems,
+    assignStaffToReservation
 } = require('../controllers/reservation.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware')

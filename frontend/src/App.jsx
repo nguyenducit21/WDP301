@@ -38,7 +38,7 @@ import Orders from "./pages/Chef/Orders/Orders";
 import TableLayout from "./pages/TableManagement/TableLayout";
 import ReservationManagement from "./pages/TableManagement/ReservationManagement";
 import WaiterLayout from "./pages/Waiter/WaiterLayout";
-import WaiterDashboard from "./pages/Waiter/Dashboard";
+import WaiterDashboard from "./pages/Dashboard/WaiterDashboard";
 import WaiterProducts from "./pages/Waiter/WaiterProducts";
 import Schedule from "./pages/Waiter/Schedule/Schedule";
 import PromotionManagement from './pages/PromotionManagement';
