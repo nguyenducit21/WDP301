@@ -14,6 +14,7 @@ const Combo = require("./combo.model");
 const Inventory = require("./inventory.model");
 const MenuItemRecipe = require("./menuItemRecipe.model");
 const ImportReceipt = require("./importReceipt.model");
+const Promotion = require('./promotion.model');
 
 
 module.exports = {

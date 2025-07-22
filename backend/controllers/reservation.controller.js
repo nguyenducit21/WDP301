@@ -6,6 +6,7 @@ const Log = require('../models/log.model');
 const Order = require('../models/order.model')
 const mongoose = require('mongoose');
 const User = require('../models/user.model');
+const { createOrderAssignment } = require('./orderAssignment.controller');
 
 // Lấy tất cả đặt bàn
 const getReservations = async (req, res) => {
@@ -293,124 +294,6 @@ const validateBookingTime = async (date, slot_id) => {
     }
 };
 
-// Hàm gửi thông báo cho nhân viên
-// TEMPORARILY DISABLED - Comment by user request
-/*
-const notifyStaff = async (reservation) => {
-    try {
-        const User = require('../models/user.model');
-        const sendmail = require('../helper/sendmail.helper');
-
-        // Lấy danh sách email của nhân viên
-        const staffUsers = await User.find({
-            role: { $in: ['admin', 'manager', 'waiter'] }
-        }).select('email full_name');
-
-        if (staffUsers.length === 0) {
-            console.log('Không tìm thấy nhân viên để gửi thông báo');
-            return;
-        }
-
-        const staffEmails = staffUsers.map(staff => staff.email).join(', ');
-
-        // Format thời gian
-        const reservationDate = new Date(reservation.date);
-        const formattedDate = reservationDate.toLocaleDateString('vi-VN', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-
-        const formattedTime = `${reservation.slot_start_time} - ${reservation.slot_end_time}`;
-
-        // Tạo nội dung email
-        const emailSubject = '🔔 Có đặt bàn mới - Thông báo khẩn';
-
-        const emailContent = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #e74c3c; text-align: center;">🔔 THÔNG BÁO ĐẶT BÀN MỚI</h2>
-
-                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    <h3 style="color: #2c3e50; margin-top: 0;">📋 Thông tin đặt bàn:</h3>
-
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <tr>
-                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">👤 Khách hàng:</td>
-                            <td style="padding: 8px 0;">${reservation.contact_name}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">📞 Số điện thoại:</td>
-                            <td style="padding: 8px 0;">${reservation.contact_phone}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">📧 Email:</td>
-                            <td style="padding: 8px 0;">${reservation.contact_email || 'Không có'}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">📅 Ngày:</td>
-                            <td style="padding: 8px 0;">${formattedDate}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">⏰ Thời gian:</td>
-                            <td style="padding: 8px 0;">${formattedTime}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">👥 Số khách:</td>
-                            <td style="padding: 8px 0;">${reservation.guest_count} người</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 8px 0; font-weight: bold; color: #34495e;">🪑 Bàn:</td>
-                            <td style="padding: 8px 0;">${reservation.table_id?.name || 'Chưa xác định'}</td>
-                        </tr>
-                    </table>
-                </div>
-
-                ${reservation.pre_order_items && reservation.pre_order_items.length > 0 ? `
-                <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
-                    <h4 style="color: #856404; margin-top: 0;">🍽️ Món đặt trước:</h4>
-                    <ul style="margin: 0; padding-left: 20px;">
-                        ${reservation.pre_order_items.map(item =>
-            `<li>${item.menu_item_id?.name || 'Món không xác định'} - ${item.quantity} phần</li>`
-        ).join('')}
-                    </ul>
-                </div>
-                ` : ''}
-
-                ${reservation.notes ? `
-                <div style="background-color: #d1ecf1; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #17a2b8;">
-                    <h4 style="color: #0c5460; margin-top: 0;">📝 Ghi chú:</h4>
-                    <p style="margin: 0;">${reservation.notes}</p>
-                </div>
-                ` : ''}
-
-                <div style="text-align: center; margin-top: 30px;">
-                    <p style="color: #7f8c8d; font-size: 14px;">
-                        ⚠️ Vui lòng xác nhận đặt bàn này trong hệ thống quản lý
-                    </p>
-                </div>
-
-                <hr style="border: none; border-top: 1px solid #ecf0f1; margin: 30px 0;">
-
-                <div style="text-align: center; color: #95a5a6; font-size: 12px;">
-                    <p>Email tự động từ hệ thống quản lý nhà hàng</p>
-                    <p>Thời gian gửi: ${new Date().toLocaleString('vi-VN')}</p>
-                </div>
-            </div>
-        `;
-
-        // Gửi email
-        sendmail.send(staffEmails, emailSubject, emailContent);
-
-        console.log(`Đã gửi thông báo đặt bàn mới cho ${staffUsers.length} nhân viên`);
-
-    } catch (error) {
-        console.error('Lỗi khi gửi thông báo cho nhân viên:', error);
-        // Không throw error để không ảnh hưởng đến quá trình đặt bàn
-    }
-};
-*/
-
 // Tạo đặt bàn mới
 const createReservation = async (req, res) => {
     try {
@@ -608,6 +491,20 @@ const createReservation = async (req, res) => {
 
         const reservation = new Reservation(reservationData);
         await reservation.save();
+
+        console.log('🍽️ Processed pre-order items:', processedPreOrderItems.length, processedPreOrderItems);
+
+        // Tạo order assignment cho reservation mới (luôn tạo cho mọi reservation)
+        console.log('📋 Creating order assignment for new reservation:', reservation._id);
+        try {
+            // Tính priority: nếu có pre_order_items thì priority cao hơn
+            const priority = processedPreOrderItems.length > 0 ? 2 : 1;
+            await createOrderAssignment(reservation._id, 'reservation', priority);
+            console.log('✅ Order assignment created successfully with priority:', priority);
+        } catch (error) {
+            console.error('❌ Error creating order assignment:', error);
+            // Không fail toàn bộ request nếu assignment thất bại
+        }
 
         try {
             await reservation.populate([
@@ -1569,7 +1466,7 @@ const autoCancelExpiredReservations = async (req, res) => {
         const updateResult = await Reservation.updateMany(
             { _id: { $in: reservationIds } },
             {
-                status: 'no_show',
+                status: 'cancelled',
                 auto_cancelled_at: now,
                 updated_at: now,
                 notes: function () {
@@ -1649,20 +1546,9 @@ const autoCancelExpiredReservations = async (req, res) => {
 
 const getChefOrders = async (req, res) => {
     try {
-        // 1. Pre-orders đã thanh toán
-        const paidPreOrders = await Reservation.find({
-            payment_status: 'paid',
+        // Lấy tất cả reservations có pre_order_items và status phù hợp
+        const allReservations = await Reservation.find({
             'pre_order_items.0': { $exists: true },
-            status: { $in: ['pending', 'confirmed', 'completed', 'cancelled'] }
-        })
-            .populate('customer_id', 'full_name phone')
-            .populate('table_ids', 'name')
-            .populate('pre_order_items.menu_item_id', 'name price image')
-            .sort({ created_at: -1 });
-
-        // 2. Orders được staff đặt hộ (created_by_staff khác null)
-        const staffReservations = await Reservation.find({
-            created_by_staff: { $exists: true, $ne: null },
             status: { $in: ['pending', 'confirmed', 'completed', 'cancelled'] }
         })
             .populate('customer_id', 'full_name phone')
@@ -1671,49 +1557,52 @@ const getChefOrders = async (req, res) => {
             .populate('pre_order_items.menu_item_id', 'name price image')
             .sort({ created_at: -1 });
 
-        // Format dữ liệu
-        const formattedPreOrders = paidPreOrders.map(reservation => ({
-            id: reservation._id,
-            type: 'pre_order',
-            customer_name: reservation.contact_name,
-            customer_phone: reservation.contact_phone,
-            tables: reservation.table_ids?.map(table => table.name).join(', ') || 'N/A',
-            items: reservation.pre_order_items.map(item => ({
-                menu_item: item.menu_item_id,
-                quantity: item.quantity
-            })),
-            total_amount: reservation.total_amount,
-            created_at: reservation.created_at,
-            status: reservation.status,
-            note: reservation.notes || ''
-        }));
+        // Phân loại reservations
+        const preOrders = [];
+        const staffOrders = [];
 
-        const formattedStaffOrders = staffReservations.map(reservation => ({
-            id: reservation._id,
-            type: 'staff_order',
-            customer_name: reservation.contact_name,
-            customer_phone: reservation.contact_phone,
-            tables: reservation.table_ids?.map(table => table.name).join(', ') || 'N/A',
-            items: reservation.pre_order_items.map(item => ({
-                menu_item: item.menu_item_id,
-                quantity: item.quantity
-            })),
-            total_amount: reservation.total_amount,
-            created_at: reservation.created_at,
-            status: reservation.status,
-            note: reservation.notes || '',
-            staff_name: reservation.created_by_staff?.full_name || 'N/A'
-        }));
+        allReservations.forEach(reservation => {
+            const orderData = {
+                id: reservation._id,
+                customer_name: reservation.contact_name,
+                customer_phone: reservation.contact_phone,
+                tables: reservation.table_ids?.map(table => table.name).join(', ') || 'N/A',
+                items: reservation.pre_order_items.map(item => ({
+                    menu_item: item.menu_item_id,
+                    quantity: item.quantity
+                })),
+                total_amount: reservation.total_amount,
+                created_at: reservation.created_at,
+                status: reservation.status,
+                note: reservation.notes || ''
+            };
+
+            // Nếu có created_by_staff, phân loại là staff_order
+            if (reservation.created_by_staff) {
+                staffOrders.push({
+                    ...orderData,
+                    type: 'staff_order',
+                    staff_name: reservation.created_by_staff?.full_name || 'N/A'
+                });
+            }
+            // Nếu không có created_by_staff nhưng đã thanh toán, phân loại là pre_order
+            else if (reservation.payment_status === 'paid') {
+                preOrders.push({
+                    ...orderData,
+                    type: 'pre_order'
+                });
+            }
+        });
 
         // Gộp và sắp xếp theo thời gian tạo
-        const allOrders = [...formattedPreOrders, ...formattedStaffOrders]
+        const allOrders = [...preOrders, ...staffOrders]
             .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
         res.status(200).json({
             success: true,
             data: {
-                pre_orders: formattedPreOrders,
-                staff_orders: formattedStaffOrders,
+                pre_orders: preOrders,
+                staff_orders: staffOrders,
                 all_orders: allOrders
             }
         });
@@ -1759,15 +1648,21 @@ const updateReservationStatus = async (req, res) => {
             await reservation.populate([
                 { path: 'table_id', select: 'name capacity area_id' },
                 { path: 'customer_id', select: 'username full_name email phone' },
-                { path: 'created_by_staff', select: 'username full_name' }
+                { path: 'created_by_staff', select: 'username full_name' },
+                { path: 'pre_order_items.menu_item_id', select: 'name image' }
             ]);
-            global.io.to('waiters').emit('reservation_completed', {
+            global.io.to('staff-room').emit('reservation_completed', {
                 id: reservation._id,
                 tables: reservation.table_id?.name || '',
                 customer: reservation.customer_id?.full_name || reservation.contact_name || '',
                 guest_count: reservation.guest_count,
                 time: reservation.updated_at,
-                note: reservation.notes || ''
+                note: reservation.notes || '',
+                items: (reservation.pre_order_items || []).map(item => ({
+                    name: item.menu_item_id?.name || '',
+                    image: item.menu_item_id?.image || '',
+                    quantity: item.quantity
+                }))
             });
         }
 
@@ -1781,6 +1676,96 @@ const updateReservationStatus = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Lỗi khi cập nhật trạng thái đặt bàn',
+            error: error.message
+        });
+    }
+};
+
+// Cập nhật items cho reservation (khi khách chọn món sau khi đặt bàn)
+const updateReservationItems = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { pre_order_items } = req.body;
+
+        // Tìm reservation
+        const reservation = await Reservation.findById(id);
+        if (!reservation) {
+            return res.status(404).json({
+                success: false,
+                message: 'Không tìm thấy đặt bàn'
+            });
+        }
+
+        // Kiểm tra trạng thái reservation
+        if (!['pending', 'confirmed'].includes(reservation.status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Chỉ có thể cập nhật món ăn cho đặt bàn đang chờ hoặc đã xác nhận'
+            });
+        }
+
+        // Xử lý pre_order_items
+        let processedPreOrderItems = [];
+        if (pre_order_items && Array.isArray(pre_order_items) && pre_order_items.length > 0) {
+            for (const item of pre_order_items) {
+                if (!item.menu_item_id || !item.quantity || item.quantity <= 0) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Thông tin món ăn không hợp lệ'
+                    });
+                }
+
+                const menuItem = await MenuItem.findById(item.menu_item_id);
+                if (!menuItem) {
+                    return res.status(400).json({
+                        success: false,
+                        message: `Không tìm thấy món ăn với ID: ${item.menu_item_id}`
+                    });
+                }
+
+                processedPreOrderItems.push({
+                    menu_item_id: item.menu_item_id,
+                    quantity: item.quantity
+                });
+            }
+        }
+
+        // Cập nhật reservation
+        const hadPreOrderBefore = reservation.pre_order_items && reservation.pre_order_items.length > 0;
+        reservation.pre_order_items = processedPreOrderItems;
+        reservation.updated_at = new Date();
+
+        await reservation.save();
+
+        // Populate thông tin để response
+        await reservation.populate([
+            { path: 'table_ids', select: 'name' },
+            { path: 'pre_order_items.menu_item_id', select: 'name price image' }
+        ]);
+
+        console.log('🔄 Updated reservation items:', reservation._id, 'Items count:', processedPreOrderItems.length);
+
+        // Cập nhật assignment nếu có
+        try {
+            const { updateOrderAssignment } = require('./orderAssignment.controller');
+            await updateOrderAssignment(reservation._id, 'reservation', processedPreOrderItems);
+            console.log('✅ Order assignment updated successfully');
+        } catch (error) {
+            console.error('❌ Error updating order assignment:', error);
+            // Không fail request nếu assignment update thất bại
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Cập nhật món ăn thành công',
+            data: reservation
+        });
+
+    } catch (error) {
+        console.error('Error updating reservation items:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi cập nhật món ăn',
             error: error.message
         });
     }
@@ -1804,5 +1789,6 @@ module.exports = {
     checkoutTable,
     autoCancelExpiredReservations,
     getChefOrders,
-    updateReservationStatus
+    updateReservationStatus,
+    updateReservationItems
 };

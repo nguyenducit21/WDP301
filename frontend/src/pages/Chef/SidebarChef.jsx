@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import {
   FaHome,
   FaUtensils,
@@ -8,17 +8,20 @@ import {
   FaBoxes,
   FaReceipt,
   FaFileInvoice,
-  FaChartLine
+  FaChartLine,
+  FaSignOutAlt
 } from "react-icons/fa";
 import "./SidebarChef.css";
 import logo from "../../assets/logo.png";
 import { useNavigate, useLocation } from "react-router-dom";
+import { AuthContext } from "../../context/AuthContext";
 
 const ChefSidebar = ({ collapsed, setCollapsed }) => {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [inventoryMenu, setInventoryMenu] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useContext(AuthContext);
 
   const getCurrentTab = () => {
     if (location.pathname.includes("orders")) return "orders";
@@ -40,6 +43,15 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
   const handleLogoClick = () => {
     if (collapsed) {
       setCollapsed(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    const result = await logout();
+    if (result.success) {
+      navigate("/login");
+    } else {
+      alert(result.message || "Đăng xuất thất bại");
     }
   };
 
@@ -160,6 +172,12 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
             </li>
           </ul>
         )}
+
+        {/* Nút đăng xuất */}
+        <li className="logout-item" onClick={handleLogout}>
+          <FaSignOutAlt className="sidebar-icon" />
+          {!collapsed && <span>Đăng xuất</span>}
+        </li>
       </ul>
     </div>
   );

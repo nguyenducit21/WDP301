@@ -82,7 +82,7 @@ const Login = () => {
                     navigate('/dashboard');
                     break;
                 case 'waiter':
-                    navigate('/dashboard');
+                    navigate('/waiter');
                     break;
                 case 'kitchen_staff':
                     navigate('/chef/products');

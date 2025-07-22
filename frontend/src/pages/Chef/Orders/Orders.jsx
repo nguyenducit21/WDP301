@@ -118,9 +118,9 @@ const Orders = () => {
         }
     };
 
-    const renderOrderCard = (order) => {
+    const renderOrderCard = (order, index) => {
         return (
-            <div key={order.id} className="order-card">
+            <div key={`${order.id}-${order.type}-${index}`} className="order-card">
                 <div className="order-header">
                     <div className="order-type">
                         {order.type === 'pre_order' ? '🕐 Đặt trước' : '👨‍💼 Nhân viên đặt'}
@@ -211,7 +211,12 @@ const Orders = () => {
             }
         })();
 
-        return filtered;
+        // Loại bỏ duplicate orders dựa trên ID
+        const uniqueOrders = filtered.filter((order, index, self) =>
+            index === self.findIndex(o => o.id === order.id)
+        );
+
+        return uniqueOrders;
     };
 
     if (loading) {
@@ -270,7 +275,7 @@ const Orders = () => {
                         <p>📭 Không có orders nào</p>
                     </div>
                 ) : (
-                    getFilteredOrders().map(renderOrderCard)
+                    getFilteredOrders().map((order, index) => renderOrderCard(order, index))
                 )}
             </div>
         </div>

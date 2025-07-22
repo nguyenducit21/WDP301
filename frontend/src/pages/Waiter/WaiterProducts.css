@@ -1,0 +1,55 @@
+.waiter-products {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.products-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.products-header h1 {
+    color: #333;
+    margin: 0 0 10px 0;
+    font-size: 32px;
+}
+
+.products-header p {
+    color: #666;
+    font-size: 18px;
+    margin: 0;
+}
+
+.products-content {
+    display: grid;
+    gap: 20px;
+}
+
+.product-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.product-card:hover {
+    transform: translateY(-2px);
+}
+
+.product-card h3 {
+    color: #333;
+    margin: 0 0 15px 0;
+    font-size: 20px;
+}
+
+.product-card p {
+    color: #666;
+    margin: 0;
+    font-size: 16px;
+}

@@ -112,11 +112,6 @@ const ReservationHistory = ({ userId }) => {
     );
   });
 
-  // Debug: Log dữ liệu để kiểm tra
-  console.log('Reservations state:', reservations);
-  console.log('Filtered reservations:', filtered);
-  console.log('Loading state:', loading);
-
   return (
     <div className="reservation-history-container">
       <h1 className="page-title">Lịch sử đặt bàn</h1>

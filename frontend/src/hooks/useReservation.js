@@ -46,7 +46,8 @@ export const useReservation = () => {
                         ...prevForm,
                         name: user.full_name || user.name || prevForm.name,
                         email: user.email || prevForm.email,
-                        // Keep existing values for phone, guest_count, date, slot_id
+                        phone: user.phone || prevForm.phone,
+                        
                     }));
                 } else {
                     setIsAuthenticated(false);

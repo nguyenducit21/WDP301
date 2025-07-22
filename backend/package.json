@@ -26,10 +26,11 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.15.0",
     "multer": "^2.0.1",
+    "node-cron": "^4.2.1",
     "nodemailer": "^7.0.4",
     "qs": "^6.13.1",
-    "socket.io": "^4.8.1",
     "react-tooltip": "^5.29.1",
+    "socket.io": "^4.8.1",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

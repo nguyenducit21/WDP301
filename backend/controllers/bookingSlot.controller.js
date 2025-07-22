@@ -4,7 +4,7 @@ const BookingSlot = require('../models/BookingSlot');
 const getBookingSlots = async (req, res) => {
     try {
         const bookingSlots = await BookingSlot.find()
-            .sort({ number: 1 });
+            .sort({ start_time: 1 });
 
         res.status(200).json({
             success: true,
