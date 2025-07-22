@@ -161,34 +161,31 @@ const SuccessModal = ({
                     {/* Promotion code section */}
                     <div className="promotion-section">
                         <label>Nhập mã khuyến mại (nếu có):</label>
-                        <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                        <div className="promotion-input-wrap">
                             <input
                                 type="text"
                                 value={promotionCode}
                                 onChange={e => setPromotionCode(e.target.value)}
                                 placeholder="Nhập mã khuyến mại"
                                 disabled={promotionLoading}
+                                className="promotion-modern-input"
                             />
-                            <button onClick={handleApplyPromotion} disabled={promotionLoading || !promotionCode.trim()}>
+                            <button
+                                className="promotion-modern-btn"
+                                onClick={handleApplyPromotion}
+                                disabled={promotionLoading || !promotionCode.trim()}
+                            >
                                 {promotionLoading ? 'Đang kiểm tra...' : 'Áp dụng'}
                             </button>
                         </div>
-                        {promotionError && <div style={{ color: 'red', marginTop: 2 }}>{promotionError}</div>}
+                        {promotionError && <div className="promotion-modern-error">{promotionError}</div>}
                         {promotionResult && promotionResult.success && (
-                            <div className="promotion-info-box">
-                                <div style={{ color: 'green', fontWeight: 600 }}>
-                                    Đã áp dụng mã: <b>{promotionResult.promotion.code}</b> - Giảm {promotionResult.discount.toLocaleString()}đ
-                                </div>
-                                <div style={{ fontSize: 13, marginTop: 2 }}>
-                                    <b>Loại:</b> {promotionResult.promotion.type === 'percent' ? 'Giảm theo %' : promotionResult.promotion.type === 'fixed' ? 'Giảm số tiền' : 'Đơn đầu tiên'}<br />
-                                    {promotionResult.promotion.description && <><b>Mô tả:</b> {promotionResult.promotion.description}<br /></>}
-                                    {promotionResult.promotion.minOrderValue && <><b>Đơn tối thiểu:</b> {promotionResult.promotion.minOrderValue.toLocaleString()}đ<br /></>}
-                                    {promotionResult.promotion.maxDiscount && <><b>Giảm tối đa:</b> {promotionResult.promotion.maxDiscount.toLocaleString()}đ<br /></>}
-                                    <b>Thời hạn:</b> {new Date(promotionResult.promotion.startDate).toLocaleDateString()} - {new Date(promotionResult.promotion.endDate).toLocaleDateString()}
-                                </div>
+                            <div className="promotion-modern-success">
+                                Đã áp dụng mã: <b>{promotionResult.promotion.code}</b> - Giảm {promotionResult.discount.toLocaleString()}đ
                             </div>
                         )}
                     </div>
+
 
                     {/* Pre-order section */}
                     <div className="pre-order-section">
