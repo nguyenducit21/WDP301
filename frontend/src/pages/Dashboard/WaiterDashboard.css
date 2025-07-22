@@ -1,0 +1,618 @@
+/* Waiter Dashboard Styles */
+.waiter-dashboard {
+    padding: 24px;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    margin-bottom: 32px;
+}
+
+.dashboard-header h1 {
+    color: #2c3e50;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.dashboard-header p {
+    color: #6c757d;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* Loading Spinner */
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #17a2b8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Waiter Stats Grid */
+.waiter-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.waiter-stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.waiter-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.waiter-stat-card .stat-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+}
+
+.waiter-stat-card.tables .stat-icon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.waiter-stat-card.orders .stat-icon {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.waiter-stat-card.tips .stat-icon {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.waiter-stat-card.time .stat-icon {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.waiter-stat-card .stat-content h3 {
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.waiter-stat-card .stat-number {
+    color: #2c3e50;
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0 0 4px 0;
+}
+
+.waiter-stat-card .stat-detail {
+    font-size: 0.85rem;
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Notifications */
+.waiter-notifications {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 32px;
+}
+
+.waiter-notifications h2 {
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.waiter-notifications h2 svg {
+    color: #ffc107;
+}
+
+.notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.notification-item {
+    padding: 16px;
+    border-radius: 8px;
+    background: #f8f9fa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+    border-left: 4px solid #dee2e6;
+}
+
+.notification-item.urgent {
+    background: #fff5f5;
+    border-left-color: #dc3545;
+}
+
+.notification-item:hover {
+    background: #e9ecef;
+}
+
+.notification-content p {
+    color: #2c3e50;
+    font-weight: 500;
+    margin: 0 0 4px 0;
+}
+
+.notification-time {
+    color: #6c757d;
+    font-size: 0.85rem;
+}
+
+.urgent-icon {
+    color: #dc3545;
+    font-size: 18px;
+}
+
+/* Content Grid */
+.waiter-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+/* My Tables */
+.my-tables {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.my-tables h2 {
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+}
+
+.tables-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.table-card {
+    padding: 20px;
+    border-radius: 8px;
+    border: 2px solid #dee2e6;
+    transition: all 0.2s;
+}
+
+.table-card.available {
+    border-color: #28a745;
+    background: #f8fff9;
+}
+
+.table-card.occupied {
+    border-color: #ffc107;
+    background: #fffdf5;
+}
+
+.table-card.reserved {
+    border-color: #17a2b8;
+    background: #f5feff;
+}
+
+.table-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.table-header h3 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.table-status {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.table-status.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.table-status.warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.table-status.info {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.table-details p {
+    margin: 4px 0;
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+/* My Orders */
+/* Sửa lại My Orders Section */
+.my-orders {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+.my-orders h2 {
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0 0 24px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.my-orders h2::before {
+    content: '📋';
+    font-size: 1.2rem;
+}
+
+/* Order Items Container */
+.orders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+/* Individual Order Card */
+.order-item {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    overflow: hidden;
+}
+
+.order-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+/* Priority Colors */
+.order-item.urgent {
+    border-left: 4px solid #dc3545;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15);
+}
+
+.order-item.high {
+    border-left: 4px solid #ffc107;
+    box-shadow: 0 2px 8px rgba(255, 193, 7, 0.15);
+}
+
+.order-item.normal {
+    border-left: 4px solid #28a745;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.15);
+}
+
+/* Order Header */
+.order-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px 12px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-bottom: 1px solid #dee2e6;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.order-id {
+    font-weight: 700;
+    color: white;
+    background: #007bff;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.order-table {
+    font-weight: 600;
+    color: #495057;
+    background: #e9ecef;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+/* Status Badge */
+.order-status {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+}
+
+.order-status.warning {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+    color: #856404;
+}
+
+.order-status.info {
+    background: linear-gradient(135deg, #d1ecf1 0%, #81ecec 100%);
+    color: #0c5460;
+}
+
+.order-status.primary {
+    background: linear-gradient(135deg, #cce5ff 0%, #74b9ff 100%);
+    color: #004085;
+}
+
+.order-status.success {
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    color: #155724;
+}
+
+.order-status.danger {
+    background: linear-gradient(135deg, #f8d7da 0%, #f1b0b7 100%);
+    color: #721c24;
+}
+
+.order-status.secondary {
+    background: linear-gradient(135deg, #e2e3e5 0%, #c6c8ca 100%);
+    color: #383d41;
+}
+
+/* Customer Info Section */
+.order-customer-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.customer-details, .reservation-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.customer-details h4, .reservation-details h4 {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #6c757d;
+    margin: 0 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 4px;
+}
+
+.customer-name, .customer-phone, .guest-count, 
+.booking-date, .dining-date, .slot-time {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #495057;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 4px 0;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.customer-name {
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.booking-date {
+    color: #17a2b8 !important;
+    font-weight: 600;
+}
+
+.dining-date {
+    color: #28a745 !important;
+    font-weight: 600;
+}
+
+.slot-time {
+    color: #fd7e14 !important;
+    font-weight: 600;
+}
+
+/* Order Value Section */
+.order-value-section {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%);
+    border-bottom: 1px solid #c3e6cb;
+    text-align: center;
+}
+
+.order-value-section .order-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #155724;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 8px 16px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+/* Actions Section */
+.order-actions {
+    padding: 20px;
+    background: white;
+    text-align: center;
+}
+
+/* Action Button */
+.action-btn.detail {
+    width: 100%;
+    max-width: 300px;
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.action-btn.detail:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* No Data State */
+.no-data {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+    font-style: italic;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+}
+
+.no-data::before {
+    content: '📝';
+    display: block;
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.5;
+}
+
+/* Animation for urgent items */
+.order-item.urgent {
+    animation: urgentPulse 2s infinite;
+}
+
+@keyframes urgentPulse {
+    0% { box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15); }
+    50% { box-shadow: 0 4px 16px rgba(220, 53, 69, 0.25); }
+    100% { box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15); }
+}
+
+/* Responsive Design for Orders */
+@media (max-width: 768px) {
+    .order-customer-info {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        padding: 16px;
+    }
+    
+    .order-header {
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+        text-align: center;
+        padding: 16px;
+    }
+    
+    .order-actions {
+        padding: 16px;
+    }
+    
+    .action-btn.detail {
+        font-size: 0.8rem;
+        padding: 12px 16px;
+    }
+    
+    .customer-name, .customer-phone, .guest-count, 
+    .booking-date, .dining-date, .slot-time {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .my-orders {
+        padding: 16px;
+    }
+    
+    .order-header, .order-customer-info, .order-value-section, .order-actions {
+        padding: 12px;
+    }
+    
+    .order-id, .order-table, .order-status {
+        font-size: 0.7rem;
+        padding: 4px 8px;
+    }
+    
+    .action-btn.detail {
+        font-size: 0.75rem;
+        padding: 10px 12px;
+    }
+}

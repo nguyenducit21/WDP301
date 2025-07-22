@@ -37,25 +37,18 @@ import ForgotPassword from "./pages/ForgotPassword/ForgotPassword";
 import Orders from "./pages/Chef/Orders/Orders";
 import TableLayout from "./pages/TableManagement/TableLayout";
 import ReservationManagement from "./pages/TableManagement/ReservationManagement";
-import WaiterLayout from "./pages/Waiter/WaiterLayout";
-import WaiterDashboard from "./pages/Waiter/Dashboard";
-import WaiterProducts from "./pages/Waiter/WaiterProducts";
-import Schedule from "./pages/Waiter/Schedule/Schedule";
-import PromotionManagement from './pages/PromotionManagement';
-import ManagerDashboard from "./pages/Dashboard/ManagerDashboard";
+import ManagerDashboard from "./";
 
 const App = () => {
   const location = useLocation();
   const isChefPage = location.pathname.includes("/chef");
   const isTableBooking = location.pathname.includes("/table-booking");
   const isMenuPage = location.pathname.includes("/menu");
-  const isDashboardPage = location.pathname.includes("/dashboard");
-  const isWaiterPage = location.pathname.includes("/waiter");
 
   return (
     <>
       <div className="app">
-        {!isChefPage && !isDashboardPage && !isWaiterPage && <Navbar isPositionUnset={isTableBooking || isMenuPage} />}
+        {!isChefPage && <Navbar isPositionUnset={isTableBooking || isMenuPage} />}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/cart" element={<Cart />} />
@@ -91,19 +84,10 @@ const App = () => {
           <Route path="/areas" element={<AreaManagement />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/promotion-management" element={<PromotionManagement />} />
-
-          {/* Waiter */}
-          <Route path="/waiter" element={<WaiterLayout />}>
-            <Route index element={<WaiterDashboard />} />
-            <Route path="table-layout" element={<TableLayout />} />
-            <Route path="products" element={<WaiterProducts />} />
-            <Route path="schedule" element={<Schedule />} />
-          </Route>
 
         </Routes>
         {!isChefPage && <ScrollToTopButton />}
-        {!isChefPage && !isDashboardPage && !isWaiterPage && <Footer />}
+        {!isChefPage && <Footer />}
         <ToastContainer
           position="top-right"
           autoClose={5000}

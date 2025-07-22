@@ -8,6 +8,9 @@ const cron = require('node-cron');
 const { autoCancelExpiredReservations } = require('./controllers/reservation.controller');
 
 const app = express();
+// Cấu hình múi giờ UTC+7
+process.env.TZ = 'Asia/Ho_Chi_Minh'; // Hoặc 'UTC+07:00'
+console.log('Current timezone:', new Date().toString());
 const server = http.createServer(app);
 
 // Initialize Socket.io

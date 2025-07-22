@@ -21,6 +21,11 @@ const ReservationSchema = new Schema({
     ref: "User",
     required: false, // Null = khách tự đặt, có giá trị = nhân viên đặt
   },
+  assigned_staff: { 
+    type: Schema.Types.ObjectId,
+    ref: "User",
+    required: false // Nhân viên được assign để phục vụ bàn này
+  },
   status: {
     type: String,
     enum: [

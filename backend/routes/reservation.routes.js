@@ -67,9 +67,10 @@ router.patch('/:id/complete', authMiddleware, roleMiddleware(['admin', 'manager'
 router.patch('/:id/payment-status', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), updatePaymentStatus);
 
 router.patch('/:id/checkout', authMiddleware, roleMiddleware(['admin', 'manager', 'staff', 'waiter']), checkoutTable)
-
+router.put('/confirm/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), confirmReservation);
 // Cập nhật status đặt bàn (dành cho chef)
 router.patch('/:id/status', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'kitchen_staff']), updateReservationStatus);
+router.put('/assign-staff/:reservationId', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter']), assignStaffToReservation);
 
 // Cập nhật items cho reservation (khi khách chọn món sau khi đặt bàn)
 router.patch('/:id/items', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), updateReservationItems);
