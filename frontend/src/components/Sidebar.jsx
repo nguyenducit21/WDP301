@@ -1,10 +1,11 @@
 // import React, { useContext } from "react";
 // import { AuthContext } from "../context/AuthContext";
 // import Notification from "./Notification/Notification";
-import React, { useState } from "react";
-import { FaHome, FaUtensils, FaChevronDown, FaList, FaUsers, FaUserTie, FaClipboardList, FaCog, FaChartBar, FaBoxes, FaReceipt, FaFileInvoice, FaTrash, FaShoppingCart, FaCreditCard } from "react-icons/fa";
+import React, { useState, useContext } from "react";
+import { FaHome, FaUtensils, FaSignOutAlt, FaChevronDown, FaList, FaUsers, FaUserTie, FaClipboardList, FaCog, FaChartBar, FaBoxes, FaReceipt, FaFileInvoice, FaTrash, FaShoppingCart, FaCreditCard, FaGift } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { AuthContext } from "../context/AuthContext";
 
 const Sidebar = ({ collapsed, setCollapsed }) => {
     const [statsMenu, setStatsMenu] = useState(false);
@@ -13,9 +14,21 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
     const [employeeMenu, setEmployeeMenu] = useState(false);
     const [settingsMenu, setSettingsMenu] = useState(false);
     const [inventoryMenu, setInventoryMenu] = useState(false);
+    const { logout } = useContext(AuthContext);
 
     const navigate = useNavigate();
     const location = useLocation();
+
+
+    const handleLogout = async () => {
+        const result = await logout();
+        if (result.success) {
+            navigate("/login");
+        } else {
+            alert(result.message || "Đăng xuất thất bại");
+        }
+    };
+
 
     // Xác định tab hiện tại dựa trên URL
     const getCurrentTab = () => {
@@ -31,6 +44,7 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
         if (location.pathname.includes("inventory")) return "inventory";
         if (location.pathname.includes("recipes")) return "recipes";
         if (location.pathname.includes("import-receipts")) return "import-receipts";
+        if (location.pathname.includes("promotion-management")) return "promotion-management";
         return "dashboard";
     };
 
@@ -154,6 +168,15 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
                     </ul>
                 )}
 
+                {/* Quản lý khuyến mại */}
+                <li
+                    className={currentTab === "promotion-management" ? "active" : ""}
+                    onClick={() => navigate("/promotion-management")}
+                >
+                    <FaGift className="sidebar-icon" />
+                    {!collapsed && <span>Quản lý khuyến mại</span>}
+                </li>
+
                 {/* Quản lý nguyên liệu */}
                 <li
                     className={`menu-parent ${collapsed ? "collapsed" : ""}`}
@@ -247,6 +270,12 @@ const Sidebar = ({ collapsed, setCollapsed }) => {
                     {!collapsed && <span>Thanh toán</span>}
                 </li>
             </ul>
+
+            {/* Nút đăng xuất */}
+            <li className="logout-item" onClick={handleLogout}>
+                <FaSignOutAlt className="sidebar-icon" />
+                {!collapsed && <span>Đăng xuất</span>}
+            </li>
         </div>
     );
 };

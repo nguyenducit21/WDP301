@@ -4,15 +4,15 @@ const cors = require("cors");
 const mongoose = require('mongoose');
 const http = require('http');
 const socketIo = require('socket.io');
+const cron = require('node-cron');
+const { autoCancelExpiredReservations } = require('./controllers/reservation.controller');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-  cors: {
-    origin: "http://localhost:5173", // Frontend URL
-    methods: ["GET", "POST"]
-  }
-});
+
+// Initialize Socket.io
+const { initializeSocket } = require('./socket/socket');
+const io = initializeSocket(server);
 
 require("dotenv").config(); // .env
 
@@ -44,29 +44,19 @@ app.use(cookieParser());
 const router = require("./routes/index.routes");
 app.use("/", router);
 
-// WebSocket connection handling
-io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
-
-  // Join waiter room
-  socket.on('join-waiter-room', () => {
-    socket.join('waiters');
-    console.log('Waiter joined room:', socket.id);
-  });
-
-  // Join chef room
-  socket.on('join-chef-room', () => {
-    socket.join('chefs');
-    console.log('Chef joined room:', socket.id);
-  });
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-  });
-});
-
 // Make io available globally
 global.io = io;
+
+// Thiết lập cron job tự động hủy đặt bàn hết hạn mỗi 10 phút
+cron.schedule('*/1 * * * *', async () => {
+  try {
+    console.log('⏰ [CRON] Auto-cancel expired reservations running...');
+    await autoCancelExpiredReservations({});
+    console.log('✅ [CRON] Auto-cancel completed.');
+  } catch (err) {
+    console.error('❌ [CRON] Auto-cancel error:', err);
+  }
+});
 
 // run server
 server.listen(port, () => {

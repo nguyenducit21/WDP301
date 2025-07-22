@@ -47,8 +47,8 @@ export default function MyReservations({ userId = null, title = "Danh sách đ�
               targetUserId = user.user.id;
             } else if (user.id) {
               targetUserId = user.id;
-            } else if (user._id) {
-              targetUserId = user._id;
+            } else if (user.customer_id) {
+              targetUserId = user.customer_id;
             }
           } catch (e) {
             console.error('Error parsing user data from localStorage:', e);

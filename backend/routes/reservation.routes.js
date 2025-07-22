@@ -18,7 +18,8 @@ const {
     checkoutTable,
     autoCancelExpiredReservations,
     getChefOrders,
-    updateReservationStatus
+    updateReservationStatus,
+    updateReservationItems
 } = require('../controllers/reservation.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware')
@@ -35,10 +36,10 @@ router.get('/available-tables', authMiddleware, roleMiddleware(['admin', 'manage
 router.post('/auto-cancel-expired', authMiddleware, roleMiddleware(['admin', 'manager']), autoCancelExpiredReservations);
 
 // Lấy danh sách đặt bàn của khách hàng
-router.get('/my-reservations', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), getCustomerReservationsByUserId);
+router.get('/my-reservations', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), getCustomerReservations);
 
 // Lấy danh sách đặt bàn của khách hàng
-router.get('/my-reservations/:userId', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), getCustomerReservations);
+router.get('/my-reservations/:userId', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), getCustomerReservationsByUserId );
 
 // Lấy chi tiết một đặt bàn
 router.get('/:id', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer', 'kitchen_staff']), getReservationById);
@@ -69,5 +70,8 @@ router.patch('/:id/checkout', authMiddleware, roleMiddleware(['admin', 'manager'
 
 // Cập nhật status đặt bàn (dành cho chef)
 router.patch('/:id/status', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'kitchen_staff']), updateReservationStatus);
+
+// Cập nhật items cho reservation (khi khách chọn món sau khi đặt bàn)
+router.patch('/:id/items', authMiddleware, roleMiddleware(['admin', 'manager', 'waiter', 'customer']), updateReservationItems);
 
 module.exports = router;

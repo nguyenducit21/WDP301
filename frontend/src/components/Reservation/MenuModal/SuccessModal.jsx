@@ -17,6 +17,11 @@ const SuccessModal = ({
     const [reservationNote, setReservationNote] = useState("");
     const [loading, setLoading] = useState(false);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
+    // Promotion states
+    const [promotionCode, setPromotionCode] = useState("");
+    const [promotionResult, setPromotionResult] = useState(null);
+    const [promotionError, setPromotionError] = useState("");
+    const [promotionLoading, setPromotionLoading] = useState(false);
 
     if (!isOpen) return null;
 
@@ -48,15 +53,24 @@ const SuccessModal = ({
         try {
             setLoading(true);
 
-            // Update reservation with pre-order items and note
+            // Update reservation with pre-order items, note, and promotion info
             const updateData = {
                 pre_order_items: preOrderItems.filter(item => item.quantity > 0),
                 notes: reservationNote,
-                total_amount: calculatePreOrderTotal(),
+                total_amount: finalTotal,
                 original_amount: calculateOriginalTotal(),
-                discount_amount: calculateOriginalTotal() - calculatePreOrderTotal(),
-                payment_status: 'paid'
+                discount_amount: discount,
+                payment_status: 'paid',
             };
+            if (promotionResult && promotionResult.success) {
+                updateData.promotion = {
+                    code: promotionResult.promotion.code,
+                    type: promotionResult.promotion.type,
+                    value: promotionResult.promotion.value,
+                    discount: promotionResult.discount,
+                    description: promotionResult.promotion.description || '',
+                };
+            }
 
             await customFetch.put(`/reservations/${reservationId}`, updateData);
 
@@ -82,18 +96,54 @@ const SuccessModal = ({
         // If payment failed, user stays on the success modal
     };
 
+    // Handle promotion code apply
+    const handleApplyPromotion = async () => {
+        setPromotionError("");
+        setPromotionResult(null);
+        setPromotionLoading(true);
+        try {
+            const orderTotal = calculateOriginalTotal();
+            // TODO: Lấy userId, isFirstOrder nếu cần (giả sử chưa có thì bỏ qua)
+            const res = await customFetch.post('/promotions/validate', {
+                code: promotionCode.trim(),
+                orderTotal
+            });
+            if (res.data && res.data.success) {
+                setPromotionResult(res.data);
+            } else {
+                setPromotionError(res.data.message || 'Mã không hợp lệ');
+            }
+        } catch (err) {
+            setPromotionError(err.response?.data?.message || 'Mã không hợp lệ');
+        } finally {
+            setPromotionLoading(false);
+        }
+    };
+
     // Generate order info for payment
     const getOrderInfo = () => {
         const itemCount = getSelectedItemsCount();
         return `Đặt bàn + Đặt trước ${itemCount} món ăn (Giảm 15%)`;
     };
 
+    // Tính toán tổng tiền và giảm giá
+    let discount = 0;
+    let finalTotal = calculatePreOrderTotal();
+    let discountLabel = 'Giảm 15%';
+    if (promotionResult && promotionResult.success) {
+        discount = promotionResult.discount;
+        finalTotal = calculateOriginalTotal() - discount;
+        discountLabel = `Mã: ${promotionResult.promotion.code}`;
+    } else {
+        discount = calculateOriginalTotal() - calculatePreOrderTotal();
+    }
+
     return (
         <div className="success-modal-overlay">
             <div className="success-modal">
                 <div className="success-modal-header">
                     <h3>🎉 Đặt bàn thành công!</h3>
-                    <p>Bàn của bạn đã được đặt thành công. Bạn có muốn đặt món trước để nhận ưu đãi 15% không?</p>
+                    <p>Bàn của bạn đã được đặt thành công. Bạn có muốn đặt món trước để nhận ưu đãi 15% hoặc nhập mã khuyến mại?</p>
                 </div>
 
                 <div className="success-modal-content">
@@ -108,11 +158,43 @@ const SuccessModal = ({
                         />
                     </div>
 
+                    {/* Promotion code section */}
+                    <div className="promotion-section">
+                        <label>Nhập mã khuyến mại (nếu có):</label>
+                        <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
+                            <input
+                                type="text"
+                                value={promotionCode}
+                                onChange={e => setPromotionCode(e.target.value)}
+                                placeholder="Nhập mã khuyến mại"
+                                disabled={promotionLoading}
+                            />
+                            <button onClick={handleApplyPromotion} disabled={promotionLoading || !promotionCode.trim()}>
+                                {promotionLoading ? 'Đang kiểm tra...' : 'Áp dụng'}
+                            </button>
+                        </div>
+                        {promotionError && <div style={{ color: 'red', marginTop: 2 }}>{promotionError}</div>}
+                        {promotionResult && promotionResult.success && (
+                            <div className="promotion-info-box">
+                                <div style={{ color: 'green', fontWeight: 600 }}>
+                                    Đã áp dụng mã: <b>{promotionResult.promotion.code}</b> - Giảm {promotionResult.discount.toLocaleString()}đ
+                                </div>
+                                <div style={{ fontSize: 13, marginTop: 2 }}>
+                                    <b>Loại:</b> {promotionResult.promotion.type === 'percent' ? 'Giảm theo %' : promotionResult.promotion.type === 'fixed' ? 'Giảm số tiền' : 'Đơn đầu tiên'}<br />
+                                    {promotionResult.promotion.description && <><b>Mô tả:</b> {promotionResult.promotion.description}<br /></>}
+                                    {promotionResult.promotion.minOrderValue && <><b>Đơn tối thiểu:</b> {promotionResult.promotion.minOrderValue.toLocaleString()}đ<br /></>}
+                                    {promotionResult.promotion.maxDiscount && <><b>Giảm tối đa:</b> {promotionResult.promotion.maxDiscount.toLocaleString()}đ<br /></>}
+                                    <b>Thời hạn:</b> {new Date(promotionResult.promotion.startDate).toLocaleDateString()} - {new Date(promotionResult.promotion.endDate).toLocaleDateString()}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
                     {/* Pre-order section */}
                     <div className="pre-order-section">
-                        <h4>🍽️ Đặt món trước (Giảm 15%)</h4>
+                        <h4>🍽️ Đặt món trước (Giảm 15% hoặc mã khuyến mại)</h4>
                         <p className="discount-info">
-                            💥 <strong>Ưu đãi đặc biệt:</strong> Đặt món trước ngay bây giờ để nhận giảm giá 15% cho toàn bộ đơn hàng!
+                            💥 <strong>Ưu đãi đặc biệt:</strong> Đặt món trước để nhận giảm giá 15% hoặc nhập mã khuyến mại!
                         </p>
 
                         {preOrderItems.length > 0 && (
@@ -122,10 +204,10 @@ const SuccessModal = ({
                                         Tổng gốc: <span className="strikethrough">{calculateOriginalTotal().toLocaleString()}đ</span>
                                     </div>
                                     <div className="discount-amount">
-                                        Giảm 15%: <span className="discount">-{(calculateOriginalTotal() - calculatePreOrderTotal()).toLocaleString()}đ</span>
+                                        {discountLabel}: <span className="discount">-{discount.toLocaleString()}đ</span>
                                     </div>
                                     <div className="final-price">
-                                        Thành tiền: <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong>
+                                        Thành tiền: <strong>{finalTotal.toLocaleString()}đ</strong>
                                     </div>
                                 </div>
                             </div>
@@ -159,7 +241,7 @@ const SuccessModal = ({
                     >
                         {loading ? "Đang xử lý..." :
                             preOrderItems.length > 0 ?
-                                `Xác nhận đặt món (${calculatePreOrderTotal().toLocaleString()}đ)` :
+                                `Xác nhận đặt món (${finalTotal.toLocaleString()}đ)` :
                                 "Chọn món để tiếp tục"
                         }
                     </button>
@@ -171,7 +253,7 @@ const SuccessModal = ({
                 isOpen={showPaymentModal}
                 onClose={handlePaymentModalClose}
                 reservationId={reservationId}
-                totalAmount={calculatePreOrderTotal()}
+                totalAmount={finalTotal}
                 orderInfo={getOrderInfo()}
             />
         </div>
