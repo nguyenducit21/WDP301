@@ -1,237 +1,142 @@
 import React, { useState, useEffect } from 'react';
-import {
-    FaUsers,
-    FaChartLine,
-    FaMoneyBillWave,
-    FaClipboardList,
-    FaUserTie,
-    FaCog,
-    FaStore,
-    FaCalendarAlt
-} from 'react-icons/fa';
-import axios from '../../utils/axios.customize';
+import { FaShoppingCart, FaDollarSign, FaUserPlus, FaSync, FaFilter, FaCalendarDay, FaCalendarWeek, FaCalendarAlt, FaCrown } from 'react-icons/fa';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import axios from '../../utils/axios.customize'; // Đảm bảo bạn có file config axios
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
-    const [stats, setStats] = useState({
-        totalUsers: 0,
-        totalRevenue: 0,
-        totalOrders: 0,
-        totalEmployees: 0,
-        monthlyRevenue: 0,
-        todayOrders: 0,
-        activeEmployees: 0,
-        totalTables: 0
-    });
+    // States cho từng phần của dashboard
+    const [stats, setStats] = useState({ totalRevenue: 0, totalInvoices: 0, newCustomers: 0 });
+    const [chartData, setChartData] = useState([]);
+    const [employeePerformance, setEmployeePerformance] = useState([]);
+    const [topProducts, setTopProducts] = useState([]);
+    
+    // States cho từng bộ lọc
+    const [mainFilter, setMainFilter] = useState({ period: 'today', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] });
+    const [employeeFilter, setEmployeeFilter] = useState({ period: 'today', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] });
+    const [productFilter, setProductFilter] = useState({ period: 'today', startDate: new Date().toISOString().split('T')[0], endDate: new Date().toISOString().split('T')[0] });
 
-    const [recentActivities, setRecentActivities] = useState([]);
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        fetchAdminStats();
-        fetchRecentActivities();
-    }, []);
+    // useEffect hooks để fetch dữ liệu khi filter thay đổi
+    useEffect(() => { fetchStatsAndChart(); }, [mainFilter]);
+    useEffect(() => { fetchEmployeePerformance(); }, [employeeFilter]);
+    useEffect(() => { fetchTopProducts(); }, [productFilter]);
 
-    const fetchAdminStats = async () => {
+    // Các hàm fetch dữ liệu
+    const fetchStatsAndChart = async () => {
+        setLoading(true);
         try {
-            const response = await axios.get('/dashboard/admin');
+            const response = await axios.get('/dashboard/admin-stats', { params: mainFilter });
             if (response.data.success) {
-                setStats(response.data.data);
-            } else {
-                console.error('Failed to fetch admin stats:', response.data.message);
-                // Fallback to default data
-                setStats({
-                    totalUsers: 0,
-                    totalRevenue: 0,
-                    totalOrders: 0,
-                    totalEmployees: 0,
-                    monthlyRevenue: 0,
-                    todayOrders: 0,
-                    activeEmployees: 0,
-                    totalTables: 0
-                });
+                const { totalRevenue, totalInvoices, newCustomers, chartData } = response.data.data;
+                setStats({ totalRevenue, totalInvoices, newCustomers });
+                setChartData(chartData);
             }
-            setLoading(false);
-        } catch (error) {
-            console.error('Error fetching admin stats:', error);
-            // Fallback to default data on error
-            setStats({
-                totalUsers: 0,
-                totalRevenue: 0,
-                totalOrders: 0,
-                totalEmployees: 0,
-                monthlyRevenue: 0,
-                todayOrders: 0,
-                activeEmployees: 0,
-                totalTables: 0
-            });
-            setLoading(false);
-        }
+        } catch (error) { console.error("Error fetching stats:", error); } 
+        finally { setLoading(false); }
     };
 
-    const fetchRecentActivities = async () => {
+    const fetchEmployeePerformance = async () => {
         try {
-            // Simulate API call - replace with actual API
-            setTimeout(() => {
-                setRecentActivities([
-                    { id: 1, type: 'user', message: 'Nhân viên mới được thêm: Nguyễn Văn A', time: '10 phút trước' },
-                    { id: 2, type: 'order', message: 'Đơn hàng #1234 đã hoàn thành', time: '15 phút trước' },
-                    { id: 3, type: 'revenue', message: 'Doanh thu hôm nay đạt 2.5 triệu', time: '30 phút trước' },
-                    { id: 4, type: 'system', message: 'Cập nhật hệ thống thành công', time: '1 giờ trước' },
-                    { id: 5, type: 'employee', message: 'Nhân viên Trần Thị B đã check-in', time: '2 giờ trước' }
-                ]);
-            }, 800);
-        } catch (error) {
-            console.error('Error fetching recent activities:', error);
+            const response = await axios.get('/dashboard/employee-performance', { params: employeeFilter });
+            setEmployeePerformance(response.data.success ? response.data.data : []);
+        } catch (error) { console.error("Error fetching employee performance:", error); }
+    };
+
+    const fetchTopProducts = async () => {
+        try {
+            const response = await axios.get('/dashboard/top-products', { params: productFilter });
+            setTopProducts(response.data.success ? response.data.data : []);
+        } catch (error) { console.error("Error fetching top products:", error); }
+    };
+    
+    const handleFilterChange = (filterSetter, period) => {
+        const today = new Date();
+        let startDate = new Date();
+        let endDate = new Date();
+        
+        switch (period) {
+            case 'week': startDate.setDate(today.getDate() - 6); break;
+            case 'month': startDate.setMonth(today.getMonth() - 1); break;
+            case 'year': startDate.setFullYear(today.getFullYear() - 1); break;
+            default: startDate = today;
         }
+        
+        filterSetter({ period, startDate: startDate.toISOString().split('T')[0], endDate: endDate.toISOString().split('T')[0] });
     };
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('vi-VN', {
-            style: 'currency',
-            currency: 'VND'
-        }).format(amount);
-    };
-
-    if (loading) {
-        return (
-            <div className="admin-dashboard">
-                <div className="loading-spinner">
-                    <div className="spinner"></div>
-                    <p>Đang tải dữ liệu...</p>
-                </div>
-            </div>
-        );
-    }
+    // Component Filter UI
+    const FilterControls = ({ filter, onFilterChange, setFilterState }) => (
+        <div className="dashboard-filters">
+            {['today', 'week', 'month', 'year'].map(p => (
+                <button key={p} className={`filter-btn ${filter.period === p ? 'active' : ''}`} onClick={() => onFilterChange(setFilterState, p)}>
+                    {p === 'today' && <FaCalendarDay />} {p === 'week' && <FaCalendarWeek />} {p === 'month' && <FaCalendarAlt />} {p === 'year' && <FaFilter />}
+                    {p === 'today' ? 'Hôm nay' : p === 'week' ? '7 ngày' : p === 'month' ? '30 ngày' : '1 năm'}
+                </button>
+            ))}
+            {/* Có thể thêm Custom Date Range Picker ở đây */}
+        </div>
+    );
+    
+    const formatCurrency = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 
     return (
-        <div className="admin-dashboard">
+        <div className="manager-dashboard">
             <div className="dashboard-header">
-                <h1>Dashboard Quản Trị</h1>
-                <p>Tổng quan hệ thống và hoạt động kinh doanh</p>
+                <h1>Dashboard Tổng Quan</h1>
+                <button onClick={() => { fetchStatsAndChart(); fetchEmployeePerformance(); fetchTopProducts(); }} className="refresh-btn"><FaSync /> Làm mới</button>
             </div>
 
-            {/* Main Stats Grid */}
-            <div className="admin-stats-grid">
-                <div className="admin-stat-card primary">
-                    <div className="stat-icon">
-                        <FaMoneyBillWave />
-                    </div>
-                    <div className="stat-content">
-                        <h3>Tổng Doanh Thu</h3>
-                        <p className="stat-number">{formatCurrency(stats.totalRevenue)}</p>
-                        <span className="stat-change positive">+12.5% so với tháng trước</span>
-                    </div>
-                </div>
-
-                <div className="admin-stat-card success">
-                    <div className="stat-icon">
-                        <FaClipboardList />
-                    </div>
-                    <div className="stat-content">
-                        <h3>Tổng Đơn Hàng</h3>
-                        <p className="stat-number">{stats.totalOrders.toLocaleString()}</p>
-                        <span className="stat-change positive">+8.3% so với tháng trước</span>
-                    </div>
-                </div>
-
-                <div className="admin-stat-card info">
-                    <div className="stat-icon">
-                        <FaUsers />
-                    </div>
-                    <div className="stat-content">
-                        <h3>Tổng Khách Hàng</h3>
-                        <p className="stat-number">{stats.totalUsers.toLocaleString()}</p>
-                        <span className="stat-change positive">+15.2% so với tháng trước</span>
-                    </div>
-                </div>
-
-                <div className="admin-stat-card warning">
-                    <div className="stat-icon">
-                        <FaUserTie />
-                    </div>
-                    <div className="stat-content">
-                        <h3>Nhân Viên</h3>
-                        <p className="stat-number">{stats.activeEmployees}/{stats.totalEmployees}</p>
-                        <span className="stat-change neutral">Đang hoạt động</span>
-                    </div>
+            <div className="stats-section">
+                <div className="section-header"><h2>Chỉ số kinh doanh</h2><FilterControls filter={mainFilter} onFilterChange={handleFilterChange} setFilterState={setMainFilter} /></div>
+                <div className="manager-stats-grid">
+                    <KPI_Card icon={<FaMoneyBillWave />} title="Tổng Doanh Thu" value={formatCurrency(stats.totalRevenue)} />
+                    <KPI_Card icon={<FaClipboardCheck />} title="Tổng Hóa Đơn" value={stats.totalInvoices.toLocaleString('vi-VN')} />
+                    <KPI_Card icon={<FaUserPlus />} title="Khách Hàng Mới" value={stats.newCustomers.toLocaleString('vi-VN')} />
                 </div>
             </div>
 
-            {/* Secondary Stats */}
-            <div className="admin-secondary-stats">
-                <div className="secondary-stat-card">
-                    <FaChartLine className="secondary-icon" />
-                    <div>
-                        <h4>Doanh Thu Tháng Này</h4>
-                        <p>{formatCurrency(stats.monthlyRevenue)}</p>
-                    </div>
-                </div>
-
-                <div className="secondary-stat-card">
-                    <FaCalendarAlt className="secondary-icon" />
-                    <div>
-                        <h4>Đơn Hàng Hôm Nay</h4>
-                        <p>{stats.todayOrders} đơn</p>
-                    </div>
-                </div>
-
-                <div className="secondary-stat-card">
-                    <FaStore className="secondary-icon" />
-                    <div>
-                        <h4>Tổng Số Bàn</h4>
-                        <p>{stats.totalTables} bàn</p>
-                    </div>
-                </div>
-
-                <div className="secondary-stat-card">
-                    <FaCog className="secondary-icon" />
-                    <div>
-                        <h4>Hệ Thống</h4>
-                        <p>Hoạt động bình thường</p>
-                    </div>
-                </div>
+            <div className="chart-section">
+                <h2>Biểu đồ doanh thu</h2>
+                <ResponsiveContainer width="100%" height={400}>
+                    <LineChart data={chartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" /><YAxis tickFormatter={(val) => `${val / 1000}k`} /><Tooltip formatter={formatCurrency} /><Legend /><Line type="monotone" dataKey="DoanhThu" name="Doanh thu" stroke="#8884d8" /></LineChart>
+                </ResponsiveContainer>
             </div>
 
-            {/* Recent Activities */}
-            <div className="admin-activities">
-                <h2>Hoạt Động Gần Đây</h2>
-                <div className="activities-list">
-                    {recentActivities.map(activity => (
-                        <div key={activity.id} className={`activity-item ${activity.type}`}>
-                            <div className="activity-content">
-                                <p>{activity.message}</p>
-                                <span className="activity-time">{activity.time}</span>
+            <div className="performance-grid">
+                <div className="performance-section">
+                    <div className="section-header"><h2>Hiệu suất nhân viên</h2><FilterControls filter={employeeFilter} onFilterChange={handleFilterChange} setFilterState={setEmployeeFilter} /></div>
+                    <div className="performance-list">
+                        {employeePerformance.map((staff, index) => (
+                            <div key={staff.staffId} className="performance-item">
+                                <span className="rank">{index + 1}</span>
+                                <span className="name">{staff.staffName}</span>
+                                <span className="data revenue">{formatCurrency(staff.totalRevenue)}</span>
+                                <span className="data orders">{staff.orderCount} đơn</span>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="admin-quick-actions">
-                <h2>Thao Tác Nhanh</h2>
-                <div className="quick-actions-grid">
-                    <button className="quick-action-btn">
-                        <FaUsers />
-                        <span>Quản Lý Nhân Viên</span>
-                    </button>
-                    <button className="quick-action-btn">
-                        <FaChartLine />
-                        <span>Báo Cáo Doanh Thu</span>
-                    </button>
-                    <button className="quick-action-btn">
-                        <FaCog />
-                        <span>Cài Đặt Hệ Thống</span>
-                    </button>
-                    <button className="quick-action-btn">
-                        <FaStore />
-                        <span>Quản Lý Cửa Hàng</span>
-                    </button>
+                <div className="performance-section">
+                    <div className="section-header"><h2>Sản phẩm bán chạy</h2><FilterControls filter={productFilter} onFilterChange={handleFilterChange} setFilterState={setProductFilter} /></div>
+                    <div className="performance-list">
+                        {topProducts.map((product, index) => (
+                            <div key={product.productId} className="performance-item">
+                                <span className="rank">{index + 1}{index === 0 && <FaCrown className="crown-icon"/>}</span>
+                                <span className="name">{product.productName}</span>
+                                <span className="data quantity">{product.totalQuantity.toLocaleString('vi-VN')} lượt bán</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>
     );
 };
 
-export default AdminDashboard;
+const KPI_Card = ({ icon, title, value }) => (
+    <div className="manager-stat-card"><div className="stat-icon">{icon}</div><div className="stat-content"><h3>{title}</h3><p className="stat-number">{value}</p></div></div>
+);
+
+export default ManagerDashboard;

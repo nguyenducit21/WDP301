@@ -647,151 +647,52 @@ const waiterDashboard = async (req, res) => {
         const { period = 'today', startDate, endDate } = req.query;
         const dateRange = calculateDateRange(period, startDate, endDate);
 
-        console.log('Waiter dashboard request:', { userId, period, dateRange });
-
-        // 1. Tính doanh thu từ Orders của waiter (giống logic manager)
-        const [ordersRevenue] = await Order.aggregate([
-            {
-                $match: {
-                    staff_id: userId, // CHỈ CỦA WAITER NÀY
-                    created_at: { $gte: dateRange.current.start, $lt: dateRange.current.end },
-                    status: { $in: ['completed', 'served'] }, // ĐÃ HOÀN THÀNH
-                    order_items: { $exists: true, $ne: [] }
-                }
-            },
-            {
-                $unwind: '$order_items'
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalRevenue: { $sum: { $multiply: ['$order_items.quantity', '$order_items.price'] } },
-                    orderIds: { $addToSet: '$_id' }
-                }
-            },
-            {
-                $project: {
-                    totalRevenue: 1,
-                    totalOrders: { $size: '$orderIds' }
-                }
-            }
-        ]).catch(() => [{ totalRevenue: 0, totalOrders: 0 }]);
-
-        // 2. Tính doanh thu từ Reservations của waiter (giống logic manager)
-        const [reservationsRevenue] = await Reservation.aggregate([
-            {
-                $match: {
-                    $or: [
-                        { created_by_staff: new mongoose.Types.ObjectId(userId) },
-                        { assigned_staff: new mongoose.Types.ObjectId(userId) }
-                    ],
-                    date: { $gte: dateRange.current.start, $lt: dateRange.current.end },
-                    payment_status: 'paid', // ĐÃ THANH TOÁN
-                    pre_order_items: { $exists: true, $ne: [] }
-                }
-            },
-            {
-                $unwind: '$pre_order_items'
-            },
-            {
-                $lookup: {
-                    from: 'menuitems',
-                    localField: 'pre_order_items.menu_item_id',
-                    foreignField: '_id',
-                    as: 'menuItem'
-                }
-            },
-            {
-                $unwind: { path: '$menuItem', preserveNullAndEmptyArrays: true }
-            },
-            {
-                $group: {
-                    _id: null,
-                    totalRevenue: { 
-                        $sum: { 
-                            $multiply: [
-                                '$pre_order_items.quantity', 
-                                { $ifNull: ['$menuItem.price', 0] }
-                            ] 
-                        }
-                    },
-                    reservationIds: { $addToSet: '$_id' }
-                }
-            },
-            {
-                $project: {
-                    totalRevenue: 1,
-                    totalReservations: { $size: '$reservationIds' }
-                }
-            }
-        ]).catch(() => [{ totalRevenue: 0, totalReservations: 0 }]);
-
-        // 3. Tính toán kết quả (giống manager)
-        const orderRev = ordersRevenue || { totalRevenue: 0, totalOrders: 0 };
-        const reservationRev = reservationsRevenue || { totalRevenue: 0, totalReservations: 0 };
-
-        const totalRevenue = (orderRev.totalRevenue || 0) + (reservationRev.totalRevenue || 0);
-        const totalOrders = (orderRev.totalOrders || 0) + (reservationRev.totalReservations || 0);
-
-        // 4. Đếm đơn hàng theo trạng thái của waiter
-        const [pendingOrders, completedOrders] = await Promise.all([
-            Reservation.countDocuments({
-                $or: [
-                    { created_by_staff: userId },
-                    { assigned_staff: userId }
-                ],
-                date: { $gte: dateRange.current.start, $lt: dateRange.current.end },
-                status: 'pending'
-            }),
-            Reservation.countDocuments({
-                $or: [
-                    { created_by_staff: userId },
-                    { assigned_staff: userId }
-                ],
-                date: { $gte: dateRange.current.start, $lt: dateRange.current.end },
-                status: { $in: ['completed', 'confirmed'] }
-            })
-        ]);
-
-        // 5. Đếm bàn được assign
-        const assignedTables = await Reservation.countDocuments({
+        // 1. Đếm số đơn đã hoàn thành (theo bộ lọc thời gian)
+        const completedOrders = await Reservation.countDocuments({
             assigned_staff: userId,
-            date: { $gte: dateRange.current.start, $lt: dateRange.current.end },
-            status: { $in: ['confirmed', 'seated'] }
+            status: 'completed',
+            updated_at: { $gte: dateRange.current.start, $lt: dateRange.current.end } // Dựa vào ngày hoàn thành
         });
 
-        const responseData = {
-            assignedTables: Number(assignedTables) || 0,
-            todayOrders: Number(totalOrders) || 0,
-            todayRevenue: Number(totalRevenue) || 0,
-            activeOrders: Number(pendingOrders) || 0,
-            completedOrders: Number(completedOrders) || 0,
-            period: period
-        };
+        // 2. Tính doanh thu cá nhân (theo bộ lọc thời gian)
+        const revenueData = await Reservation.aggregate([
+            {
+                $match: {
+                    assigned_staff: new mongoose.Types.ObjectId(userId),
+                    status: 'completed', // ✅ CHỈ TÍNH CÁC ĐƠN ĐÃ HOÀN THÀNH
+                    updated_at: { $gte: dateRange.current.start, $lt: dateRange.current.end }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$total_amount' }
+                }
+            }
+        ]);
+        const personalRevenue = revenueData[0]?.totalRevenue || 0;
 
-        console.log('Waiter dashboard response:', responseData);
+        // 3. Đếm số bàn đang phục vụ (luôn là real-time, không theo filter)
+        const servingNowCount = await Reservation.countDocuments({
+            assigned_staff: userId,
+            status: 'seated'
+        });
 
         res.json({
             success: true,
-            data: responseData,
-            meta: {
-                period,
-                dateRange: {
-                    start: dateRange.current.start,
-                    end: dateRange.current.end
-                }
+            data: {
+                servingNowCount,
+                completedOrders,
+                personalRevenue,
             }
         });
 
     } catch (error) {
-        console.error('Error in waiterDashboard:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Lỗi khi lấy dữ liệu dashboard waiter',
-            error: error.message
-        });
+        console.error('Error in waiterDashboard stats:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
+
 
 // API lấy bàn của waiter
 const getWaiterTables = async (req, res) => {
@@ -801,30 +702,24 @@ const getWaiterTables = async (req, res) => {
         const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const todayEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
 
-        // Lấy reservations được assign cho waiter hôm nay
-        const reservations = await Reservation.find({
+        // Chỉ lấy các reservation có status 'seated' và được assign cho waiter này
+        const servingReservations = await Reservation.find({
             assigned_staff: new mongoose.Types.ObjectId(userId),
             date: { $gte: todayStart, $lt: todayEnd },
-            status: { $in: ['confirmed', 'seated'] }
-        }).populate('table_id table_ids', 'name capacity').catch(err => {
-            console.log('Error fetching waiter tables:', err);
-            return [];
-        });
+            status: 'seated'
+        }).populate('table_ids', 'name');
 
-        const tables = reservations.map(reservation => {
-            const table = reservation.table_id || (reservation.table_ids && reservation.table_ids[0]);
-            if (!table) return null;
-            
+        const tables = servingReservations.map(reservation => {
+            const tableName = reservation.table_ids.map(t => t.name).join(', ');
             return {
-                id: table._id,
-                name: table.name || 'Bàn không tên',
-                status: reservation.status === 'seated' ? 'occupied' : 'reserved',
+                id: reservation._id,
+                name: tableName || 'Bàn không tên',
                 customers: reservation.guest_count || 0,
                 orderTime: reservation.slot_start_time,
                 currentOrderValue: reservation.total_amount || 0,
                 reservationId: reservation._id
             };
-        }).filter(Boolean);
+        });
 
         res.json({
             success: true,
@@ -832,12 +727,8 @@ const getWaiterTables = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error getting waiter tables:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Lỗi khi lấy danh sách bàn',
-            error: error.message
-        });
+        console.error('Error getting serving tables for waiter:', error);
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
