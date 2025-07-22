@@ -15,5 +15,10 @@ router.get('/waiter', authMiddleware, roleMiddleware(['waiter', 'admin', 'manage
 router.get('/waiter/my-tables', authMiddleware, roleMiddleware(['waiter', 'admin', 'manager']), dashboardController.getWaiterTables);
 router.get('/waiter/my-orders', authMiddleware, roleMiddleware(['waiter', 'admin', 'manager']), dashboardController.getWaiterOrders);
 router.get('/waiter/notifications', authMiddleware, roleMiddleware(['waiter', 'admin', 'manager']), dashboardController.getWaiterNotifications);
+router.get('/admin-stats', authMiddleware, roleMiddleware(['admin']), dashboardController.adminStats);
+router.get('/admin-employee-performance', authMiddleware, roleMiddleware(['admin']), dashboardController.adminEmployeePerformance);
+router.get('/admin-top-products', authMiddleware, roleMiddleware(['admin']), dashboardController.adminTopProducts);
+  
+
 
 module.exports = router;

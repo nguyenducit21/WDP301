@@ -50,51 +50,381 @@ const chefDashboard = async (req, res) => {
 const calculateDateRange = (period, startDate = null, endDate = null) => {
     const today = new Date();
     let queryStart, queryEnd, previousStart, previousEnd;
-
+  
     switch (period) {
-        case 'today':
-            queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-            previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
-            previousEnd = new Date(queryStart);
-            break;
-        
-        case 'week':
-            queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-            queryStart = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
-            previousEnd = new Date(queryStart);
-            previousStart = new Date(queryStart.getTime() - 7 * 24 * 60 * 60 * 1000);
-            break;
-        
-        case 'month':
-            queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-            queryStart = new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000);
-            previousEnd = new Date(queryStart);
-            previousStart = new Date(queryStart.getTime() - 30 * 24 * 60 * 60 * 1000);
-            break;
-        
-        case 'custom':
-            queryStart = new Date(startDate);
-            queryEnd = new Date(endDate);
-            queryEnd.setDate(queryEnd.getDate() + 1);
-            const diffDays = Math.ceil((queryEnd - queryStart) / (24 * 60 * 60 * 1000));
-            previousEnd = new Date(queryStart);
-            previousStart = new Date(queryStart.getTime() - diffDays * 24 * 60 * 60 * 1000);
-            break;
-        
-        default:
-            queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-            previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
-            previousEnd = new Date(queryStart);
+      case 'today':
+        queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
+        previousEnd = new Date(queryStart);
+        break;
+  
+      case 'week':
+        queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        queryStart = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
+        previousEnd = new Date(queryStart);
+        previousStart = new Date(queryStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+  
+      case 'month':
+        queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        queryStart = new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000);
+        previousEnd = new Date(queryStart);
+        previousStart = new Date(queryStart.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+  
+      case 'custom':
+        queryStart = new Date(startDate);
+        queryEnd = new Date(endDate);
+        queryEnd.setDate(queryEnd.getDate() + 1);
+        const diffDays = Math.ceil((queryEnd - queryStart) / (24 * 60 * 60 * 1000));
+        previousEnd = new Date(queryStart);
+        previousStart = new Date(queryStart.getTime() - diffDays * 24 * 60 * 60 * 1000);
+        break;
+  
+      default:
+        queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+        previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
+        previousEnd = new Date(queryStart);
     }
-
+  
+    // 👉 Return cả dạng current/previous và start/end (để backward compatible)
     return {
-        current: { start: queryStart, end: queryEnd },
-        previous: { start: previousStart, end: previousEnd }
+      start: queryStart,
+      end: queryEnd,
+      current: { start: queryStart, end: queryEnd },
+      previous: { start: previousStart, end: previousEnd }
     };
+  };
+//   const calculateDateRange = (period, startDate = null, endDate = null) => {
+//     const today = new Date();
+//     let queryStart, queryEnd, previousStart, previousEnd;
+
+//     switch (period) {
+//         case 'today':
+//             queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+//             queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+//             previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
+//             previousEnd = new Date(queryStart);
+//             break;
+        
+//         case 'week':
+//             queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+//             queryStart = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
+//             previousEnd = new Date(queryStart);
+//             previousStart = new Date(queryStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+//             break;
+        
+//         case 'month':
+//             queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+//             queryStart = new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000);
+//             previousEnd = new Date(queryStart);
+//             previousStart = new Date(queryStart.getTime() - 30 * 24 * 60 * 60 * 1000);
+//             break;
+        
+//         case 'custom':
+//             queryStart = new Date(startDate);
+//             queryEnd = new Date(endDate);
+//             queryEnd.setDate(queryEnd.getDate() + 1);
+//             const diffDays = Math.ceil((queryEnd - queryStart) / (24 * 60 * 60 * 1000));
+//             previousEnd = new Date(queryStart);
+//             previousStart = new Date(queryStart.getTime() - diffDays * 24 * 60 * 60 * 1000);
+//             break;
+        
+//         default:
+//             queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+//             queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+//             previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
+//             previousEnd = new Date(queryStart);
+//     }
+
+//     return {
+//         current: { start: queryStart, end: queryEnd },
+//         previous: { start: previousStart, end: previousEnd }
+//     };
+// };
+  // Admin Dashboard - Hoá đơn, doanh thu, khách hàng, biểu đồ
+  const adminStats = async (req, res) => {
+    try {
+      const { period = 'today', startDate, endDate } = req.query;
+      const dateRange = calculateDateRange(period, startDate, endDate);
+  
+      // Doanh thu từ Orders
+      const [ordersRevenue] = await Order.aggregate([
+        {
+          $match: {
+            created_at: { $gte: dateRange.start, $lt: dateRange.end },
+            status: { $in: ['completed', 'served'] },
+            order_items: { $exists: true, $ne: [] }
+          }
+        },
+        { $unwind: '$order_items' },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: { $multiply: ['$order_items.quantity', '$order_items.price'] } },
+            orderIds: { $addToSet: '$_id' }
+          }
+        },
+        {
+          $project: {
+            totalRevenue: 1,
+            totalOrders: { $size: '$orderIds' }
+          }
+        }
+      ]).catch(() => [{ totalRevenue: 0, totalOrders: 0 }]);
+  
+      // Doanh thu từ Reservations
+      const [reservationsRevenue] = await Reservation.aggregate([
+        {
+          $match: {
+            date: { $gte: dateRange.start, $lt: dateRange.end },
+            payment_status: 'paid',
+            pre_order_items: { $exists: true, $ne: [] }
+          }
+        },
+        { $unwind: '$pre_order_items' },
+        {
+          $lookup: {
+            from: 'menuitems',
+            localField: 'pre_order_items.menu_item_id',
+            foreignField: '_id',
+            as: 'menuItem'
+          }
+        },
+        { $unwind: { path: '$menuItem', preserveNullAndEmptyArrays: true } },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: {
+              $sum: {
+                $multiply: [
+                  '$pre_order_items.quantity',
+                  { $ifNull: ['$menuItem.price', 0] }
+                ]
+              }
+            },
+            reservationIds: { $addToSet: '$_id' }
+          }
+        },
+        {
+          $project: {
+            totalRevenue: 1,
+            totalReservations: { $size: '$reservationIds' }
+          }
+        }
+      ]).catch(() => [{ totalRevenue: 0, totalReservations: 0 }]);
+  
+      const orderRev = ordersRevenue || { totalRevenue: 0, totalOrders: 0 };
+      const reservationRev = reservationsRevenue || { totalRevenue: 0, totalReservations: 0 };
+  
+      const totalRevenue = (orderRev.totalRevenue || 0) + (reservationRev.totalRevenue || 0);
+      const totalInvoices = (orderRev.totalOrders || 0) + (reservationRev.totalReservations || 0);
+  
+      // Khách hàng mới
+      const orderCustomerIds = await Order.find({
+        created_at: { $gte: dateRange.start, $lt: dateRange.end },
+        customer_id: { $exists: true, $ne: null }
+      }).distinct('customer_id');
+  
+      const reservationCustomerIds = await Reservation.find({
+        date: { $gte: dateRange.start, $lt: dateRange.end },
+        customer_id: { $exists: true, $ne: null }
+      }).distinct('customer_id');
+  
+      const allCustomerIds = Array.from(new Set([...orderCustomerIds, ...reservationCustomerIds]));
+  
+      const newCustomers = await User.countDocuments({
+        _id: { $in: allCustomerIds.map(id => new mongoose.Types.ObjectId(id)) },
+        created_at: { $gte: dateRange.start, $lt: dateRange.end }
+      });
+  
+      // Chart data (gộp từ order & reservation)
+      const chartMap = {};
+  
+      const orders = await Order.find({
+        created_at: { $gte: dateRange.start, $lt: dateRange.end },
+        status: { $in: ['completed', 'served'] },
+        order_items: { $exists: true, $ne: [] }
+      });
+      orders.forEach(order => {
+        const dateStr = new Date(order.created_at).toISOString().slice(0, 10);
+        const revenue = order.order_items.reduce((sum, item) => sum + item.quantity * item.price, 0);
+        chartMap[dateStr] = (chartMap[dateStr] || 0) + revenue;
+      });
+  
+      const reservations = await Reservation.find({
+        date: { $gte: dateRange.start, $lt: dateRange.end },
+        payment_status: 'paid',
+        pre_order_items: { $exists: true, $ne: [] }
+      }).populate('pre_order_items.menu_item_id');
+      reservations.forEach(rsv => {
+        const dateStr = new Date(rsv.date).toISOString().slice(0, 10);
+        const revenue = rsv.pre_order_items.reduce((sum, item) => {
+          return sum + item.quantity * (item.menu_item_id?.price || 0);
+        }, 0);
+        chartMap[dateStr] = (chartMap[dateStr] || 0) + revenue;
+      });
+  
+      const chartData = Object.entries(chartMap).map(([date, revenue]) => ({ date, revenue }))
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+  
+      res.json({
+        success: true,
+        data: {
+          totalInvoices,
+          totalRevenue,
+          newCustomers,
+          chartData
+        }
+      });
+    } catch (error) {
+      console.error('Admin Stats Error:', error);
+      res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
+    }
+  };
+  const adminEmployeePerformance = async (req, res) => {
+    try {
+        const { period = 'today', startDate, endDate } = req.query;
+        const { start, end } = calculateDateRange(period, startDate, endDate);
+
+        // 1. Từ Reservation (pre-order)
+        const reservationData = await Reservation.aggregate([
+            {
+                $match: {
+                    assigned_staff: { $ne: null },
+                    status: 'completed',
+                    updated_at: { $gte: start, $lt: end }
+                }
+            },
+            {
+                $group: {
+                    _id: '$assigned_staff',
+                    orders: { $sum: 1 },
+                    revenue: { $sum: '$total_amount' }
+                }
+            }
+        ]);
+
+        // 2. Từ Order (gọi món thêm)
+        const orderData = await Order.aggregate([
+            {
+                $match: {
+                    staff_id: { $ne: null },
+                    status: 'completed',
+                    updated_at: { $gte: start, $lt: end }
+                }
+            },
+            { $unwind: '$order_items' },
+            {
+                $group: {
+                    _id: '$staff_id',
+                    orders: { $sum: 1 }, // mỗi đơn là 1 order
+                    revenue: {
+                        $sum: {
+                            $multiply: ['$order_items.quantity', '$order_items.price']
+                        }
+                    }
+                }
+            }
+        ]);
+
+        // 3. Gộp dữ liệu theo staff
+        const combinedMap = new Map();
+
+        [...reservationData, ...orderData].forEach(item => {
+            const id = item._id?.toString();
+            if (!id) return;
+
+            const existing = combinedMap.get(id) || { orders: 0, revenue: 0 };
+            combinedMap.set(id, {
+                orders: existing.orders + (item.orders || 0),
+                revenue: existing.revenue + (item.revenue || 0)
+            });
+        });
+
+        // 4. Lấy thông tin nhân viên
+        const staffIds = Array.from(combinedMap.keys()).map(id => new mongoose.Types.ObjectId(id));
+        const staffs = await User.find({ _id: { $in: staffIds } });
+
+        const results = staffs.map(staff => {
+            const id = staff._id.toString();
+            const data = combinedMap.get(id) || { orders: 0, revenue: 0 };
+
+            return {
+                staffId: id,
+                staffName: staff.full_name || staff.username,
+                orders: data.orders,
+                revenue: data.revenue
+            };
+        });
+
+        // 5. Sắp xếp theo doanh thu
+        results.sort((a, b) => b.revenue - a.revenue);
+
+        res.json({ success: true, data: results.slice(0, 10) }); // top 10
+    } catch (error) {
+        console.error('Admin Employee Performance Error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
+    }
 };
 
+  const adminTopProducts = async (req, res) => {
+    try {
+      const { period = 'today', startDate, endDate, limit = 5 } = req.query;
+      const { start, end } = calculateDateRange(period, startDate, endDate);
+  
+      // Từ đơn hàng
+      const orderItems = await Order.aggregate([
+        { $match: { created_at: { $gte: start, $lte: end }, status: { $in: ['completed', 'served'] } } },
+        { $unwind: '$order_items' },
+        {
+          $group: {
+            _id: '$order_items.menu_item_id',
+            quantitySold: { $sum: '$order_items.quantity' }
+          }
+        }
+      ]);
+  
+      // Từ đặt bàn
+      const reservationItems = await Reservation.aggregate([
+        { $match: { date: { $gte: start, $lte: end }, payment_status: 'paid' } },
+        { $unwind: '$pre_order_items' },
+        {
+          $group: {
+            _id: '$pre_order_items.menu_item_id',
+            quantitySold: { $sum: '$pre_order_items.quantity' }
+          }
+        }
+      ]);
+  
+      const combinedMap = new Map();
+      [...orderItems, ...reservationItems].forEach(item => {
+        const id = item._id?.toString();
+        if (!id) return;
+        combinedMap.set(id, (combinedMap.get(id) || 0) + item.quantitySold);
+      });
+  
+      const itemIds = Array.from(combinedMap.keys()).map(id => new mongoose.Types.ObjectId(id));
+      const menuItems = await MenuItem.find({ _id: { $in: itemIds } }).populate('category_id');
+  
+      const merged = menuItems.map(item => ({
+        id: item._id,
+        name: item.name,
+        price: item.price,
+        category: item.category_id?.name || 'Không rõ',
+        quantitySold: combinedMap.get(item._id.toString()) || 0
+      }));
+  
+      const sorted = merged.sort((a, b) => b.quantitySold - a.quantitySold).slice(0, parseInt(limit));
+  
+      res.json({ success: true, data: sorted });
+    } catch (error) {
+      console.error('Admin Top Products Error:', error);
+      res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
+    }
+  };
 // Manager Dashboard - Thống kê chính
 const managerDashboard = async (req, res) => {
     try {
@@ -866,5 +1196,8 @@ module.exports = {
     waiterDashboard,
     getWaiterTables,
     getWaiterOrders,
-    getWaiterNotifications
+    getWaiterNotifications,
+    adminStats,
+    adminEmployeePerformance,
+    adminTopProducts
 }
