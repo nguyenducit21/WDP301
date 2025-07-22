@@ -289,54 +289,81 @@ const calculateDateRange = (period, startDate = null, endDate = null) => {
         const { period = 'today', startDate, endDate } = req.query;
         const { start, end } = calculateDateRange(period, startDate, endDate);
 
-        // 1. Từ Reservation (pre-order)
+        // 1. Lấy role waiter
+        const waiterRole = await Role.findOne({ name: 'waiter' });
+        if (!waiterRole) return res.status(404).json({ success: false, message: 'Không tìm thấy role waiter' });
+
+        const waiters = await User.find({ role_id: waiterRole._id });
+        const waiterIds = waiters.map(w => w._id);
+
+        // 2. Doanh thu từ Reservations (dựa trên pre_order_items)
         const reservationData = await Reservation.aggregate([
             {
                 $match: {
-                    assigned_staff: { $ne: null },
+                    assigned_staff: { $in: waiterIds },
                     status: 'completed',
-                    updated_at: { $gte: start, $lt: end }
+                    updated_at: { $gte: start, $lt: end },
+                    pre_order_items: { $exists: true, $ne: [] }
                 }
             },
+            { $unwind: '$pre_order_items' },
+            {
+                $lookup: {
+                    from: 'menuitems',
+                    localField: 'pre_order_items.menu_item_id',
+                    foreignField: '_id',
+                    as: 'menuItem'
+                }
+            },
+            { $unwind: { path: '$menuItem', preserveNullAndEmptyArrays: true } },
             {
                 $group: {
                     _id: '$assigned_staff',
                     orders: { $sum: 1 },
-                    revenue: { $sum: '$total_amount' }
-                }
-            }
-        ]);
-
-        // 2. Từ Order (gọi món thêm)
-        const orderData = await Order.aggregate([
-            {
-                $match: {
-                    staff_id: { $ne: null },
-                    status: 'completed',
-                    updated_at: { $gte: start, $lt: end }
-                }
-            },
-            { $unwind: '$order_items' },
-            {
-                $group: {
-                    _id: '$staff_id',
-                    orders: { $sum: 1 }, // mỗi đơn là 1 order
                     revenue: {
                         $sum: {
-                            $multiply: ['$order_items.quantity', '$order_items.price']
+                            $multiply: [
+                                '$pre_order_items.quantity',
+                                { $ifNull: ['$menuItem.price', 0] }
+                            ]
                         }
                     }
                 }
             }
         ]);
 
-        // 3. Gộp dữ liệu theo staff
-        const combinedMap = new Map();
+        // 3. Doanh thu từ Orders (gọi món thêm)
+        const orderData = await Order.aggregate([
+            {
+                $match: {
+                    staff_id: { $in: waiterIds },
+                    status: 'completed',
+                    updated_at: { $gte: start, $lt: end },
+                    order_items: { $exists: true, $ne: [] }
+                }
+            },
+            { $unwind: '$order_items' },
+            {
+                $group: {
+                    _id: '$staff_id',
+                    orders: { $sum: 1 },
+                    revenue: {
+                        $sum: {
+                            $multiply: [
+                                '$order_items.quantity',
+                                { $ifNull: ['$order_items.price', 0] }
+                            ]
+                        }
+                    }
+                }
+            }
+        ]);
 
+        // 4. Gộp dữ liệu
+        const combinedMap = new Map();
         [...reservationData, ...orderData].forEach(item => {
             const id = item._id?.toString();
             if (!id) return;
-
             const existing = combinedMap.get(id) || { orders: 0, revenue: 0 };
             combinedMap.set(id, {
                 orders: existing.orders + (item.orders || 0),
@@ -344,14 +371,10 @@ const calculateDateRange = (period, startDate = null, endDate = null) => {
             });
         });
 
-        // 4. Lấy thông tin nhân viên
-        const staffIds = Array.from(combinedMap.keys()).map(id => new mongoose.Types.ObjectId(id));
-        const staffs = await User.find({ _id: { $in: staffIds } });
-
-        const results = staffs.map(staff => {
+        // 5. Gắn thông tin nhân viên
+        const results = waiters.map(staff => {
             const id = staff._id.toString();
             const data = combinedMap.get(id) || { orders: 0, revenue: 0 };
-
             return {
                 staffId: id,
                 staffName: staff.full_name || staff.username,
@@ -360,15 +383,18 @@ const calculateDateRange = (period, startDate = null, endDate = null) => {
             };
         });
 
-        // 5. Sắp xếp theo doanh thu
+        // 6. Sắp xếp theo doanh thu
         results.sort((a, b) => b.revenue - a.revenue);
 
-        res.json({ success: true, data: results.slice(0, 10) }); // top 10
+        res.json({ success: true, data: results.slice(0, 10) });
+
     } catch (error) {
         console.error('Admin Employee Performance Error:', error);
         res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
     }
 };
+
+
 
   const adminTopProducts = async (req, res) => {
     try {
@@ -981,7 +1007,7 @@ const waiterDashboard = async (req, res) => {
         const completedOrders = await Reservation.countDocuments({
             assigned_staff: userId,
             status: 'completed',
-            updated_at: { $gte: dateRange.current.start, $lt: dateRange.current.end } // Dựa vào ngày hoàn thành
+            updated_at: { $gte: dateRange.current.start, $lt: dateRange.current.end } 
         });
 
         // 2. Tính doanh thu cá nhân (theo bộ lọc thời gian)
