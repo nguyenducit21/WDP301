@@ -33,83 +33,51 @@ function AdminDashboard() {
     const [filter, setFilter] = useState('today');
     const [loading, setLoading] = useState(true);
 
-    // Ngày custom cho filter 'custom'
+    // Ngày custom cho filter
     const [customStartDate, setCustomStartDate] = useState(todayStr);
     const [customEndDate, setCustomEndDate] = useState(todayStr);
 
-    // set lại date khi chuyển sang filter khác
+    // Cập nhật ngày khi thay đổi filter
     useEffect(() => {
-        if (filter === 'today') {
-            setCustomStartDate(todayStr);
-            setCustomEndDate(todayStr);
-        } else if (filter === 'year') {
-            setCustomStartDate(yearStart);
-            setCustomEndDate(yearEnd);
-        } else if (filter === 'week') {
-            const weekStart = new Date(today); weekStart.setDate(today.getDate() - 6);
-            setCustomStartDate(weekStart.toISOString().slice(0, 10));
-            setCustomEndDate(todayStr);
-        } else if (filter === 'month') {
-            const monthStart = new Date(today); monthStart.setDate(today.getDate() - 29);
-            setCustomStartDate(monthStart.toISOString().slice(0, 10));
-            setCustomEndDate(todayStr);
+        switch (filter) {
+            case 'today':
+                setCustomStartDate(todayStr);
+                setCustomEndDate(todayStr);
+                break;
+            case 'week': {
+                const weekStart = new Date(today);
+                weekStart.setDate(today.getDate() - 6);
+                setCustomStartDate(weekStart.toISOString().slice(0, 10));
+                setCustomEndDate(todayStr);
+                break;
+            }
+            case 'month': {
+                const monthStart = new Date(today);
+                monthStart.setDate(today.getDate() - 29);
+                setCustomStartDate(monthStart.toISOString().slice(0, 10));
+                setCustomEndDate(todayStr);
+                break;
+            }
+            case 'year':
+                setCustomStartDate(yearStart);
+                setCustomEndDate(yearEnd);
+                break;
+            case 'custom':
+                fetchAllData();
+                break;
+            default:
+                break;
         }
-        // không tự fetchAllData vì useEffect phía dưới sẽ gọi khi filter hoặc custom date đổi
         // eslint-disable-next-line
     }, [filter]);
 
-    useEffect(() => { fetchAllData(); }, [filter, customStartDate, customEndDate]);
-    const getDateRangeByFilter = () => {
-    const today = new Date();
-    const todayStr = today.toISOString().slice(0, 10);
+    // Gọi API khi filter hoặc ngày thay đổi
+    useEffect(() => { fetchAllData(); }, [customStartDate, customEndDate]);
 
-    switch (filter) {
-        case 'today':
-            return { startDate: todayStr, endDate: todayStr };
-
-        case 'week': {
-            const start = new Date(today);
-            start.setDate(today.getDate() - 6);
-            return {
-                startDate: start.toISOString().slice(0, 10),
-                endDate: todayStr
-            };
-        }
-
-        case 'month': {
-            const start = new Date(today);
-            start.setDate(today.getDate() - 29);
-            return {
-                startDate: start.toISOString().slice(0, 10),
-                endDate: todayStr
-            };
-        }
-
-        case 'year': {
-            const start = new Date(today.getFullYear(), 0, 1);
-            const end = new Date(today.getFullYear(), 11, 31);
-            return {
-                startDate: start.toISOString().slice(0, 10),
-                endDate: end.toISOString().slice(0, 10)
-            };
-        }
-
-        case 'custom':
-            return { startDate: customStartDate, endDate: customEndDate };
-
-        default:
-            return { startDate: todayStr, endDate: todayStr };
-    }
-};
     const fetchAllData = async () => {
         setLoading(true);
         try {
-            let params = { period: filter };
-            if (filter === 'custom' || filter === 'year' || filter === 'week' || filter === 'month') {
-                params.startDate = customStartDate;
-                params.endDate = customEndDate;
-            }
-            if (filter === 'today') { params.startDate = todayStr; params.endDate = todayStr; }
+            const params = { period: filter, startDate: customStartDate, endDate: customEndDate };
 
             // KPI & Chart
             const statsRes = await axios.get('/dashboard/admin-stats', { params });
@@ -164,35 +132,11 @@ function AdminDashboard() {
                     <button title="Làm mới" onClick={fetchAllData}><FaSync /></button>
                 </div>
                 {filter === 'custom' && (
-                    <div className="custom-date-picker" style={{marginTop: 10}}>
+                    <div className="custom-date-picker" style={{ marginTop: 10 }}>
                         <label>Từ:</label>
                         <input type="date" value={customStartDate} max={customEndDate} onChange={e => setCustomStartDate(e.target.value)} />
                         <label>Đến:</label>
                         <input type="date" value={customEndDate} min={customStartDate} onChange={e => setCustomEndDate(e.target.value)} />
-                    </div>
-                )}
-                {filter === 'year' && (
-                    <div className="custom-date-picker" style={{marginTop: 10}}>
-                        <label>Từ:</label>
-                        <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} />
-                        <label>Đến:</label>
-                        <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} />
-                    </div>
-                )}
-                {filter === 'week' && (
-                    <div className="custom-date-picker" style={{marginTop: 10}}>
-                        <label>Từ:</label>
-                        <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} />
-                        <label>Đến:</label>
-                        <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} />
-                    </div>
-                )}
-                {filter === 'month' && (
-                    <div className="custom-date-picker" style={{marginTop: 10}}>
-                        <label>Từ:</label>
-                        <input type="date" value={customStartDate} onChange={e => setCustomStartDate(e.target.value)} />
-                        <label>Đến:</label>
-                        <input type="date" value={customEndDate} onChange={e => setCustomEndDate(e.target.value)} />
                     </div>
                 )}
             </div>
