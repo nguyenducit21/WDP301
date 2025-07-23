@@ -194,7 +194,7 @@ const getAvailableTables = async (req, res) => {
 
         // Nếu có yêu cầu về số lượng khách, tìm các combination có thể
         let tableCombinations = [];
-        if (guest_count && parseInt(guest_count) >= 6) {
+        if (guest_count && parseInt(guest_count) > 0) {
             const targetGuestCount = parseInt(guest_count);
 
             // Single table options
@@ -531,10 +531,10 @@ const createReservation = async (req, res) => {
 const assignStaffToReservation = async (req, res) => {
     try {
         const { reservationId, staffId } = req.body;
-        
+
         const reservation = await Reservation.findByIdAndUpdate(
             reservationId,
-            { 
+            {
                 assigned_staff: staffId,
                 status: 'confirmed',
                 updated_at: new Date()
@@ -1060,9 +1060,9 @@ const getInvoiceData = async (req, res) => {
 const confirmReservation = async (req, res) => {
     try {
         const { assigned_staff } = req.body || {};
-        
+
         const reservation = await Reservation.findById(req.params.id);
-        
+
         if (!reservation) {
             return res.status(404).json({
                 success: false,
@@ -1121,9 +1121,9 @@ const confirmReservation = async (req, res) => {
 const seatCustomer = async (req, res) => {
     try {
         const { assigned_staff } = req.body || {};
-        
+
         const reservation = await Reservation.findById(req.params.id);
-        
+
         if (!reservation) {
             return res.status(404).json({
                 success: false,

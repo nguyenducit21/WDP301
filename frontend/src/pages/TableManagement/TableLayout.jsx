@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
-import Sidebar from '../../components/Sidebar';
+import Sidebar from '../../components/SidebarManager/SidebarManager';
 import { AuthContext } from '../../context/AuthContext';
 import './TableLayout.css';
 import axios from '../../utils/axios.customize';
@@ -9,7 +9,6 @@ import axios from '../../utils/axios.customize';
 const TableLayout = () => {
     const navigate = useNavigate();
     const { user } = useContext(AuthContext);
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     // States cho sơ đồ bàn
     const [areas, setAreas] = useState([]);
@@ -504,7 +503,6 @@ const TableLayout = () => {
     if (loading && areas.length === 0) {
         return (
             <div className="table-management">
-                <Sidebar />
                 <div className="table-management-content">
                     <div className="loading-container">
                         <div className="loading-spinner"></div>
@@ -517,11 +515,7 @@ const TableLayout = () => {
 
     return (
         <div className="table-management">
-            <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
-            <div className="table-management-content" style={{
-                marginLeft: sidebarCollapsed ? '80px' : '250px',
-                transition: 'margin-left 0.2s'
-            }}>
+            <div className="table-management-content">
                 <div className="table-management-header">
                     <h1>Sơ đồ bàn ăn</h1>
 

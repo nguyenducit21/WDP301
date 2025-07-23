@@ -43,6 +43,7 @@ import WaiterProducts from "./pages/Waiter/WaiterProducts";
 import Schedule from "./pages/Waiter/Schedule/Schedule";
 import PromotionManagement from './pages/PromotionManagement';
 import ManagerDashboard from "./pages/Dashboard/ManagerDashboard";
+import ManagerLayout from "./pages/Manager/ManagerLayout";
 
 const App = () => {
   const location = useLocation();
@@ -51,11 +52,12 @@ const App = () => {
   const isMenuPage = location.pathname.includes("/menu");
   const isDashboardPage = location.pathname.includes("/dashboard");
   const isWaiterPage = location.pathname.includes("/waiter");
+  const isManagerPage = location.pathname.includes("/manager");
 
   return (
     <>
       <div className="app">
-        {!isChefPage && !isDashboardPage && !isWaiterPage && <Navbar isPositionUnset={isTableBooking || isMenuPage} />}
+        {!isChefPage && !isDashboardPage && !isWaiterPage && !isManagerPage && <Navbar isPositionUnset={isTableBooking || isMenuPage} />}
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/cart" element={<Cart />} />
@@ -65,13 +67,28 @@ const App = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/manager" element={<ManagerDashboard />} />
           <Route path="/dashboard/tables" element={<TableManagement />} />
-          <Route path="/table-layout" element={<TableLayout />} />
-          <Route path="/reservation-management" element={<ReservationManagement />} />
-          <Route path="/dashboard/employees" element={<EmployeeManagement />} />
           <Route path="/dashboard/permissions" element={<PermissionManagement />} />
           <Route path="/table-booking" element={<Reservation />} />
+
+          {/* Manager */}
+          <Route path="/manager" element={<ManagerLayout />}>
+            <Route path="dashboard" element={<ManagerDashboard />} />
+            <Route path="promotion-management" element={<PromotionManagement />} />
+            <Route path="products" element={<MenuItemManagement />} />
+            <Route path="table-layout" element={<TableLayout />} />
+            <Route path="reservation-management" element={<ReservationManagement />} />
+            <Route path="areas" element={<AreaManagement />} />
+            <Route path="dish/dashboard" element={<MenuDashboard />} />
+            <Route path="menu/management" element={<MenuItemManagement />} />
+            <Route path="menu/category" element={<CategoryManagement />} />
+            <Route path="deleted-menu-items" element={<DeletedMenuItems />} />
+            <Route path="employees" element={<EmployeeManagement />} />
+
+          </Route>
+
+
+          {/* Chef */}
           <Route path="/chef" element={<ChefLayout />}>
             <Route path="orders" element={<Orders />} />
             <Route path="dashboard" element={<ChefDashboard />} />
@@ -88,10 +105,9 @@ const App = () => {
             <Route path="stock-check" element={<StockCheck />} />
             <Route path="inventory/:id" element={<InventoryDetail />} />
           </Route>
-          <Route path="/areas" element={<AreaManagement />} />
+
           <Route path="/profile" element={<Profile />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/promotion-management" element={<PromotionManagement />} />
 
           {/* Waiter */}
           <Route path="/waiter" element={<WaiterLayout />}>
@@ -103,7 +119,7 @@ const App = () => {
 
         </Routes>
         {!isChefPage && <ScrollToTopButton />}
-        {!isChefPage && !isDashboardPage && !isWaiterPage && <Footer />}
+        {!isChefPage && !isDashboardPage && !isWaiterPage && !isManagerPage && <Footer />}
         <ToastContainer
           position="top-right"
           autoClose={5000}

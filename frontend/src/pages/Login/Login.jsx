@@ -79,7 +79,7 @@ const Login = () => {
                     navigate('/dashboard');
                     break;
                 case 'manager':
-                    navigate('/dashboard');
+                    navigate('/manager/dashboard');
                     break;
                 case 'waiter':
                     navigate('/waiter');

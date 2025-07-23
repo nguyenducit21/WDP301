@@ -3,7 +3,6 @@ import axios from '../../utils/axios.customize';
 import './EmployeeManagement.css';
 import EmployeeForm from './EmployeeForm';
 import ConfirmModal from './ConfirmModal';
-import Sidebar from '../../components/Sidebar';
 
 const EmployeeManagement = () => {
     const [employees, setEmployees] = useState([]);
@@ -13,7 +12,6 @@ const EmployeeManagement = () => {
     const [editingEmployee, setEditingEmployee] = useState(null);
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [employeeToDelete, setEmployeeToDelete] = useState(null);
-    const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
     // Filters and pagination
     const [filters, setFilters] = useState({
@@ -163,10 +161,9 @@ const EmployeeManagement = () => {
 
     return (
         <div className="employee-management-container">
-            <Sidebar collapsed={sidebarCollapsed} setCollapsed={setSidebarCollapsed} />
             <div className="employee-management" style={{
-                marginLeft: sidebarCollapsed ? '80px' : '250px',
-                transition: 'margin-left 0.2s'
+                transition: 'margin-left 0.2s',
+                width: '100%'
             }}>
                 <div className="page-header">
                     <h1>Quản lý nhân viên</h1>

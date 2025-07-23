@@ -164,7 +164,7 @@ const SuccessModal = ({
                         <div className="promotion-input-wrap">
                             <input
                                 type="text"
-                                value={promotionCode}
+                                value={promotionCode || 'PREORDER15'}
                                 onChange={e => setPromotionCode(e.target.value)}
                                 placeholder="Nhập mã khuyến mại"
                                 disabled={promotionLoading}
@@ -189,9 +189,9 @@ const SuccessModal = ({
 
                     {/* Pre-order section */}
                     <div className="pre-order-section">
-                        <h4>🍽️ Đặt món trước (Giảm 15% hoặc mã khuyến mại)</h4>
+                       
                         <p className="discount-info">
-                            💥 <strong>Ưu đãi đặc biệt:</strong> Đặt món trước để nhận giảm giá 15% hoặc nhập mã khuyến mại!
+                            💥 <strong>Ưu đãi đặc biệt:</strong> Đặt món trước để nhận giảm giá 15% với mã <strong>PREORDER15</strong> !
                         </p>
 
                         {preOrderItems.length > 0 && (

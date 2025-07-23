@@ -13,7 +13,7 @@ const {
 } = require('../controllers/menuItemRecipe.controller');
 
 // Middleware cho kitchen_staff
-router.use(authMiddleware, roleMiddleware(['kitchen_staff', 'admin']));
+router.use(authMiddleware, roleMiddleware(['kitchen_staff', 'admin', 'manager']));
 
 // Routes
 router.get('/all', getAllRecipes);

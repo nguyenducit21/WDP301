@@ -64,7 +64,7 @@ const DeletedMenuItems = () => {
     useEffect(() => {
         if (user !== null && user !== undefined) {
             const userRole = safeGet(user, 'user.role') || safeGet(user, 'role');
-            const allowedRoles = ['kitchen_staff'];
+            const allowedRoles = ['kitchen_staff', 'manager'];
             if (!userRole || !allowedRoles.includes(userRole)) {
                 navigate('/login');
             }

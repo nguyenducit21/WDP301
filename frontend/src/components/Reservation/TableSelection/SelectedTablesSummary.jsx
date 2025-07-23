@@ -29,19 +29,21 @@ const SelectedTablesSummary = ({
                 ))}
             </div>
 
-            <div className="capacity-info">
-                Tổng sức chứa: <strong>{totalCapacity}</strong> người
-                {totalCapacity < guestCount && (
-                    <span className="capacity-warning">
-                        ⚠️ Cần thêm bàn để đủ {guestCount} người
-                    </span>
-                )}
-                {totalCapacity >= guestCount && (
-                    <span className="capacity-ok">
-                        ✅ Đủ chỗ cho {guestCount} người
-                    </span>
-                )}
-            </div>
+            {parseInt(guestCount) > 0 && (
+                <div className="capacity-info">
+                    Tổng sức chứa: <strong>{totalCapacity}</strong> người
+                    {totalCapacity < guestCount && (
+                        <span className="capacity-warning">
+                            ⚠️ Cần thêm bàn để đủ {guestCount} người
+                        </span>
+                    )}
+                    {totalCapacity >= guestCount && (
+                        <span className="capacity-ok">
+                            ✅ Đủ chỗ cho {guestCount} người
+                        </span>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

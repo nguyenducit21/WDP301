@@ -73,6 +73,11 @@ const AreaTableSelection = ({
             return renderLargeGroupBooking();
         }
 
+        // Thêm điều kiện guestCount > 0
+        if (!guestCount || parseInt(guestCount) <= 0) {
+            return null;
+        }
+
         const combinations = getSuggestedCombinations(guestCount);
 
         return (

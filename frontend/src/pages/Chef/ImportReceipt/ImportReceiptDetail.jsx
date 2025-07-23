@@ -19,10 +19,10 @@ const ImportReceiptDetail = () => {
   const fetchReceiptDetail = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`/import-receipt/${id}`, { 
-        withCredentials: true 
+      const response = await axios.get(`/import-receipt/${id}`, {
+        withCredentials: true
       });
-      
+
       if (response.data.success) {
         setReceipt(response.data.data);
       } else {
@@ -48,7 +48,7 @@ const ImportReceiptDetail = () => {
 
   const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(amount) + ' VND';
   const formatDate = (date) => new Date(date).toLocaleString('vi-VN');
-  
+
   // ✅ Hiển thị mã phiếu thực tế từ database
   const getReceiptCode = () => {
     return receipt?.receipt_code || 'N/A';
@@ -56,7 +56,7 @@ const ImportReceiptDetail = () => {
 
   const handlePrint = () => {
     document.body.classList.add('printing');
-    
+
     const elementsToHide = [
       '.detail-header',
       '.sidebar',
@@ -64,16 +64,16 @@ const ImportReceiptDetail = () => {
       '.navbar',
       '.navigation'
     ];
-    
+
     elementsToHide.forEach(selector => {
       const elements = document.querySelectorAll(selector);
       elements.forEach(el => {
         el.style.display = 'none';
       });
     });
-    
+
     window.print();
-    
+
     setTimeout(() => {
       document.body.classList.remove('printing');
       elementsToHide.forEach(selector => {
@@ -88,12 +88,12 @@ const ImportReceiptDetail = () => {
   const handleDownloadDetail = async () => {
     try {
       toast.info('Đang tạo file chi tiết...');
-      
+
       const response = await axios.get(`/import-receipt/${id}/download-detail`, {
         responseType: 'blob',
         withCredentials: true
       });
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -103,7 +103,7 @@ const ImportReceiptDetail = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      
+
       toast.success('Tải file chi tiết thành công!');
     } catch (error) {
       console.error('Download detail error:', error);
@@ -114,12 +114,12 @@ const ImportReceiptDetail = () => {
   const handleExportExcel = async () => {
     try {
       toast.info('Đang tạo file Excel...');
-      
+
       const response = await axios.get(`/import-receipt/${id}/export-excel`, {
         responseType: 'blob',
         withCredentials: true
       });
-      
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -129,7 +129,7 @@ const ImportReceiptDetail = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-      
+
       toast.success('Xuất Excel thành công!');
     } catch (error) {
       console.error('Export Excel error:', error);
@@ -153,7 +153,7 @@ const ImportReceiptDetail = () => {
       <div className="import-receipt-detail">
         <div className="error-container">
           <h2>Không tìm thấy phiếu nhập</h2>
-          <button 
+          <button
             className="btn btn-primary"
             onClick={() => navigate('/chef/import-receipts')}
           >
@@ -168,7 +168,7 @@ const ImportReceiptDetail = () => {
     <div className="import-receipt-detail">
       {/* Header Actions */}
       <div className="detail-header">
-        <button 
+        <button
           className="back-btn"
           onClick={() => navigate('/chef/import-receipts')}
         >
@@ -237,7 +237,7 @@ const ImportReceiptDetail = () => {
               <span>{receipt.items?.length || 0} loại</span>
             </div>
           </div>
-          
+
           {receipt.content && (
             <div className="info-item full-width">
               <label>Ghi chú:</label>
@@ -267,9 +267,9 @@ const ImportReceiptDetail = () => {
                   <tr key={idx}>
                     <td className="text-center">{idx + 1}</td>
                     <td className="ingredient-name">
-                      {item.inventory_id?.ingredient_name || 
-                       item.inventory_id?.name || 
-                       'N/A'}
+                      {item.inventory_id?.ingredient_name ||
+                        item.inventory_id?.name ||
+                        'N/A'}
                     </td>
                     <td>{item.supplier}</td>
                     <td className="text-center">{item.unit}</td>
