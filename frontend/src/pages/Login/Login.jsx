@@ -76,7 +76,7 @@ const Login = () => {
 
             switch (userRole) {
                 case 'admin':
-                    navigate('/dashboard');
+                    navigate('/admin/dashboard');
                     break;
                 case 'manager':
                     navigate('/manager/dashboard');

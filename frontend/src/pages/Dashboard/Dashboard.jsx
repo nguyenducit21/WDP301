@@ -1,5 +1,4 @@
 import React, { useState, useContext } from 'react';
-import Sidebar from '../../components/Sidebar';
 import { AuthContext } from '../../context/AuthContext';
 import AdminDashboard from './AdminDashboard';
 import ManagerDashboard from './ManagerDashboard';
@@ -60,9 +59,7 @@ const Dashboard = () => {
 
     return (
         <div className="dashboard-container">
-            <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
             <div className="dashboard-content" style={{
-                marginLeft: collapsed ? '80px' : '250px',
                 transition: 'margin-left 0.2s'
             }}>
                 {renderDashboardContent()}

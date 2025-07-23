@@ -140,21 +140,21 @@ const SidebarWaiter = ({ collapsed, setCollapsed }) => {
                             onClick={() => navigate("/waiter/table-layout")}
                         >
                             <FaList className="sidebar-icon" />
-                            <span>Quản lý bàn</span>
+                            <span>Danh Sách Bàn</span>
                         </li>
                         <li
                             className={currentTab === "reservations" ? "active" : ""}
                             onClick={() => navigate("/waiter/reservation-management")}
                         >
                             <FaList className="sidebar-icon" />
-                            <span>Quản lý đặt bàn</span>
+                            <span>Đặt Bàn</span>
                         </li>
                         <li
                             className={currentTab === "areas" ? "active" : ""}
                             onClick={() => navigate("/waiter/areas")}
                         >
                             <FaList className="sidebar-icon" />
-                            <span>Quản lý khu vực</span>
+                            <span>Khu Vực</span>
                         </li>
                     </ul>
                 )}

@@ -44,6 +44,8 @@ import Schedule from "./pages/Waiter/Schedule/Schedule";
 import PromotionManagement from './pages/PromotionManagement';
 import ManagerDashboard from "./pages/Dashboard/ManagerDashboard";
 import ManagerLayout from "./pages/Manager/ManagerLayout";
+import AdminLayout from "./pages/Admin/AdminLayout";
+import TableWaiter from "./pages/Waiter/Table/TableWaiter";
 
 const App = () => {
   const location = useLocation();
@@ -71,6 +73,12 @@ const App = () => {
           <Route path="/dashboard/permissions" element={<PermissionManagement />} />
           <Route path="/table-booking" element={<Reservation />} />
 
+          {/* Admin */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route path="dashboard" element={<Dashboard />} />
+          </Route>
+
+
           {/* Manager */}
           <Route path="/manager" element={<ManagerLayout />}>
             <Route path="dashboard" element={<ManagerDashboard />} />
@@ -84,7 +92,6 @@ const App = () => {
             <Route path="menu/category" element={<CategoryManagement />} />
             <Route path="deleted-menu-items" element={<DeletedMenuItems />} />
             <Route path="employees" element={<EmployeeManagement />} />
-
           </Route>
 
 
@@ -112,7 +119,9 @@ const App = () => {
           {/* Waiter */}
           <Route path="/waiter" element={<WaiterLayout />}>
             <Route index element={<WaiterDashboard />} />
-            <Route path="table-layout" element={<TableLayout />} />
+            <Route path="table-layout" element={<TableWaiter />} />
+            <Route path="reservation-management" element={<ReservationManagement />} />
+            <Route path="areas" element={<AreaManagement />} />
             <Route path="products" element={<WaiterProducts />} />
             <Route path="schedule" element={<Schedule />} />
           </Route>

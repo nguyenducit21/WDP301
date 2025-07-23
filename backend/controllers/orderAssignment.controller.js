@@ -31,27 +31,30 @@ const getPendingOrders = async (req, res) => {
             .skip((page - 1) * limit);
 
         // Format dữ liệu
-        const formattedOrders = assignments.map(assignment => ({
-            assignment_id: assignment._id,
-            order_id: assignment.order_id._id,
-            order_type: assignment.order_type,
-            status: assignment.status,
-            assigned_to: assignment.assigned_to,
-            priority: assignment.priority,
-            can_take: assignment.status === 'waiting' && !assignment.rejected_by.some(r => r.employee_id.toString() === employeeId),
-            is_mine: assignment.assigned_to && assignment.assigned_to._id.toString() === employeeId,
-            order_details: {
-                customer_name: assignment.order_id.contact_name,
-                customer_phone: assignment.order_id.contact_phone,
-                tables: assignment.order_id.table_ids?.map(t => t.name).join(', ') || 'N/A',
-                guest_count: assignment.order_id.guest_count,
-                items: assignment.order_id.pre_order_items || [],
-                notes: assignment.order_id.notes,
-                created_at: assignment.order_id.created_at
-            },
-            created_at: assignment.created_at,
-            assigned_at: assignment.assigned_at
-        }));
+        const formattedOrders = assignments.map(assignment => {
+            const order = assignment.order_id;
+            return {
+                assignment_id: assignment._id,
+                order_id: order && order._id ? order._id : null,
+                order_type: assignment.order_type,
+                status: assignment.status,
+                assigned_to: assignment.assigned_to,
+                priority: assignment.priority,
+                can_take: assignment.status === 'waiting' && !assignment.rejected_by.some(r => r.employee_id.toString() === employeeId),
+                is_mine: assignment.assigned_to && assignment.assigned_to._id.toString() === employeeId,
+                order_details: {
+                    customer_name: order && order.contact_name ? order.contact_name : '',
+                    customer_phone: order && order.contact_phone ? order.contact_phone : '',
+                    tables: order && order.table_ids ? order.table_ids.map(t => t && t.name).filter(Boolean).join(', ') : 'N/A',
+                    guest_count: order && order.guest_count ? order.guest_count : '',
+                    items: order && order.pre_order_items ? order.pre_order_items : [],
+                    notes: order && order.notes ? order.notes : '',
+                    created_at: order && order.created_at ? order.created_at : ''
+                },
+                created_at: assignment.created_at,
+                assigned_at: assignment.assigned_at
+            };
+        });
 
         res.status(200).json({
             success: true,
@@ -300,14 +303,14 @@ const createOrderAssignment = async (orderId, orderType, priority = 1) => {
 
         // Lấy thông tin order/reservation tùy theo type
         let orderDetails = {};
-        
+
         if (orderType === 'reservation') {
             const reservation = await Reservation.findById(orderId)
                 .populate('customer_id', 'full_name username phone')
                 .populate('created_by_staff', 'full_name')
                 .populate('table_ids', 'name')
                 .populate('pre_order_items.menu_item_id', 'name price image');
-            
+
             if (reservation) {
                 const hasPreOrder = reservation.pre_order_items && reservation.pre_order_items.length > 0;
                 orderDetails = {
@@ -328,7 +331,7 @@ const createOrderAssignment = async (orderId, orderType, priority = 1) => {
                 .populate('staff_id', 'full_name')
                 .populate('table_id', 'name')
                 .populate('order_items.menu_item_id', 'name price image');
-            
+
             if (order) {
                 orderDetails = {
                     customer_name: order.customer_id?.full_name || order.customer_id?.username || 'Khách lẻ',
@@ -440,14 +443,14 @@ const updateOrderAssignment = async (orderId, orderType, newItems) => {
 
         // Lấy thông tin order/reservation mới
         let orderDetails = {};
-        
+
         if (orderType === 'reservation') {
             const reservation = await Reservation.findById(orderId)
                 .populate('customer_id', 'full_name username phone')
                 .populate('created_by_staff', 'full_name')
                 .populate('table_ids', 'name')
                 .populate('pre_order_items.menu_item_id', 'name price image');
-            
+
             if (reservation) {
                 const hasPreOrder = reservation.pre_order_items && reservation.pre_order_items.length > 0;
                 orderDetails = {

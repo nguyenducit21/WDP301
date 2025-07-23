@@ -43,6 +43,7 @@ const SidebarManager = ({ collapsed, setCollapsed }) => {
     };
 
     const [openTableMenu, setOpenTableMenu] = useState(false);
+    const [openDishMenu, setOpenDishMenu] = useState(false);
 
     return (
         <div className={`manager-sidebar ${collapsed ? "collapsed" : ""}`}>
@@ -106,20 +107,19 @@ const SidebarManager = ({ collapsed, setCollapsed }) => {
                     </ul>
                 )}
 
-
                 <li
                     className={currentTab === "menu-dashboard" || currentTab === "menu-management" || currentTab === "menu-category" ? "active parent-active" : "parent"}
-                    onClick={() => setOpenTableMenu((prev) => !prev)}
+                    onClick={() => setOpenDishMenu((prev) => !prev)}
                 >
                     <FaUtensils className="sidebar-icon" />
                     {!collapsed && <span>Quản lý món ăn</span>}
                     {!collapsed && (
                         <span className="submenu-arrow">
-                            {openTableMenu ? <FaChevronDown /> : <FaChevronRight />}
+                            {openDishMenu ? <FaChevronDown /> : <FaChevronRight />}
                         </span>
                     )}
                 </li>
-                {openTableMenu && !collapsed && (
+                {openDishMenu && !collapsed && (
                     <ul className="manager-sidebar-submenu">
                         <li
                             className={currentTab === "menu-dashboard" ? "active" : ""}
@@ -166,13 +166,13 @@ const SidebarManager = ({ collapsed, setCollapsed }) => {
                     <FaUsers className="sidebar-icon" />
                     {!collapsed && <span>Quản lý nhân viên</span>}
                 </li>
-                <li
+                {/* <li
                     className={currentTab === "settings" ? "active" : ""}
                     onClick={() => navigate("/manager/settings")}
                 >
                     <FaCog className="sidebar-icon" />
                     {!collapsed && <span>Cài đặt</span>}
-                </li>
+                </li> */}
                 <li className="logout-item" onClick={handleLogout}>
                     <FaSignOutAlt className="sidebar-icon" />
                     {!collapsed && <span>Đăng xuất</span>}
