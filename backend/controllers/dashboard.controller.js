@@ -50,53 +50,59 @@ const chefDashboard = async (req, res) => {
 const calculateDateRange = (period, startDate = null, endDate = null) => {
     const today = new Date();
     let queryStart, queryEnd, previousStart, previousEnd;
-  
+
     switch (period) {
-      case 'today':
-        queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-        previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
-        previousEnd = new Date(queryStart);
-        break;
-  
-      case 'week':
-        queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-        queryStart = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
-        previousEnd = new Date(queryStart);
-        previousStart = new Date(queryStart.getTime() - 7 * 24 * 60 * 60 * 1000);
-        break;
-  
-      case 'month':
-        queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-        queryStart = new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000);
-        previousEnd = new Date(queryStart);
-        previousStart = new Date(queryStart.getTime() - 30 * 24 * 60 * 60 * 1000);
-        break;
-  
-      case 'custom':
-        queryStart = new Date(startDate);
-        queryEnd = new Date(endDate);
-        queryEnd.setDate(queryEnd.getDate() + 1);
-        const diffDays = Math.ceil((queryEnd - queryStart) / (24 * 60 * 60 * 1000));
-        previousEnd = new Date(queryStart);
-        previousStart = new Date(queryStart.getTime() - diffDays * 24 * 60 * 60 * 1000);
-        break;
-  
-      default:
-        queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-        previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
-        previousEnd = new Date(queryStart);
+        case 'today':
+            queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+            previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
+            previousEnd = new Date(queryStart);
+            break;
+
+        case 'week':
+            queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+            queryStart = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
+            previousEnd = new Date(queryStart);
+            previousStart = new Date(queryStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+
+        case 'month':
+            queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+            queryStart = new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000);
+            previousEnd = new Date(queryStart);
+            previousStart = new Date(queryStart.getTime() - 30 * 24 * 60 * 1000);
+            break;
+
+        case 'year':
+            queryStart = new Date(today.getFullYear(), 0, 1);
+            queryEnd = new Date(today.getFullYear() + 1, 0, 1);
+            previousStart = new Date(today.getFullYear() - 1, 0, 1);
+            previousEnd = new Date(today.getFullYear(), 0, 1);
+            break;
+
+        case 'custom':
+            queryStart = new Date(startDate);
+            queryEnd = new Date(endDate);
+            queryEnd.setDate(queryEnd.getDate() + 1);
+            const diffDays = Math.ceil((queryEnd - queryStart) / (24 * 60 * 60 * 1000));
+            previousEnd = new Date(queryStart);
+            previousStart = new Date(queryStart.getTime() - diffDays * 24 * 60 * 60 * 1000);
+            break;
+
+        default:
+            queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+            previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
+            previousEnd = new Date(queryStart);
     }
-  
-    // 👉 Return cả dạng current/previous và start/end (để backward compatible)
+
     return {
-      start: queryStart,
-      end: queryEnd,
-      current: { start: queryStart, end: queryEnd },
-      previous: { start: previousStart, end: previousEnd }
+        start: queryStart,
+        end: queryEnd,
+        current: { start: queryStart, end: queryEnd },
+        previous: { start: previousStart, end: previousEnd }
     };
-  };
+};
 //   const calculateDateRange = (period, startDate = null, endDate = null) => {
 //     const today = new Date();
 //     let queryStart, queryEnd, previousStart, previousEnd;
@@ -296,17 +302,21 @@ const calculateDateRange = (period, startDate = null, endDate = null) => {
         const waiters = await User.find({ role_id: waiterRole._id });
         const waiterIds = waiters.map(w => w._id);
 
-        // 2. Doanh thu từ Reservations (dựa trên pre_order_items)
+        // 2. Doanh thu và số đơn từ Reservations (dựa trên pre_order_items và đếm unique reservations)
         const reservationData = await Reservation.aggregate([
             {
                 $match: {
                     assigned_staff: { $in: waiterIds },
                     status: 'completed',
-                    updated_at: { $gte: start, $lt: end },
-                    pre_order_items: { $exists: true, $ne: [] }
+                    updated_at: { $gte: start, $lt: end }
                 }
             },
-            { $unwind: '$pre_order_items' },
+            {
+                $addFields: {
+                    pre_order_items: { $ifNull: ['$pre_order_items', []] }
+                }
+            },
+            { $unwind: { path: '$pre_order_items', preserveNullAndEmptyArrays: true } },
             {
                 $lookup: {
                     from: 'menuitems',
@@ -319,42 +329,58 @@ const calculateDateRange = (period, startDate = null, endDate = null) => {
             {
                 $group: {
                     _id: '$assigned_staff',
-                    orders: { $sum: 1 },
                     revenue: {
                         $sum: {
                             $multiply: [
-                                '$pre_order_items.quantity',
+                                { $ifNull: ['$pre_order_items.quantity', 0] },
                                 { $ifNull: ['$menuItem.price', 0] }
                             ]
                         }
-                    }
+                    },
+                    orderIds: { $addToSet: '$_id' }
+                }
+            },
+            {
+                $project: {
+                    revenue: 1,
+                    orders: { $size: '$orderIds' }
                 }
             }
         ]);
 
-        // 3. Doanh thu từ Orders (gọi món thêm)
+        // 3. Doanh thu và số đơn từ Orders (gọi món thêm)
         const orderData = await Order.aggregate([
             {
                 $match: {
                     staff_id: { $in: waiterIds },
-                    status: 'completed',
-                    updated_at: { $gte: start, $lt: end },
-                    order_items: { $exists: true, $ne: [] }
+                    status: { $in: ['completed', 'served'] },
+                    updated_at: { $gte: start, $lt: end }
                 }
             },
-            { $unwind: '$order_items' },
+            {
+                $addFields: {
+                    order_items: { $ifNull: ['$order_items', []] }
+                }
+            },
+            { $unwind: { path: '$order_items', preserveNullAndEmptyArrays: true } },
             {
                 $group: {
                     _id: '$staff_id',
-                    orders: { $sum: 1 },
                     revenue: {
                         $sum: {
                             $multiply: [
-                                '$order_items.quantity',
+                                { $ifNull: ['$order_items.quantity', 0] },
                                 { $ifNull: ['$order_items.price', 0] }
                             ]
                         }
-                    }
+                    },
+                    orderIds: { $addToSet: '$_id' }
+                }
+            },
+            {
+                $project: {
+                    revenue: 1,
+                    orders: { $size: '$orderIds' }
                 }
             }
         ]);
