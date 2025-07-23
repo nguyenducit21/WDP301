@@ -24,7 +24,7 @@ const InventoryList = () => {
   const [filters, setFilters] = useState({
     search: '',
     stockStatus: '',
-    storageType: '', // ✅ THÊM FILTER STORAGETYPE
+    storageType: '',
     entriesPerPage: 10,
     showFilter: false
   });
@@ -34,7 +34,7 @@ const InventoryList = () => {
   const [selectedInventory, setSelectedInventory] = useState(null);
   const navigate = useNavigate();
 
-  // ✅ ĐỊNH NGHĨA CÁC TRẠNG THÁI
+
   const stockStatuses = [
     { value: '', label: 'Tất cả trạng thái', icon: '📦' },
     { value: 'in-stock', label: 'Còn hàng', icon: '✅' },
@@ -42,11 +42,11 @@ const InventoryList = () => {
     { value: 'out-of-stock', label: 'Hết hàng', icon: '❌' }
   ];
 
-  // ✅ ĐỊNH NGHĨA CÁC LOẠI BẢO QUẢN
+
   const storageTypes = [
     { value: '', label: 'Tất cả loại', icon: '📦' },
     { value: 'perishable', label: 'Tươi sống (2 ngày)', icon: '🥬' },
-    { value: 'semi_perishable', label: 'Bán tươi (4 ngày)', icon: '🥩' },
+    { value: 'semi-perishable', label: 'Bán tươi (4 ngày)', icon: '🥩' },
     { value: 'dry', label: 'Khô/đông lạnh (7 ngày)', icon: '🌾' }
   ];
 
@@ -101,7 +101,6 @@ const InventoryList = () => {
     }
   };
 
-  // ✅ MÃ NGUYÊN LIỆU ĐƠN GIẢN - 1, 2, 3...
   const getInventoryCode = (index) => {
     return ((currentPage - 1) * filters.entriesPerPage + index + 1).toString();
   };
@@ -118,7 +117,6 @@ const InventoryList = () => {
     return 'Còn hàng';
   };
 
-  // ✅ HÀM LẤY LABEL STORAGETYPE
   const getStorageTypeLabel = (storageType) => {
     const type = storageTypes.find(t => t.value === (storageType || 'perishable'));
     return type ? `${type.icon} ${type.label}` : '🥬 Tươi sống (2 ngày)';
@@ -143,7 +141,7 @@ const InventoryList = () => {
     setFilters({
       search: '',
       stockStatus: '',
-      storageType: '', // ✅ RESET STORAGETYPE
+      storageType: '', 
       entriesPerPage: 10,
       showFilter: false
     });
@@ -154,12 +152,10 @@ const InventoryList = () => {
     setFilters(prev => ({ ...prev, showFilter: !prev.showFilter }));
   };
 
-  // ✅ KIỂM KHO
   const handleStockCheck = () => {
     navigate('/chef/stock-check');
   };
 
-  // ✅ THÊM NGUYÊN LIỆU
   const handleAddInventory = async (inventoryData) => {
     try {
       const response = await axios.post('/inventory', inventoryData, {
@@ -176,7 +172,6 @@ const InventoryList = () => {
     }
   };
 
-  // ✅ SỬA NGUYÊN LIỆU
   const handleEditInventory = async (inventoryData) => {
     try {
       const response = await axios.put(`/inventory/${selectedInventory._id}`, inventoryData, {
@@ -199,13 +194,12 @@ const InventoryList = () => {
     setShowEditModal(true);
   };
 
-  // Phân trang
+
   const totalPages = Math.ceil(inventories.length / filters.entriesPerPage);
   const startIndex = (currentPage - 1) * filters.entriesPerPage;
   const endIndex = startIndex + filters.entriesPerPage;
   const currentInventories = inventories.slice(startIndex, endIndex);
 
-  // ✅ TÍNH TOÁN CẢNH BÁO SẮP HẾT (chỉ để hiển thị alert)
   const lowStockCount = inventories.filter(item =>
     item.currentstock <= item.minstocklevel
   ).length;
@@ -240,7 +234,6 @@ const InventoryList = () => {
         </div>
       </div>
 
-      {/* Alert cho nguyên liệu sắp hết - CHỈ HIỂN THỊ KHI CÓ */}
       {lowStockCount > 0 && (
         <div className="alert alert-warning">
           <FaExclamationTriangle />
@@ -248,7 +241,6 @@ const InventoryList = () => {
         </div>
       )}
 
-      {/* ✅ FILTER PANEL - CÓ THÊM STORAGETYPE */}
       {filters.showFilter && (
         <div className="filter-panel">
           <div className="filter-row">
@@ -267,7 +259,6 @@ const InventoryList = () => {
               </select>
             </div>
             
-            {/* ✅ THÊM FILTER STORAGETYPE */}
             <div className="filter-group">
               <label>Loại bảo quản:</label>
               <select
@@ -286,7 +277,6 @@ const InventoryList = () => {
         </div>
       )}
 
-      {/* Table Controls */}
       <div className="table-controls">
         <div className="entries-control">
           <span>Hiển thị</span>
@@ -315,7 +305,6 @@ const InventoryList = () => {
         </div>
       </div>
 
-      {/* Table */}
       <div className="table-wrapper">
         {loading ? (
           <div className="loading-container">
@@ -328,7 +317,7 @@ const InventoryList = () => {
               <tr>
                 <th>Mã NL</th>
                 <th>Tên Nguyên Liệu</th>
-                <th>Loại Bảo Quản</th> {/* ✅ THÊM CỘT STORAGETYPE */}
+                <th>Loại Bảo Quản</th>
                 <th>Số Lượng Tồn</th>
                 <th>Đơn Vị</th>
                 <th>Mức Tối Thiểu</th>
@@ -341,7 +330,7 @@ const InventoryList = () => {
             <tbody>
               {currentInventories.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="no-data"> {/* ✅ TĂNG COLSPAN */}
+                  <td colSpan={10} className="no-data">
                     <div className="empty-state">
                       <FaBoxes size={48} />
                       <p>Không có nguyên liệu nào</p>
@@ -364,7 +353,6 @@ const InventoryList = () => {
                   <td className="inventory-name">
                     <strong>{inventory.name}</strong>
                   </td>
-                  {/* ✅ THÊM CỘT HIỂN THỊ STORAGETYPE */}
                   <td className="storage-type">
                     <span className={`storage-badge ${inventory.storageType || 'perishable'}`}>
                       {getStorageTypeLabel(inventory.storageType)}
@@ -413,7 +401,6 @@ const InventoryList = () => {
         )}
       </div>
 
-      {/* Footer */}
       <div className="table-footer">
         <div className="table-info">
           <span>
@@ -478,7 +465,6 @@ const InventoryList = () => {
         )}
       </div>
 
-      {/* Modals */}
       {showAddModal && (
         <AddInventoryModal
           isOpen={showAddModal}

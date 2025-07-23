@@ -5,9 +5,9 @@ const MenuItemRecipe = require('../models/menuItemRecipe.model');
 const ImportReceipt = require('../models/importReceipt.model');
 
 const STORAGE_TYPE_CONFIG = {
-  perishable: { label: "Tươi sống", days: 2, buffer: 0.15 },
-  semi_perishable: { label: "Bán tươi", days: 4, buffer: 0.10 },
-  dry: { label: "Khô/đông lạnh", days: 7, buffer: 0.10 }
+  "perishable": { label: "Tươi sống", days: 2, buffer: 0.15 },
+  "semi-perishable": { label: "Bán tươi", days: 4, buffer: 0.10 },
+  "dry": { label: "Khô/đông lạnh", days: 7, buffer: 0.10 }
 };
 
 const getInventoryAnalytics = async (req, res) => {
@@ -17,11 +17,9 @@ const getInventoryAnalytics = async (req, res) => {
     const end = new Date();
     const start = new Date(end.getTime() - days * 24 * 60 * 60 * 1000);
 
-    console.log(`Fetching analytics for period: ${start.toISOString()} to ${end.toISOString()}`);
 
     // Lấy toàn bộ inventory
     const inventories = await Inventory.find({ isactive: true }).lean();
-    console.log(`Found ${inventories.length} active inventories`);
 
     // Phân tích từng nguyên liệu
     const data = await Promise.all(
@@ -90,7 +88,6 @@ const getInventoryAnalytics = async (req, res) => {
 // Hàm tính toán tiêu thụ nguyên liệu từ Reservation và Order
 async function calculateConsumption(inventoryId, start, end, days) {
   try {
-    console.log(`Calculating consumption for inventoryId: ${inventoryId}`);
 
     // Chuẩn hóa start và end để so sánh ngày
     const startDate = new Date(start);
@@ -106,8 +103,6 @@ async function calculateConsumption(inventoryId, start, end, days) {
       .populate('pre_order_items.menu_item_id', 'name')
       .lean();
 
-    console.log(`Found ${reservations.length} completed reservations`);
-
     // 2. Lấy toàn bộ Order đã hoàn thành hoặc đã phục vụ
     const orders = await Order.find({
       created_at: { $gte: startDate, $lte: endDate },
@@ -116,7 +111,6 @@ async function calculateConsumption(inventoryId, start, end, days) {
       .populate('order_items.menu_item_id', 'name')
       .lean();
 
-    console.log(`Found ${orders.length} completed/served orders`);
 
     // 3. Tạo map để lưu số lượng menu item theo ngày
     const menuItemDateQuantity = {};
@@ -126,12 +120,10 @@ async function calculateConsumption(inventoryId, start, end, days) {
       const dateStr = new Date(reservation.date).toISOString().split('T')[0];
       for (const item of reservation.pre_order_items || []) {
         if (!item.menu_item_id || !item.quantity) {
-          console.warn(`Invalid pre_order_item in reservation ${reservation._id}:`, item);
           continue;
         }
         const key = `${item.menu_item_id._id}_${dateStr}`;
         menuItemDateQuantity[key] = (menuItemDateQuantity[key] || 0) + item.quantity;
-        console.log(`Reservation: Added ${item.quantity} of menu_item ${item.menu_item_id.name} (${item.menu_item_id._id}) on ${dateStr}`);
       }
     }
 
@@ -140,33 +132,26 @@ async function calculateConsumption(inventoryId, start, end, days) {
       const dateStr = new Date(order.created_at).toISOString().split('T')[0];
       for (const item of order.order_items || []) {
         if (!item.menu_item_id || !item.quantity) {
-          console.warn(`Invalid order_item in order ${order._id}:`, item);
           continue;
         }
         const key = `${item.menu_item_id._id}_${dateStr}`;
         menuItemDateQuantity[key] = (menuItemDateQuantity[key] || 0) + item.quantity;
-        console.log(`Order: Added ${item.quantity} of menu_item ${item.menu_item_id.name} (${item.menu_item_id._id}) on ${dateStr}`);
       }
     }
-
-    console.log('Menu item quantities:', menuItemDateQuantity);
 
     // 4. Lấy công thức của các món ăn sử dụng nguyên liệu này
     const recipes = await MenuItemRecipe.find({ "ingredients.inventory_id": inventoryId })
       .populate('menu_item_id', 'name')
       .lean();
 
-    console.log(`Found ${recipes.length} recipes for inventoryId: ${inventoryId}`);
 
     // 5. Tính tiêu thụ nguyên liệu theo ngày
     const dateMap = {};
     for (const recipe of recipes) {
       const ingredient = recipe.ingredients.find(ing => ing.inventory_id.toString() === inventoryId.toString());
       if (!ingredient) {
-        console.warn(`No matching ingredient in recipe for menu_item_id ${recipe.menu_item_id?._id}:`, recipe);
         continue;
       }
-      console.log(`Processing recipe for menu_item_id ${recipe.menu_item_id?.name} (${recipe.menu_item_id?._id}), ingredient:`, ingredient);
 
       for (let d = 0; d <= days; d++) {
         const dateObj = new Date(startDate.getTime() + d * 24 * 60 * 60 * 1000);
@@ -179,12 +164,10 @@ async function calculateConsumption(inventoryId, start, end, days) {
         if (!dateMap[dateStr]) dateMap[dateStr] = 0;
         dateMap[dateStr] += quantityUsed;
         if (quantityUsed > 0) {
-          console.log(`Consumed ${quantityUsed} ${ingredient.unit} of inventory ${inventoryId} on ${dateStr} from ${menuQty} units of menu_item ${recipe.menu_item_id?.name}`);
         }
       }
     }
 
-    console.log('Daily consumption:', dateMap);
 
     // 6. Tính tổng và trung bình tiêu thụ
     const history = [];
@@ -201,7 +184,6 @@ async function calculateConsumption(inventoryId, start, end, days) {
     }
     const average = count > 0 ? total / count : 0;
 
-    console.log(`Total: ${total}, Average: ${average}, Days with consumption: ${count}`);
 
     return {
       total,
@@ -209,7 +191,6 @@ async function calculateConsumption(inventoryId, start, end, days) {
       history
     };
   } catch (error) {
-    console.error('calculateConsumption error:', error);
     return { total: 0, average: 0, history: [] };
   }
 }

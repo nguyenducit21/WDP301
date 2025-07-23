@@ -63,9 +63,7 @@ const ImportDashboard = () => {
       }
       setAnalytics(res.data.data || []);
       setPeriodStart(new Date(res.data.period?.from)); // Lưu period.from
-      console.log('Fetched analytics data:', res.data.data);
     } catch (error) {
-      console.error('fetchAnalytics error:', error.response?.data || error.message);
       toast.error(`Lỗi khi lấy dữ liệu dashboard: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
@@ -128,8 +126,6 @@ const ImportDashboard = () => {
       (filter ? item.storageType === filter : true) &&
       (search.trim() === '' || item.name.toLowerCase().includes(search.trim().toLowerCase()))
   );
-
-  console.log('Filtered data:', filteredData);
 
   const totalSuggest = filteredData.reduce((sum, item) => sum + (item.suggestImport > 0 ? 1 : 0), 0);
 

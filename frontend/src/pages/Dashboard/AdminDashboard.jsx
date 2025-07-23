@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
     FaShoppingCart, FaDollarSign, FaUsers, FaSync,
-    FaCalendarDay, FaCalendarWeek, FaCalendarAlt, FaFilter, FaCrown
+    FaCalendarDay, FaCalendarWeek, FaCalendarAlt, FaFilter, FaCrown, FaClock, FaTag
 } from 'react-icons/fa';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     PieChart, Pie, Cell, Legend, BarChart, Bar
 } from 'recharts';
 import axios from '../../utils/axios.customize';
+import { toast } from 'react-toastify';
 import './AdminDashboard.css';
 
 const FILTERS = [
@@ -30,14 +31,16 @@ function AdminDashboard() {
     const [mainChart, setMainChart] = useState([]);
     const [topEmployees, setTopEmployees] = useState([]);
     const [topProducts, setTopProducts] = useState([]);
+    const [busiestSlot, setBusiestSlot] = useState(null);
+    const [promotionStats, setPromotionStats] = useState({ total: 0, used: 0 });
     const [filter, setFilter] = useState('today');
     const [loading, setLoading] = useState(true);
+    const [periodStart, setPeriodStart] = useState(null);
+    const [errorMessage, setErrorMessage] = useState(null);
 
-    // Ngày custom cho filter
     const [customStartDate, setCustomStartDate] = useState(todayStr);
     const [customEndDate, setCustomEndDate] = useState(todayStr);
 
-    // Cập nhật ngày khi thay đổi filter
     useEffect(() => {
         switch (filter) {
             case 'today':
@@ -68,46 +71,68 @@ function AdminDashboard() {
             default:
                 break;
         }
-        // eslint-disable-next-line
     }, [filter]);
 
-    // Gọi API khi filter hoặc ngày thay đổi
-    useEffect(() => { fetchAllData(); }, [customStartDate, customEndDate]);
+    useEffect(() => {
+        fetchAllData();
+    }, [customStartDate, customEndDate]);
 
     const fetchAllData = async () => {
         setLoading(true);
+        setErrorMessage(null);
         try {
             const params = { period: filter, startDate: customStartDate, endDate: customEndDate };
 
-            // KPI & Chart
-            const statsRes = await axios.get('/dashboard/admin-stats', { params });
-            if (statsRes.data.success) {
+            const apiCalls = [
+                { name: 'admin-stats', call: axios.get('/dashboard/admin-stats', { params }) },
+                { name: 'admin-employee-performance', call: axios.get('/dashboard/admin-employee-performance', { params }) },
+                { name: 'admin-top-products', call: axios.get('/dashboard/admin-top-products', { params: { ...params, limit: 5 } }) },
+                { name: 'admin-busiest-slot', call: axios.get('/dashboard/admin-busiest-slot', { params }) },
+                { name: 'admin-promotion-stats', call: axios.get('/dashboard/admin-promotion-stats', { params }) }
+            ];
+
+            const results = await Promise.allSettled(apiCalls.map(api => api.call));
+
+            results.forEach((result, index) => {
+                if (result.status === 'rejected') {
+                    console.error(`Error in ${apiCalls[index].name}:`, result.reason.response?.data || result.reason.message);
+                    toast.error(`Lỗi khi lấy dữ liệu từ ${apiCalls[index].name}: ${result.reason.response?.data?.message || result.reason.message}`);
+                    setErrorMessage(prev => prev ? `${prev}; ${apiCalls[index].name} failed` : `${apiCalls[index].name} failed`);
+                }
+            });
+
+            const statsRes = results[0].status === 'fulfilled' && results[0].value.data;
+            if (statsRes?.success) {
                 setKpi({
-                    orders: statsRes.data.data.totalInvoices,
-                    revenue: statsRes.data.data.totalRevenue,
-                    customers: statsRes.data.data.newCustomers
+                    orders: statsRes.data.totalInvoices,
+                    revenue: statsRes.data.totalRevenue,
+                    customers: statsRes.data.newCustomers
                 });
                 setMainChart(
-                    statsRes.data.data.chartData.map(d => ({
+                    statsRes.data.chartData.map(d => ({
                         ...d,
                         LoiNhuan: Math.round((d.revenue || 0) * 0.28)
                     }))
                 );
+                setPeriodStart(new Date(statsRes.data.period?.from));
             }
 
-            // Top Employees
-            const empRes = await axios.get('/dashboard/admin-employee-performance', { params });
-            setTopEmployees(empRes.data.success ? empRes.data.data : []);
+            const empRes = results[1].status === 'fulfilled' && results[1].value.data;
+            setTopEmployees(empRes?.success ? empRes.data : []);
 
-            // Top Products
-            const prodRes = await axios.get('/dashboard/admin-top-products', { params: { ...params, limit: 5 } });
-            setTopProducts(prodRes.data.success ? prodRes.data.data : []);
+            const prodRes = results[2].status === 'fulfilled' && results[2].value.data;
+            setTopProducts(prodRes?.success ? prodRes.data : []);
+
+            const slotRes = results[3].status === 'fulfilled' && results[3].value.data;
+            setBusiestSlot(slotRes?.success ? slotRes.data : null);
+
+            const promoRes = results[4].status === 'fulfilled' && results[4].value.data;
+            setPromotionStats(promoRes?.success ? promoRes.data : { total: 0, used: 0 });
 
         } catch (err) {
-            setKpi({ orders: 0, revenue: 0, customers: 0 });
-            setMainChart([]);
-            setTopEmployees([]);
-            setTopProducts([]);
+            console.error('fetchAllData error:', err);
+            toast.error('Lỗi khi tải dữ liệu dashboard. Vui lòng thử lại.');
+            setErrorMessage('Lỗi tổng quát khi tải dữ liệu');
         }
         setLoading(false);
     };
@@ -118,7 +143,7 @@ function AdminDashboard() {
     return (
         <div className="admin-dashboard">
             <div className="dashboard-header">
-                <h1>Dashboard</h1>
+                <h1>Dashboard Quản trị</h1>
                 <div className="filter-buttons">
                     {FILTERS.map(f =>
                         <button
@@ -141,6 +166,12 @@ function AdminDashboard() {
                 )}
             </div>
 
+            {errorMessage && (
+                <div className="error-message" style={{ color: 'red', textAlign: 'center', marginBottom: '10px' }}>
+                    Lỗi: {errorMessage}
+                </div>
+            )}
+
             <div className="kpi-cards">
                 <div className="card">
                     <div className="card-icon blue"><FaShoppingCart /></div>
@@ -161,6 +192,24 @@ function AdminDashboard() {
                     <div className="card-content">
                         <span className="card-title">Khách hàng mới</span>
                         <span className="card-value">{formatNumber(kpi.customers)}</span>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="card-icon purple"><FaClock /></div>
+                    <div className="card-content">
+                        <span className="card-title">Khung giờ đông nhất</span>
+                        <span className="card-value">
+                            {busiestSlot ? `${busiestSlot.start_time} - ${busiestSlot.end_time} (${formatNumber(busiestSlot.reservations)} đặt bàn)` : 'Chưa có dữ liệu'}
+                        </span>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="card-icon teal"><FaTag /></div>
+                    <div className="card-content">
+                        <span className="card-title">Mã giảm giá</span>
+                        <span className="card-value">
+                            {formatNumber(promotionStats.total)} tạo / {formatNumber(promotionStats.used)} đã dùng
+                        </span>
                     </div>
                 </div>
             </div>
@@ -185,20 +234,20 @@ function AdminDashboard() {
                     <h3>Nhân viên xuất sắc nhất</h3>
                     <table className="custom-table">
                         <thead>
-                        <tr>
-                            <th>Nhân viên</th>
-                            <th>Doanh thu cá nhân</th>
-                            <th>Số đơn hoàn thành</th>
-                        </tr>
+                            <tr>
+                                <th>Nhân viên</th>
+                                <th>Doanh thu cá nhân</th>
+                                <th>Số đơn hoàn thành</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {topEmployees.map(emp => (
-                            <tr key={emp.staffId}>
-                                <td>{emp.staffName}</td>
-                                <td>{formatCurrency(emp.revenue)}</td>
-                                <td>{formatNumber(emp.orders)}</td>
-                            </tr>
-                        ))}
+                            {topEmployees.map(emp => (
+                                <tr key={emp.staffId}>
+                                    <td>{emp.staffName}</td>
+                                    <td>{formatCurrency(emp.revenue)}</td>
+                                    <td>{formatNumber(emp.orders)}</td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>
@@ -225,24 +274,24 @@ function AdminDashboard() {
                     <h3>Sản phẩm bán chạy nhất</h3>
                     <table className="custom-table">
                         <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Tên</th>
-                            <th>Danh mục</th>
-                            <th>Giá</th>
-                            <th>Số lượng</th>
-                        </tr>
+                            <tr>
+                                <th>#</th>
+                                <th>Tên</th>
+                                <th>Danh mục</th>
+                                <th>Giá</th>
+                                <th>Số lượng</th>
+                            </tr>
                         </thead>
                         <tbody>
-                        {topProducts.map((p, idx) => (
-                            <tr key={p.id || p._id}>
-                                <td>{idx + 1}{idx === 0 && <FaCrown className="crown-icon" />}</td>
-                                <td>{p.name}</td>
-                                <td>{p.category}</td>
-                                <td>{formatCurrency(p.price)}</td>
-                                <td>{formatNumber(p.quantitySold)}</td>
-                            </tr>
-                        ))}
+                            {topProducts.map((p, idx) => (
+                                <tr key={p.id || p._id}>
+                                    <td>{idx + 1}{idx === 0 && <FaCrown className="crown-icon" />}</td>
+                                    <td>{p.name}</td>
+                                    <td>{p.category}</td>
+                                    <td>{formatCurrency(p.price)}</td>
+                                    <td>{formatNumber(p.quantitySold)}</td>
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
                 </div>

@@ -58,42 +58,42 @@ const calculateDateRange = (period, startDate = null, endDate = null) => {
             previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
             previousEnd = new Date(queryStart);
             break;
-
         case 'week':
             queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
             queryStart = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
             previousEnd = new Date(queryStart);
             previousStart = new Date(queryStart.getTime() - 7 * 24 * 60 * 60 * 1000);
             break;
-
         case 'month':
             queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
             queryStart = new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000);
             previousEnd = new Date(queryStart);
-            previousStart = new Date(queryStart.getTime() - 30 * 24 * 60 * 1000);
+            previousStart = new Date(queryStart.getTime() - 30 * 24 * 60 * 60 * 1000);
             break;
-
         case 'year':
             queryStart = new Date(today.getFullYear(), 0, 1);
             queryEnd = new Date(today.getFullYear() + 1, 0, 1);
             previousStart = new Date(today.getFullYear() - 1, 0, 1);
             previousEnd = new Date(today.getFullYear(), 0, 1);
             break;
-
         case 'custom':
-            queryStart = new Date(startDate);
-            queryEnd = new Date(endDate);
+            queryStart = startDate ? new Date(startDate) : new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            queryEnd = endDate ? new Date(endDate) : new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
             queryEnd.setDate(queryEnd.getDate() + 1);
             const diffDays = Math.ceil((queryEnd - queryStart) / (24 * 60 * 60 * 1000));
             previousEnd = new Date(queryStart);
             previousStart = new Date(queryStart.getTime() - diffDays * 24 * 60 * 60 * 1000);
             break;
-
         default:
             queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
             queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
             previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
             previousEnd = new Date(queryStart);
+    }
+
+    if (isNaN(queryStart.getTime()) || isNaN(queryEnd.getTime())) {
+        console.error(`Invalid date range: start=${startDate}, end=${endDate}`);
+        throw new Error('Invalid date range provided');
     }
 
     return {
@@ -103,206 +103,201 @@ const calculateDateRange = (period, startDate = null, endDate = null) => {
         previous: { start: previousStart, end: previousEnd }
     };
 };
-//   const calculateDateRange = (period, startDate = null, endDate = null) => {
-//     const today = new Date();
-//     let queryStart, queryEnd, previousStart, previousEnd;
 
-//     switch (period) {
-//         case 'today':
-//             queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-//             queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-//             previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
-//             previousEnd = new Date(queryStart);
-//             break;
-        
-//         case 'week':
-//             queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-//             queryStart = new Date(today.getTime() - 6 * 24 * 60 * 60 * 1000);
-//             previousEnd = new Date(queryStart);
-//             previousStart = new Date(queryStart.getTime() - 7 * 24 * 60 * 60 * 1000);
-//             break;
-        
-//         case 'month':
-//             queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-//             queryStart = new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000);
-//             previousEnd = new Date(queryStart);
-//             previousStart = new Date(queryStart.getTime() - 30 * 24 * 60 * 60 * 1000);
-//             break;
-        
-//         case 'custom':
-//             queryStart = new Date(startDate);
-//             queryEnd = new Date(endDate);
-//             queryEnd.setDate(queryEnd.getDate() + 1);
-//             const diffDays = Math.ceil((queryEnd - queryStart) / (24 * 60 * 60 * 1000));
-//             previousEnd = new Date(queryStart);
-//             previousStart = new Date(queryStart.getTime() - diffDays * 24 * 60 * 60 * 1000);
-//             break;
-        
-//         default:
-//             queryStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-//             queryEnd = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
-//             previousStart = new Date(queryStart.getTime() - 24 * 60 * 60 * 1000);
-//             previousEnd = new Date(queryStart);
-//     }
-
-//     return {
-//         current: { start: queryStart, end: queryEnd },
-//         previous: { start: previousStart, end: previousEnd }
-//     };
-// };
-  // Admin Dashboard - Hoá đơn, doanh thu, khách hàng, biểu đồ
-  const adminStats = async (req, res) => {
+const adminStats = async (req, res) => {
     try {
-      const { period = 'today', startDate, endDate } = req.query;
-      const dateRange = calculateDateRange(period, startDate, endDate);
-  
-      // Doanh thu từ Orders
-      const [ordersRevenue] = await Order.aggregate([
-        {
-          $match: {
+        const { period = 'today', startDate, endDate } = req.query;
+        const dateRange = calculateDateRange(period, startDate, endDate);
+
+        console.log(`adminStats: period=${period}, start=${dateRange.start}, end=${dateRange.end}`);
+
+        // Kiểm tra collection orders và reservations
+        const collections = await mongoose.connection.db.listCollections().toArray();
+        const hasOrders = collections.some(c => c.name === 'orders');
+        const hasReservations = collections.some(c => c.name === 'reservations');
+
+        if (!hasOrders || !hasReservations) {
+            console.warn(`Missing collections: orders=${hasOrders}, reservations=${hasReservations}`);
+        }
+
+        // Doanh thu từ Orders
+        const [ordersRevenue] = await Order.aggregate([
+            {
+                $match: {
+                    created_at: { $gte: dateRange.start, $lt: dateRange.end },
+                    status: { $in: ['completed', 'served'] },
+                    order_items: { $exists: true, $ne: [] }
+                }
+            },
+            { $unwind: '$order_items' },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: { $multiply: ['$order_items.quantity', '$order_items.price'] } },
+                    orderIds: { $addToSet: '$_id' }
+                }
+            },
+            {
+                $project: {
+                    totalRevenue: 1,
+                    totalOrders: { $size: '$orderIds' }
+                }
+            }
+        ]).catch(err => {
+            console.error('Error in ordersRevenue aggregation:', err);
+            return [{ totalRevenue: 0, totalOrders: 0 }];
+        });
+
+        // Doanh thu từ Reservations
+        const [reservationsRevenue] = await Reservation.aggregate([
+            {
+                $match: {
+                    date: { $gte: dateRange.start, $lt: dateRange.end },
+                    payment_status: 'paid',
+                    pre_order_items: { $exists: true, $ne: [] }
+                }
+            },
+            { $unwind: '$pre_order_items' },
+            {
+                $lookup: {
+                    from: 'menuitems',
+                    localField: 'pre_order_items.menu_item_id',
+                    foreignField: '_id',
+                    as: 'menuItem'
+                }
+            },
+            { $unwind: { path: '$menuItem', preserveNullAndEmptyArrays: true } },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: {
+                        $sum: {
+                            $multiply: [
+                                '$pre_order_items.quantity',
+                                { $ifNull: ['$menuItem.price', 0] }
+                            ]
+                        }
+                    },
+                    reservationIds: { $addToSet: '$_id' }
+                }
+            },
+            {
+                $project: {
+                    totalRevenue: 1,
+                    totalReservations: { $size: '$reservationIds' }
+                }
+            }
+        ]).catch(err => {
+            console.error('Error in reservationsRevenue aggregation:', err);
+            return [{ totalRevenue: 0, totalReservations: 0 }];
+        });
+
+        const orderRev = ordersRevenue || { totalRevenue: 0, totalOrders: 0 };
+        const reservationRev = reservationsRevenue || { totalRevenue: 0, totalReservations: 0 };
+
+        const totalRevenue = (orderRev.totalRevenue || 0) + (reservationRev.totalRevenue || 0);
+        const totalInvoices = (orderRev.totalOrders || 0) + (reservationRev.totalReservations || 0);
+
+        // Khách hàng mới
+        const orderCustomerIds = await Order.find({
+            created_at: { $gte: dateRange.start, $lt: dateRange.end },
+            customer_id: { $exists: true, $ne: null }
+        }).distinct('customer_id').catch(err => {
+            console.error('Error in orderCustomerIds:', err);
+            return [];
+        });
+
+        const reservationCustomerIds = await Reservation.find({
+            date: { $gte: dateRange.start, $lt: dateRange.end },
+            customer_id: { $exists: true, $ne: null }
+        }).distinct('customer_id').catch(err => {
+            console.error('Error in reservationCustomerIds:', err);
+            return [];
+        });
+
+        const allCustomerIds = Array.from(new Set([...orderCustomerIds, ...reservationCustomerIds]));
+
+        const newCustomers = await User.countDocuments({
+            _id: { $in: allCustomerIds.map(id => new mongoose.Types.ObjectId(id)) },
+            created_at: { $gte: dateRange.start, $lt: dateRange.end }
+        }).catch(err => {
+            console.error('Error counting new customers:', err);
+            return 0;
+        });
+
+        // Chart data
+        const chartMap = {};
+
+        const orders = await Order.find({
             created_at: { $gte: dateRange.start, $lt: dateRange.end },
             status: { $in: ['completed', 'served'] },
             order_items: { $exists: true, $ne: [] }
-          }
-        },
-        { $unwind: '$order_items' },
-        {
-          $group: {
-            _id: null,
-            totalRevenue: { $sum: { $multiply: ['$order_items.quantity', '$order_items.price'] } },
-            orderIds: { $addToSet: '$_id' }
-          }
-        },
-        {
-          $project: {
-            totalRevenue: 1,
-            totalOrders: { $size: '$orderIds' }
-          }
-        }
-      ]).catch(() => [{ totalRevenue: 0, totalOrders: 0 }]);
-  
-      // Doanh thu từ Reservations
-      const [reservationsRevenue] = await Reservation.aggregate([
-        {
-          $match: {
+        }).catch(err => {
+            console.error('Error fetching orders:', err);
+            return [];
+        });
+
+        orders.forEach(order => {
+            const dateStr = new Date(order.created_at).toISOString().slice(0, 10);
+            const revenue = order.order_items.reduce((sum, item) => sum + (item.quantity * (item.price || 0)), 0);
+            chartMap[dateStr] = (chartMap[dateStr] || 0) + revenue;
+        });
+
+        const reservations = await Reservation.find({
             date: { $gte: dateRange.start, $lt: dateRange.end },
             payment_status: 'paid',
             pre_order_items: { $exists: true, $ne: [] }
-          }
-        },
-        { $unwind: '$pre_order_items' },
-        {
-          $lookup: {
-            from: 'menuitems',
-            localField: 'pre_order_items.menu_item_id',
-            foreignField: '_id',
-            as: 'menuItem'
-          }
-        },
-        { $unwind: { path: '$menuItem', preserveNullAndEmptyArrays: true } },
-        {
-          $group: {
-            _id: null,
-            totalRevenue: {
-              $sum: {
-                $multiply: [
-                  '$pre_order_items.quantity',
-                  { $ifNull: ['$menuItem.price', 0] }
-                ]
-              }
+        }).populate('pre_order_items.menu_item_id').catch(err => {
+            console.error('Error fetching reservations:', err);
+            return [];
+        });
+
+        reservations.forEach(rsv => {
+            const dateStr = new Date(rsv.date).toISOString().slice(0, 10);
+            const revenue = rsv.pre_order_items.reduce((sum, item) => {
+                return sum + item.quantity * (item.menu_item_id?.price || 0);
+            }, 0);
+            chartMap[dateStr] = (chartMap[dateStr] || 0) + revenue;
+        });
+
+        const chartData = Object.entries(chartMap).map(([date, revenue]) => ({ date, revenue }))
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        res.json({
+            success: true,
+            data: {
+                totalInvoices,
+                totalRevenue,
+                newCustomers,
+                chartData
             },
-            reservationIds: { $addToSet: '$_id' }
-          }
-        },
-        {
-          $project: {
-            totalRevenue: 1,
-            totalReservations: { $size: '$reservationIds' }
-          }
-        }
-      ]).catch(() => [{ totalRevenue: 0, totalReservations: 0 }]);
-  
-      const orderRev = ordersRevenue || { totalRevenue: 0, totalOrders: 0 };
-      const reservationRev = reservationsRevenue || { totalRevenue: 0, totalReservations: 0 };
-  
-      const totalRevenue = (orderRev.totalRevenue || 0) + (reservationRev.totalRevenue || 0);
-      const totalInvoices = (orderRev.totalOrders || 0) + (reservationRev.totalReservations || 0);
-  
-      // Khách hàng mới
-      const orderCustomerIds = await Order.find({
-        created_at: { $gte: dateRange.start, $lt: dateRange.end },
-        customer_id: { $exists: true, $ne: null }
-      }).distinct('customer_id');
-  
-      const reservationCustomerIds = await Reservation.find({
-        date: { $gte: dateRange.start, $lt: dateRange.end },
-        customer_id: { $exists: true, $ne: null }
-      }).distinct('customer_id');
-  
-      const allCustomerIds = Array.from(new Set([...orderCustomerIds, ...reservationCustomerIds]));
-  
-      const newCustomers = await User.countDocuments({
-        _id: { $in: allCustomerIds.map(id => new mongoose.Types.ObjectId(id)) },
-        created_at: { $gte: dateRange.start, $lt: dateRange.end }
-      });
-  
-      // Chart data (gộp từ order & reservation)
-      const chartMap = {};
-  
-      const orders = await Order.find({
-        created_at: { $gte: dateRange.start, $lt: dateRange.end },
-        status: { $in: ['completed', 'served'] },
-        order_items: { $exists: true, $ne: [] }
-      });
-      orders.forEach(order => {
-        const dateStr = new Date(order.created_at).toISOString().slice(0, 10);
-        const revenue = order.order_items.reduce((sum, item) => sum + item.quantity * item.price, 0);
-        chartMap[dateStr] = (chartMap[dateStr] || 0) + revenue;
-      });
-  
-      const reservations = await Reservation.find({
-        date: { $gte: dateRange.start, $lt: dateRange.end },
-        payment_status: 'paid',
-        pre_order_items: { $exists: true, $ne: [] }
-      }).populate('pre_order_items.menu_item_id');
-      reservations.forEach(rsv => {
-        const dateStr = new Date(rsv.date).toISOString().slice(0, 10);
-        const revenue = rsv.pre_order_items.reduce((sum, item) => {
-          return sum + item.quantity * (item.menu_item_id?.price || 0);
-        }, 0);
-        chartMap[dateStr] = (chartMap[dateStr] || 0) + revenue;
-      });
-  
-      const chartData = Object.entries(chartMap).map(([date, revenue]) => ({ date, revenue }))
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
-  
-      res.json({
-        success: true,
-        data: {
-          totalInvoices,
-          totalRevenue,
-          newCustomers,
-          chartData
-        }
-      });
+            period: { from: dateRange.start, to: dateRange.end, days: Math.ceil((dateRange.end - dateRange.start) / (24 * 60 * 60 * 1000)) }
+        });
     } catch (error) {
-      console.error('Admin Stats Error:', error);
-      res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
+        console.error('Admin Stats Error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
     }
-  };
-  const adminEmployeePerformance = async (req, res) => {
+};
+
+const adminEmployeePerformance = async (req, res) => {
     try {
         const { period = 'today', startDate, endDate } = req.query;
         const { start, end } = calculateDateRange(period, startDate, endDate);
 
-        // 1. Lấy role waiter
-        const waiterRole = await Role.findOne({ name: 'waiter' });
+        console.log(`adminEmployeePerformance: period=${period}, start=${start}, end=${end}`);
+
+        const waiterRole = await Role.findOne({ name: 'waiter' }).catch(err => {
+            console.error('Error finding waiter role:', err);
+            return null;
+        });
         if (!waiterRole) return res.status(404).json({ success: false, message: 'Không tìm thấy role waiter' });
 
-        const waiters = await User.find({ role_id: waiterRole._id });
+        const waiters = await User.find({ role_id: waiterRole._id }).catch(err => {
+            console.error('Error fetching waiters:', err);
+            return [];
+        });
         const waiterIds = waiters.map(w => w._id);
 
-        // 2. Doanh thu và số đơn từ Reservations (dựa trên pre_order_items và đếm unique reservations)
         const reservationData = await Reservation.aggregate([
             {
                 $match: {
@@ -346,9 +341,11 @@ const calculateDateRange = (period, startDate = null, endDate = null) => {
                     orders: { $size: '$orderIds' }
                 }
             }
-        ]);
+        ]).catch(err => {
+            console.error('Error in reservationData aggregation:', err);
+            return [];
+        });
 
-        // 3. Doanh thu và số đơn từ Orders (gọi món thêm)
         const orderData = await Order.aggregate([
             {
                 $match: {
@@ -383,9 +380,11 @@ const calculateDateRange = (period, startDate = null, endDate = null) => {
                     orders: { $size: '$orderIds' }
                 }
             }
-        ]);
+        ]).catch(err => {
+            console.error('Error in orderData aggregation:', err);
+            return [];
+        });
 
-        // 4. Gộp dữ liệu
         const combinedMap = new Map();
         [...reservationData, ...orderData].forEach(item => {
             const id = item._id?.toString();
@@ -397,7 +396,6 @@ const calculateDateRange = (period, startDate = null, endDate = null) => {
             });
         });
 
-        // 5. Gắn thông tin nhân viên
         const results = waiters.map(staff => {
             const id = staff._id.toString();
             const data = combinedMap.get(id) || { orders: 0, revenue: 0 };
@@ -409,74 +407,236 @@ const calculateDateRange = (period, startDate = null, endDate = null) => {
             };
         });
 
-        // 6. Sắp xếp theo doanh thu
         results.sort((a, b) => b.revenue - a.revenue);
 
         res.json({ success: true, data: results.slice(0, 10) });
-
     } catch (error) {
         console.error('Admin Employee Performance Error:', error);
         res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
     }
 };
 
-
-
-  const adminTopProducts = async (req, res) => {
+const adminTopProducts = async (req, res) => {
     try {
-      const { period = 'today', startDate, endDate, limit = 5 } = req.query;
-      const { start, end } = calculateDateRange(period, startDate, endDate);
-  
-      // Từ đơn hàng
-      const orderItems = await Order.aggregate([
-        { $match: { created_at: { $gte: start, $lte: end }, status: { $in: ['completed', 'served'] } } },
-        { $unwind: '$order_items' },
-        {
-          $group: {
-            _id: '$order_items.menu_item_id',
-            quantitySold: { $sum: '$order_items.quantity' }
-          }
-        }
-      ]);
-  
-      // Từ đặt bàn
-      const reservationItems = await Reservation.aggregate([
-        { $match: { date: { $gte: start, $lte: end }, payment_status: 'paid' } },
-        { $unwind: '$pre_order_items' },
-        {
-          $group: {
-            _id: '$pre_order_items.menu_item_id',
-            quantitySold: { $sum: '$pre_order_items.quantity' }
-          }
-        }
-      ]);
-  
-      const combinedMap = new Map();
-      [...orderItems, ...reservationItems].forEach(item => {
-        const id = item._id?.toString();
-        if (!id) return;
-        combinedMap.set(id, (combinedMap.get(id) || 0) + item.quantitySold);
-      });
-  
-      const itemIds = Array.from(combinedMap.keys()).map(id => new mongoose.Types.ObjectId(id));
-      const menuItems = await MenuItem.find({ _id: { $in: itemIds } }).populate('category_id');
-  
-      const merged = menuItems.map(item => ({
-        id: item._id,
-        name: item.name,
-        price: item.price,
-        category: item.category_id?.name || 'Không rõ',
-        quantitySold: combinedMap.get(item._id.toString()) || 0
-      }));
-  
-      const sorted = merged.sort((a, b) => b.quantitySold - a.quantitySold).slice(0, parseInt(limit));
-  
-      res.json({ success: true, data: sorted });
+        const { period = 'today', startDate, endDate, limit = 5 } = req.query;
+        const { start, end } = calculateDateRange(period, startDate, endDate);
+
+        console.log(`adminTopProducts: period=${period}, start=${start}, end=${end}`);
+
+        const orderItems = await Order.aggregate([
+            { $match: { created_at: { $gte: start, $lte: end }, status: { $in: ['completed', 'served'] } } },
+            { $unwind: '$order_items' },
+            {
+                $group: {
+                    _id: '$order_items.menu_item_id',
+                    quantitySold: { $sum: '$order_items.quantity' }
+                }
+            }
+        ]).catch(err => {
+            console.error('Error in orderItems aggregation:', err);
+            return [];
+        });
+
+        const reservationItems = await Reservation.aggregate([
+            { $match: { date: { $gte: start, $lte: end }, payment_status: 'paid' } },
+            { $unwind: '$pre_order_items' },
+            {
+                $group: {
+                    _id: '$pre_order_items.menu_item_id',
+                    quantitySold: { $sum: '$pre_order_items.quantity' }
+                }
+            }
+        ]).catch(err => {
+            console.error('Error in reservationItems aggregation:', err);
+            return [];
+        });
+
+        const combinedMap = new Map();
+        [...orderItems, ...reservationItems].forEach(item => {
+            const id = item._id?.toString();
+            if (!id) return;
+            combinedMap.set(id, (combinedMap.get(id) || 0) + item.quantitySold);
+        });
+
+        const itemIds = Array.from(combinedMap.keys()).map(id => new mongoose.Types.ObjectId(id));
+        const menuItems = await MenuItem.find({ _id: { $in: itemIds } }).populate('category_id').catch(err => {
+            console.error('Error fetching menuItems:', err);
+            return [];
+        });
+
+        const merged = menuItems.map(item => ({
+            id: item._id,
+            name: item.name,
+            price: item.price,
+            category: item.category_id?.name || 'Không rõ',
+            quantitySold: combinedMap.get(item._id.toString()) || 0
+        }));
+
+        const sorted = merged.sort((a, b) => b.quantitySold - a.quantitySold).slice(0, parseInt(limit));
+
+        res.json({ success: true, data: sorted });
     } catch (error) {
-      console.error('Admin Top Products Error:', error);
-      res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
+        console.error('Admin Top Products Error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi server', error: error.message });
     }
-  };
+};
+
+const getBusiestBookingSlot = async (req, res) => {
+    try {
+        const { period = 'today', startDate, endDate } = req.query;
+        const { start, end } = calculateDateRange(period, startDate, endDate);
+
+        console.log(`getBusiestBookingSlot: period=${period}, start=${start}, end=${end}`);
+
+        // Kiểm tra collection bookingslots
+        const collections = await mongoose.connection.db.listCollections({ name: 'bookingslots' }).toArray();
+        if (!collections.length) {
+            console.warn('Collection "bookingslots" does not exist');
+            return res.json({
+                success: true,
+                data: null,
+                message: 'Collection "bookingslots" not found, returning null'
+            });
+        }
+
+        // Kiểm tra dữ liệu slot_id trong reservations
+        const validReservations = await Reservation.find({
+            date: { $gte: start, $lt: end },
+            status: { $in: ['completed', 'confirmed', 'seated'] },
+            slot_id: { $exists: true, $ne: null }
+        }).limit(1).catch(err => {
+            console.error('Error checking reservations:', err);
+            return [];
+        });
+
+        if (!validReservations.length) {
+            console.warn('No valid reservations with slot_id found');
+            return res.json({
+                success: true,
+                data: null,
+                message: 'No reservations with valid slot_id found'
+            });
+        }
+
+        const slotStats = await Reservation.aggregate([
+            {
+                $match: {
+                    date: { $gte: start, $lt: end },
+                    status: { $in: ['completed', 'confirmed', 'seated'] },
+                    slot_id: { $exists: true, $ne: null }
+                }
+            },
+            {
+                $group: {
+                    _id: '$slot_id',
+                    reservations: { $sum: 1 },
+                    guestCount: { $sum: '$guest_count' }
+                }
+            },
+            {
+                $lookup: {
+                    from: 'bookingslots',
+                    localField: '_id',
+                    foreignField: '_id',
+                    as: 'slot'
+                }
+            },
+            { $unwind: { path: '$slot', preserveNullAndEmptyArrays: true } },
+            {
+                $match: {
+                    slot: { $ne: null } // Chỉ giữ các document có slot hợp lệ
+                }
+            },
+            {
+                $project: {
+                    start_time: '$slot.start_time',
+                    end_time: '$slot.end_time',
+                    reservations: 1,
+                    guestCount: 1
+                }
+            },
+            { $sort: { reservations: -1 } },
+            { $limit: 1 }
+        ]).catch(err => {
+            console.error('Error in slotStats aggregation:', err);
+            return [];
+        });
+
+        const busiestSlot = slotStats[0] || null;
+
+        res.json({
+            success: true,
+            data: busiestSlot,
+            message: busiestSlot ? undefined : 'No matching booking slots found'
+        });
+    } catch (error) {
+        console.error('getBusiestBookingSlot Error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi khi lấy khung giờ đông khách', error: error.message });
+    }
+};
+
+const getPromotionStats = async (req, res) => {
+    try {
+        const { period = 'today', startDate, endDate } = req.query;
+        const { start, end } = calculateDateRange(period, startDate, endDate);
+
+        console.log(`getPromotionStats: period=${period}, start=${start}, end=${end}`);
+
+        // Kiểm tra collection promotions
+        const collections = await mongoose.connection.db.listCollections({ name: 'promotions' }).toArray();
+        if (!collections.length) {
+            console.warn('Collection "promotions" does not exist');
+            return res.json({
+                success: true,
+                data: { total: 0, used: 0 },
+                message: 'Collection "promotions" not found, returning default values'
+            });
+        }
+
+        // Kiểm tra dữ liệu promotions
+        const validPromotions = await Promotion.find({
+            createdAt: { $gte: start, $lt: end }
+        }).limit(1).catch(err => {
+            console.error('Error checking promotions:', err);
+            return [];
+        });
+
+        if (!validPromotions.length) {
+            console.warn('No promotions found for the given period');
+            return res.json({
+                success: true,
+                data: { total: 0, used: 0 },
+                message: 'No promotions found for the given period'
+            });
+        }
+
+        const totalPromotions = await Promotion.countDocuments({
+            createdAt: { $gte: start, $lt: end }
+        }).catch(err => {
+            console.error('Error counting total promotions:', err);
+            return 0;
+        });
+
+        const usedPromotions = await Promotion.countDocuments({
+            createdAt: { $gte: start, $lt: end },
+            usedCount: { $gt: 0 }
+        }).catch(err => {
+            console.error('Error counting used promotions:', err);
+            return 0;
+        });
+
+        res.json({
+            success: true,
+            data: {
+                total: totalPromotions,
+                used: usedPromotions
+            }
+        });
+    } catch (error) {
+        console.error('getPromotionStats Error:', error);
+        res.status(500).json({ success: false, message: 'Lỗi khi lấy thống kê mã giảm giá', error: error.message });
+    }
+};
 // Manager Dashboard - Thống kê chính
 const managerDashboard = async (req, res) => {
     try {
@@ -1251,5 +1411,7 @@ module.exports = {
     getWaiterNotifications,
     adminStats,
     adminEmployeePerformance,
-    adminTopProducts
+    adminTopProducts,
+    getBusiestBookingSlot,
+    getPromotionStats
 }

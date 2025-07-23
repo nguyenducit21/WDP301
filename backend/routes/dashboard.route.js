@@ -18,6 +18,9 @@ router.get('/waiter/notifications', authMiddleware, roleMiddleware(['waiter', 'a
 router.get('/admin-stats', authMiddleware, roleMiddleware(['admin']), dashboardController.adminStats);
 router.get('/admin-employee-performance', authMiddleware, roleMiddleware(['admin']), dashboardController.adminEmployeePerformance);
 router.get('/admin-top-products', authMiddleware, roleMiddleware(['admin']), dashboardController.adminTopProducts);
+router.get('/admin-promotion-stats', authMiddleware, roleMiddleware(['admin']), dashboardController.getPromotionStats);
+router.get('/admin-busiest-slot', authMiddleware, roleMiddleware(['admin']), dashboardController.getBusiestBookingSlot);
+
   
 
 
