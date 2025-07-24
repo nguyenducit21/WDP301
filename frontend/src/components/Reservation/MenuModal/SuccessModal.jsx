@@ -53,7 +53,18 @@ const SuccessModal = ({
         try {
             setLoading(true);
 
-            // Update reservation with pre-order items, note, and promotion info
+            // Nếu có nhập mã nhưng chưa bấm áp dụng, tự động validate
+            if (promotionCode.trim() && (!promotionResult || promotionResult.promotion.code !== promotionCode.trim())) {
+                await handleApplyPromotion();
+                // Nếu sau khi validate vẫn không hợp lệ, không cho tiếp tục
+                if (!promotionResult || !promotionResult.success) {
+                    setLoading(false);
+                    setPromotionError('Vui lòng nhập mã khuyến mại hợp lệ hoặc bỏ trống!');
+                    return;
+                }
+            }
+
+            // Update reservation với pre-order items, note, promotion info
             const updateData = {
                 pre_order_items: preOrderItems.filter(item => item.quantity > 0),
                 notes: reservationNote,
@@ -63,13 +74,7 @@ const SuccessModal = ({
                 payment_status: 'paid',
             };
             if (promotionResult && promotionResult.success) {
-                updateData.promotion = {
-                    code: promotionResult.promotion.code,
-                    type: promotionResult.promotion.type,
-                    value: promotionResult.promotion.value,
-                    discount: promotionResult.discount,
-                    description: promotionResult.promotion.description || '',
-                };
+                updateData.promotion = promotionResult.promotion.code;
             }
 
             await customFetch.put(`/reservations/${reservationId}`, updateData);
@@ -164,7 +169,7 @@ const SuccessModal = ({
                         <div className="promotion-input-wrap">
                             <input
                                 type="text"
-                                value={promotionCode || 'PREORDER15'}
+                                value={promotionCode}
                                 onChange={e => setPromotionCode(e.target.value)}
                                 placeholder="Nhập mã khuyến mại"
                                 disabled={promotionLoading}
@@ -189,7 +194,7 @@ const SuccessModal = ({
 
                     {/* Pre-order section */}
                     <div className="pre-order-section">
-                       
+
                         <p className="discount-info">
                             💥 <strong>Ưu đãi đặc biệt:</strong> Đặt món trước để nhận giảm giá 15% với mã <strong>PREORDER15</strong> !
                         </p>
@@ -252,6 +257,7 @@ const SuccessModal = ({
                 reservationId={reservationId}
                 totalAmount={finalTotal}
                 orderInfo={getOrderInfo()}
+                promotion={promotionResult && promotionResult.success ? promotionResult.promotion.code : undefined}
             />
         </div>
     );

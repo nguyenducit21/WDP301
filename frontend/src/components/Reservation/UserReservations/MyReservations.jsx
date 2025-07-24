@@ -379,7 +379,7 @@ export default function MyReservations({ userId = null, title = "Danh sách đ�
         
         .reservation-info h3 {
           margin: 0 0 8px 0;
-          color: #2c3e50;
+          color:rgb(255, 255, 255);
           font-size: 1.2rem;
         }
         
@@ -390,7 +390,7 @@ export default function MyReservations({ userId = null, title = "Danh sách đ�
         }
         
         .reservation-meta span {
-          color: #666;
+          color:rgb(255, 255, 255);
           font-size: 0.9rem;
         }
         

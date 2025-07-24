@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import Sidebar from '../../components/SidebarManager/SidebarManager';
 import { AuthContext } from '../../context/AuthContext';
@@ -9,6 +9,7 @@ import axios from '../../utils/axios.customize';
 
 const ReservationManagement = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { user } = useContext(AuthContext);
 
     // States chính
@@ -993,6 +994,13 @@ const ReservationManagement = () => {
         }
     };
 
+    // Set statusFilter nếu được truyền qua state
+    useEffect(() => {
+        if (location.state && location.state.statusFilter) {
+            setStatusFilter(location.state.statusFilter);
+        }
+    }, [location.state]);
+
     // ==================== RENDER COMPONENT ====================
     return (
         <div className="table-management-content">
@@ -1001,17 +1009,6 @@ const ReservationManagement = () => {
                 <h1>Quản lý đặt bàn</h1>
 
                 <div className="notification-section">
-                    <div className="notification-bell" onClick={() => setShowNotificationPanel(!showNotificationPanel)}>
-                        <div className="bell-icon">
-                            🔔
-                            {unreadCount > 0 && (
-                                <span className="notification-badge">{unreadCount}</span>
-                            )}
-                        </div>
-                        <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
-                            {isConnected ? '🟢' : '🔴'}
-                        </div>
-                    </div>
 
                     {showNotificationPanel && notifications.length > 0 && (
                         <div className="notification-panel">

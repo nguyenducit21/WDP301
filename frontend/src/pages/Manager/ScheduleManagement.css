@@ -1,0 +1,227 @@
+/* Schedule Management Styles - đồng bộ EmployeeManagement */
+.schedule-management-container {
+    min-height: 100vh;
+    background: #f7fafd;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.schedule-management-inner {
+    margin: 40px auto 0 auto;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+    padding: 36px 32px 32px 32px;
+    max-width: 900px;
+    width: 100%;
+}
+
+.schedule-management-container h2 {
+    color: #151f46;
+    font-size: 28px;
+    font-weight: 600;
+    margin-bottom: 32px;
+    text-align: center;
+}
+
+.schedule-management-container h3 {
+    color: #222b45;
+    font-size: 20px;
+    font-weight: 500;
+    margin-bottom: 18px;
+}
+
+.employee-list {
+    background: #f8fafc;
+    border-radius: 8px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    padding: 18px 0;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.employee-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.employee-list li {
+    padding: 14px 28px;
+    border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 1.08em;
+}
+
+.employee-list li:last-child {
+    border-bottom: none;
+}
+
+.employee-list li:hover {
+    background: #fffbe6;
+}
+
+.employee-list b {
+    font-size: 1.08em;
+}
+
+/* Calendar/Card */
+.calendar-outer {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+    padding: 18px 8px 8px 8px;
+    margin: 0 auto 18px auto;
+    max-width: 700px;
+}
+
+/* Nút vàng giống EmployeeManagement */
+.schedule-management-container button,
+.schedule-actions button {
+    background: #f4a70b;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 22px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.18s, box-shadow 0.18s;
+    box-shadow: 0 1px 4px rgba(244, 167, 11, 0.08);
+    margin-right: 8px;
+}
+
+.schedule-management-container button:hover,
+.schedule-actions button:hover {
+    background: #e09000;
+}
+
+button[style*="Quay lại"] {
+    background: #e5e7eb;
+    color: #374151;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    font-size: 0.98em;
+    transition: background 0.18s;
+}
+
+button[style*="Quay lại"]:hover {
+    background: #cbd5e1;
+}
+
+/* Modal giống EmployeeManagement */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(2px);
+}
+
+.modal-content {
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px 28px 24px 28px;
+    min-width: 320px;
+    max-width: 95vw;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.13);
+    position: relative;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    color: #f4a70b;
+    text-align: center;
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 4px;
+    color: #374151;
+    font-weight: 500;
+}
+
+.modal-content input,
+.modal-content select {
+    width: 100%;
+    padding: 9px 12px;
+    margin-bottom: 14px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    font-size: 1em;
+    background: #f3f4f6;
+    transition: border 0.18s;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+    border: 1.5px solid #f4a70b;
+    outline: none;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-actions button {
+    background: #f4a70b;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 22px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.18s;
+}
+
+.modal-actions button:hover {
+    background: #e09000;
+}
+
+.modal-actions button:first-child {
+    background: #e5e7eb;
+    color: #374151;
+}
+
+.modal-actions button:first-child:hover {
+    background: #cbd5e1;
+}
+
+@media (max-width: 900px) {
+    .schedule-management-inner {
+        padding: 18px 2vw 14px 2vw;
+    }
+
+    .calendar-outer {
+        padding: 8px 2vw 4px 2vw;
+        max-width: 99vw;
+    }
+}
+
+@media (max-width: 600px) {
+    .schedule-management-inner {
+        padding: 8px 1vw 8px 1vw;
+    }
+
+    .employee-list li {
+        padding: 10px 8px;
+    }
+}

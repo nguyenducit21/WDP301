@@ -3,14 +3,14 @@
 
 /* Specific styles for ReservationManagement */
 .reservations-view {
-    padding: 20px;
+    /* padding: 20px; */
 }
 
 .reservations-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    /* margin-bottom: 20px; */
     padding: 15px;
     background: #f8f9fa;
     border-radius: 8px;

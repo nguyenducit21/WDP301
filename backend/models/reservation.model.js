@@ -21,7 +21,7 @@ const ReservationSchema = new Schema({
     ref: "User",
     required: false, // Null = khách tự đặt, có giá trị = nhân viên đặt
   },
-  assigned_staff: { 
+  assigned_staff: {
     type: Schema.Types.ObjectId,
     ref: "User",
     required: false // Nhân viên được assign để phục vụ bàn này
@@ -52,12 +52,14 @@ const ReservationSchema = new Schema({
     enum: ["vnpay", "momo", "cash", "credit_card", "bank_transfer"],
   },
   payment_date: { type: Date },
+  reminder_sent: { type: Boolean, default: false },
   payment_status: {
     type: String,
     enum: ["pending", "partial", "paid", "refunded"],
     default: "pending",
   },
   notes: { type: String },
+  promotion: { type: String }, // Mã giảm giá hoặc thông tin promotion đã áp dụng
   auto_cancelled_at: { type: Date }, // Thời gian tự động hủy (nếu có)
   created_at: { type: Date, default: Date.now },
   updated_at: { type: Date, default: Date.now },

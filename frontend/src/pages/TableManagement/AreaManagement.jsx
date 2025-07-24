@@ -175,9 +175,9 @@ const AreaManagement = () => {
     if (loading && areas.length === 0) {
         return (
             <div className="area-management-content">
-                <div className="loading-container">
-                    <div className="loading-spinner"></div>
-                    <p>Đang tải dữ liệu...</p>
+                    <div className="loading-container">
+                        <div className="loading-spinner"></div>
+                        <p>Đang tải dữ liệu...</p>
                 </div>
             </div>
         );
@@ -185,257 +185,257 @@ const AreaManagement = () => {
 
     return (
         <div className="area-management-content">
-            <div className="area-management-header">
-                <h1>Quản lý khu vực</h1>
-                {canModify() && (
-                    <button
-                        className="action-button create"
-                        onClick={() => openModal('create')}
-                        disabled={loading}
-                    >
-                        Tạo khu vực mới
-                    </button>
-                )}
-            </div>
-
-            {error && (
-                <div className="error-message">
-                    {error}
-                    <button onClick={() => setError('')} className="close-error">×</button>
+                <div className="area-management-header">
+                    <h1>Quản lý khu vực</h1>
+                    {canModify() && (
+                        <button
+                            className="action-button create"
+                            onClick={() => openModal('create')}
+                            disabled={loading}
+                        >
+                            Tạo khu vực mới
+                        </button>
+                    )}
                 </div>
-            )}
 
-            <div className="area-main-content">
-                <div className="areas-list">
-                    <div className="areas-header">
-                        <h3>Danh sách khu vực</h3>
+                {error && (
+                    <div className="error-message">
+                        {error}
+                        <button onClick={() => setError('')} className="close-error">×</button>
+                    </div>
+                )}
+
+                <div className="area-main-content">
+                    <div className="areas-list">
+                        <div className="areas-header">
+                            <h3>Danh sách khu vực</h3>
+                        </div>
+
+                        {loading ? (
+                            <div className="loading-container">
+                                <div className="loading-spinner"></div>
+                                <p>Đang tải khu vực...</p>
+                            </div>
+                        ) : (
+                            <div className="areas-table">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Tên khu vực</th>
+                                            <th>Mô tả</th>
+                                            <th>Số bàn</th>
+                                            <th>Ngày tạo</th>
+                                            {canModify() && <th>Thao tác</th>}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {areas.map(area => (
+                                            <tr
+                                                key={area._id}
+                                                className={selectedArea?._id === area._id ? 'selected' : ''}
+                                                onClick={() => handleAreaClick(area)}
+                                            >
+                                                <td>
+                                                    <strong>{area.name}</strong>
+                                                </td>
+                                                <td>{area.description || 'Không có mô tả'}</td>
+                                                <td>
+                                                    <span className="table-count-badge">
+                                                        {area.tableCount || 0}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    {new Date(area.created_at).toLocaleDateString('vi-VN')}
+                                                </td>
+                                                {canModify() && (
+                                                    <td>
+                                                        <div className="action-buttons">
+                                                            <button
+                                                                className="action-button edit"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openModal('edit', area);
+                                                                }}
+                                                                disabled={loading}
+                                                            >
+                                                                Sửa
+                                                            </button>
+                                                            <button
+                                                                className="action-button delete"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openModal('delete', area);
+                                                                }}
+                                                                disabled={loading || (area.tableCount > 0)}
+                                                                title={area.tableCount > 0 ? 'Không thể xóa khu vực có bàn' : ''}
+                                                            >
+                                                                Xóa
+                                                            </button>
+                                                        </div>
+                                                    </td>
+                                                )}
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+
+                                {areas.length === 0 && (
+                                    <div className="no-data">
+                                        <p>Chưa có khu vực nào</p>
+                                        {canModify() && (
+                                            <button
+                                                className="action-button create"
+                                                onClick={() => openModal('create')}
+                                            >
+                                                Tạo khu vực đầu tiên
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    {loading ? (
-                        <div className="loading-container">
-                            <div className="loading-spinner"></div>
-                            <p>Đang tải khu vực...</p>
-                        </div>
-                    ) : (
-                        <div className="areas-table">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Tên khu vực</th>
-                                        <th>Mô tả</th>
-                                        <th>Số bàn</th>
-                                        <th>Ngày tạo</th>
-                                        {canModify() && <th>Thao tác</th>}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {areas.map(area => (
-                                        <tr
-                                            key={area._id}
-                                            className={selectedArea?._id === area._id ? 'selected' : ''}
-                                            onClick={() => handleAreaClick(area)}
-                                        >
-                                            <td>
-                                                <strong>{area.name}</strong>
-                                            </td>
-                                            <td>{area.description || 'Không có mô tả'}</td>
-                                            <td>
-                                                <span className="table-count-badge">
-                                                    {area.tableCount || 0}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                {new Date(area.created_at).toLocaleDateString('vi-VN')}
-                                            </td>
-                                            {canModify() && (
-                                                <td>
-                                                    <div className="action-buttons">
-                                                        <button
-                                                            className="action-button edit"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                openModal('edit', area);
-                                                            }}
-                                                            disabled={loading}
-                                                        >
-                                                            Sửa
-                                                        </button>
-                                                        <button
-                                                            className="action-button delete"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                openModal('delete', area);
-                                                            }}
-                                                            disabled={loading || (area.tableCount > 0)}
-                                                            title={area.tableCount > 0 ? 'Không thể xóa khu vực có bàn' : ''}
-                                                        >
-                                                            Xóa
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            )}
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                    {selectedArea && (
+                        <div className="area-details">
+                            <h3>Chi tiết khu vực: {selectedArea.area?.name || selectedArea.name}</h3>
+                            <div className="area-info">
+                                <div className="info-card">
+                                    <h4>Thông tin chung</h4>
+                                    <p><strong>Tên:</strong> {selectedArea.area?.name || selectedArea.name}</p>
+                                    <p><strong>Mô tả:</strong> {selectedArea.area?.description || selectedArea.description || 'Không có mô tả'}</p>
+                                    <p><strong>Ngày tạo:</strong> {new Date(selectedArea.area?.created_at || selectedArea.created_at).toLocaleString('vi-VN')}</p>
+                                    <p><strong>Cập nhật lần cuối:</strong> {new Date(selectedArea.area?.updated_at || selectedArea.updated_at).toLocaleString('vi-VN')}</p>
+                                </div>
 
-                            {areas.length === 0 && (
-                                <div className="no-data">
-                                    <p>Chưa có khu vực nào</p>
-                                    {canModify() && (
-                                        <button
-                                            className="action-button create"
-                                            onClick={() => openModal('create')}
-                                        >
-                                            Tạo khu vực đầu tiên
-                                        </button>
+                                <div className="info-card">
+                                    <h4>Thống kê bàn</h4>
+                                    <p><strong>Tổng số bàn:</strong> {selectedArea.tables?.length || 0}</p>
+                                    {selectedArea.tables && selectedArea.tables.length > 0 && (
+                                        <div className="table-list">
+                                            <h5>Danh sách bàn:</h5>
+                                            <div className="table-grid">
+                                                {selectedArea.tables.map(table => (
+                                                    <div key={table._id} className="table-item">
+                                                        <span className="table-name">{table.name}</span>
+                                                        <span className={`table-status ${table.status}`}>
+                                                            {table.status === 'available' && 'Trống'}
+                                                            {table.status === 'reserved' && 'Đã đặt'}
+                                                            {table.status === 'occupied' && 'Đang phục vụ'}
+                                                            {table.status === 'cleaning' && 'Đang dọn'}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     )}
+                                </div>
+                            </div>
+
+                            {canModify() && (
+                                <div className="area-actions">
+                                    <button
+                                        className="action-button edit"
+                                        onClick={() => openModal('edit', selectedArea.area || selectedArea)}
+                                        disabled={loading}
+                                    >
+                                        Sửa khu vực
+                                    </button>
+                                    <button
+                                        className="action-button delete"
+                                        onClick={() => openModal('delete', selectedArea.area || selectedArea)}
+                                        disabled={loading || (selectedArea.tables?.length > 0)}
+                                        title={selectedArea.tables?.length > 0 ? 'Không thể xóa khu vực có bàn' : ''}
+                                    >
+                                        Xóa khu vực
+                                    </button>
                                 </div>
                             )}
                         </div>
                     )}
                 </div>
 
-                {selectedArea && (
-                    <div className="area-details">
-                        <h3>Chi tiết khu vực: {selectedArea.area?.name || selectedArea.name}</h3>
-                        <div className="area-info">
-                            <div className="info-card">
-                                <h4>Thông tin chung</h4>
-                                <p><strong>Tên:</strong> {selectedArea.area?.name || selectedArea.name}</p>
-                                <p><strong>Mô tả:</strong> {selectedArea.area?.description || selectedArea.description || 'Không có mô tả'}</p>
-                                <p><strong>Ngày tạo:</strong> {new Date(selectedArea.area?.created_at || selectedArea.created_at).toLocaleString('vi-VN')}</p>
-                                <p><strong>Cập nhật lần cuối:</strong> {new Date(selectedArea.area?.updated_at || selectedArea.updated_at).toLocaleString('vi-VN')}</p>
+                {/* Modal Forms */}
+                {isModalOpen && (
+                    <div className="modal-overlay">
+                        <div className="modal-container">
+                            <div className="modal-header">
+                                <h3>
+                                    {modalType === 'create' && 'Tạo khu vực mới'}
+                                    {modalType === 'edit' && 'Chỉnh sửa khu vực'}
+                                    {modalType === 'delete' && 'Xác nhận xóa khu vực'}
+                                </h3>
+                                <button className="close-button" onClick={closeModal}>×</button>
                             </div>
 
-                            <div className="info-card">
-                                <h4>Thống kê bàn</h4>
-                                <p><strong>Tổng số bàn:</strong> {selectedArea.tables?.length || 0}</p>
-                                {selectedArea.tables && selectedArea.tables.length > 0 && (
-                                    <div className="table-list">
-                                        <h5>Danh sách bàn:</h5>
-                                        <div className="table-grid">
-                                            {selectedArea.tables.map(table => (
-                                                <div key={table._id} className="table-item">
-                                                    <span className="table-name">{table.name}</span>
-                                                    <span className={`table-status ${table.status}`}>
-                                                        {table.status === 'available' && 'Trống'}
-                                                        {table.status === 'reserved' && 'Đã đặt'}
-                                                        {table.status === 'occupied' && 'Đang phục vụ'}
-                                                        {table.status === 'cleaning' && 'Đang dọn'}
-                                                    </span>
-                                                </div>
-                                            ))}
+                            {error && (
+                                <div className="error-message">
+                                    {error}
+                                </div>
+                            )}
+
+                            <form onSubmit={handleSubmit}>
+                                {modalType === 'create' || modalType === 'edit' ? (
+                                    <div className="modal-body">
+                                        <div className="form-group">
+                                            <label>Tên khu vực *</label>
+                                            <input
+                                                type="text"
+                                                name="name"
+                                                value={formData.name}
+                                                onChange={handleInputChange}
+                                                required
+                                                placeholder="Ví dụ: Sảnh chính, Sân ngoài..."
+                                            />
+                                        </div>
+                                        <div className="form-group">
+                                            <label>Mô tả</label>
+                                            <textarea
+                                                name="description"
+                                                value={formData.description}
+                                                onChange={handleInputChange}
+                                                rows="3"
+                                                placeholder="Mô tả về khu vực..."
+                                            />
                                         </div>
                                     </div>
-                                )}
-                            </div>
-                        </div>
+                                ) : modalType === 'delete' ? (
+                                    <div className="modal-body">
+                                        <p>Bạn có chắc chắn muốn xóa khu vực này?</p>
+                                        <div className="delete-info">
+                                            <p><strong>Tên khu vực:</strong> {formData.name}</p>
+                                            <p><strong>Số bàn:</strong> {formData.tableCount}</p>
+                                            {formData.tableCount > 0 && (
+                                                <p className="warning">
+                                                    ⚠️ Không thể xóa khu vực vì còn có {formData.tableCount} bàn
+                                                </p>
+                                            )}
+                                        </div>
+                                    </div>
+                                ) : null}
 
-                        {canModify() && (
-                            <div className="area-actions">
-                                <button
-                                    className="action-button edit"
-                                    onClick={() => openModal('edit', selectedArea.area || selectedArea)}
-                                    disabled={loading}
-                                >
-                                    Sửa khu vực
-                                </button>
-                                <button
-                                    className="action-button delete"
-                                    onClick={() => openModal('delete', selectedArea.area || selectedArea)}
-                                    disabled={loading || (selectedArea.tables?.length > 0)}
-                                    title={selectedArea.tables?.length > 0 ? 'Không thể xóa khu vực có bàn' : ''}
-                                >
-                                    Xóa khu vực
-                                </button>
-                            </div>
-                        )}
+                                <div className="modal-footer">
+                                    <button type="button" className="cancel-button" onClick={closeModal}>
+                                        Hủy
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="confirm-button"
+                                        disabled={loading || (modalType === 'delete' && formData.tableCount > 0)}
+                                    >
+                                        {loading ? 'Đang xử lý...' : (
+                                            <>
+                                                {modalType === 'create' && 'Tạo khu vực'}
+                                                {modalType === 'edit' && 'Cập nhật'}
+                                                {modalType === 'delete' && 'Xác nhận xóa'}
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 )}
-            </div>
-
-            {/* Modal Forms */}
-            {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-container">
-                        <div className="modal-header">
-                            <h3>
-                                {modalType === 'create' && 'Tạo khu vực mới'}
-                                {modalType === 'edit' && 'Chỉnh sửa khu vực'}
-                                {modalType === 'delete' && 'Xác nhận xóa khu vực'}
-                            </h3>
-                            <button className="close-button" onClick={closeModal}>×</button>
-                        </div>
-
-                        {error && (
-                            <div className="error-message">
-                                {error}
-                            </div>
-                        )}
-
-                        <form onSubmit={handleSubmit}>
-                            {modalType === 'create' || modalType === 'edit' ? (
-                                <div className="modal-body">
-                                    <div className="form-group">
-                                        <label>Tên khu vực *</label>
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            value={formData.name}
-                                            onChange={handleInputChange}
-                                            required
-                                            placeholder="Ví dụ: Sảnh chính, Sân ngoài..."
-                                        />
-                                    </div>
-                                    <div className="form-group">
-                                        <label>Mô tả</label>
-                                        <textarea
-                                            name="description"
-                                            value={formData.description}
-                                            onChange={handleInputChange}
-                                            rows="3"
-                                            placeholder="Mô tả về khu vực..."
-                                        />
-                                    </div>
-                                </div>
-                            ) : modalType === 'delete' ? (
-                                <div className="modal-body">
-                                    <p>Bạn có chắc chắn muốn xóa khu vực này?</p>
-                                    <div className="delete-info">
-                                        <p><strong>Tên khu vực:</strong> {formData.name}</p>
-                                        <p><strong>Số bàn:</strong> {formData.tableCount}</p>
-                                        {formData.tableCount > 0 && (
-                                            <p className="warning">
-                                                ⚠️ Không thể xóa khu vực vì còn có {formData.tableCount} bàn
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                            ) : null}
-
-                            <div className="modal-footer">
-                                <button type="button" className="cancel-button" onClick={closeModal}>
-                                    Hủy
-                                </button>
-                                <button
-                                    type="submit"
-                                    className="confirm-button"
-                                    disabled={loading || (modalType === 'delete' && formData.tableCount > 0)}
-                                >
-                                    {loading ? 'Đang xử lý...' : (
-                                        <>
-                                            {modalType === 'create' && 'Tạo khu vực'}
-                                            {modalType === 'edit' && 'Cập nhật'}
-                                            {modalType === 'delete' && 'Xác nhận xóa'}
-                                        </>
-                                    )}
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

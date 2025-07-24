@@ -22,6 +22,7 @@ const SidebarManager = ({ collapsed, setCollapsed }) => {
         if (location.pathname.includes("menu/dashboard")) return "menu-dashboard";
         if (location.pathname.includes("menu/management")) return "menu-management";
         if (location.pathname.includes("menu/category")) return "menu-category";
+        if (location.pathname.includes("schedule")) return "schedule-management";
         return "dashboard";
     };
     const currentTab = getCurrentTab();
@@ -166,6 +167,7 @@ const SidebarManager = ({ collapsed, setCollapsed }) => {
                     <FaUsers className="sidebar-icon" />
                     {!collapsed && <span>Quản lý nhân viên</span>}
                 </li>
+              
                 {/* <li
                     className={currentTab === "settings" ? "active" : ""}
                     onClick={() => navigate("/manager/settings")}

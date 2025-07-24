@@ -1,0 +1,154 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;900&family=Dancing+Script:wght@700&display=swap');
+
+.menu-page {
+    background: #f8fafb;
+    min-height: 100vh;
+    padding: 40px 0 30px 0;
+    margin-top: 50px;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.menu-container {
+    display: flex;
+    max-width: 1800px;
+    margin: 0 auto;
+    gap: 36px;
+    padding: 0 20px;
+}
+
+.menu-sidebar {
+    width: 270px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 6px 32px #0001;
+    padding: 28px 0 28px 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: fit-content;
+    margin-top: 22px;
+}
+
+.menu-sidebar-title {
+    color: #f4a70b;
+    font-family: 'Dancing Script', cursive;
+    font-size: 38px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 8px #ffecd5;
+}
+.menu-sidebar-title .decor {
+    font-size: 28px;
+    font-weight: 300;
+}
+
+.sidebar-list {
+    width: 90%;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.sidebar-list li {
+    font-family: 'Montserrat', sans-serif;
+    background: #fff;
+    border: 2.5px solid #ffe3b3;
+    color: #21243d;
+    font-size: 21px;
+    font-weight: 600;
+    border-radius: 16px;
+    padding: 16px 0;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.18s;
+    box-shadow: 0 1px 4px #00000008;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.sidebar-list li.active,
+.sidebar-list li:hover {
+    background: #fff8e6;
+    color: #f4a70b;
+    border: 2.5px solid #f4a70b;
+    font-weight: 900;
+    box-shadow: 0 8px 26px #f4a70b12;
+    letter-spacing: 1px;
+}
+
+.menu-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.menu-heading {
+    margin: 0 auto 30px auto;
+    text-align: center;
+}
+.menu-heading .sub-title {
+    color: #f4a70b;
+    font-size: 28px;
+    font-family: 'Dancing Script', cursive;
+    font-weight: bold;
+    letter-spacing: 1.2px;
+    display: block;
+    margin-bottom: 8px;
+}
+.menu-heading h1 {
+    font-size: 48px;
+    margin: 0;
+    color: #1b263b;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+.menu-items-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .menu-items-grid {
+        grid-template-columns: 1fr;
+    }
+    .menu-sidebar {
+        width: 98vw;
+        margin: 0 0 24px 0;
+    }
+}
+
+@media (max-width: 900px) {
+    .menu-container {
+        flex-direction: column;
+        gap: 12px;
+        padding: 0 5px;
+    }
+    .menu-sidebar {
+        width: 100vw;
+        margin: 0 0 18px 0;
+    }
+}
+
+@media (max-width: 600px) {
+    .menu-heading h1 {
+        font-size: 27px;
+    }
+    .menu-sidebar-title {
+        font-size: 22px;
+    }
+    .sidebar-list li {
+        font-size: 16px;
+        padding: 10px 0;
+    }
+}

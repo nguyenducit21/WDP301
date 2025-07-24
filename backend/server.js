@@ -5,7 +5,7 @@ const mongoose = require('mongoose');
 const http = require('http');
 const socketIo = require('socket.io');
 const cron = require('node-cron');
-const { autoCancelExpiredReservations } = require('./controllers/reservation.controller');
+const { autoCancelExpiredReservations, send15MinReminders } = require('./controllers/reservation.controller');
 
 const app = express();
 // Cấu hình múi giờ UTC+7
@@ -55,9 +55,10 @@ cron.schedule('*/1 * * * *', async () => {
   try {
     console.log('⏰ [CRON] Auto-cancel expired reservations running...');
     await autoCancelExpiredReservations({});
-    console.log('✅ [CRON] Auto-cancel completed.');
+    await send15MinReminders();
+    console.log('✅ [CRON] Auto-cancel + reminder completed.');
   } catch (err) {
-    console.error('❌ [CRON] Auto-cancel error:', err);
+    console.error('❌ [CRON] Auto-cancel/reminder error:', err);
   }
 });
 

@@ -3,6 +3,8 @@ import axios from '../../utils/axios.customize';
 import './EmployeeManagement.css';
 import EmployeeForm from './EmployeeForm';
 import ConfirmModal from './ConfirmModal';
+import CalendarGrid from '../Manager/CalendarGrid';
+import '../Manager/CalendarGrid.css';
 
 const EmployeeManagement = () => {
     const [employees, setEmployees] = useState([]);
@@ -22,6 +24,21 @@ const EmployeeManagement = () => {
         limit: 10
     });
     const [pagination, setPagination] = useState({});
+
+    // Lấy lịch làm việc của nhân viên theo tháng
+    const [showScheduleModal, setShowScheduleModal] = useState(false);
+    const [scheduleEmployee, setScheduleEmployee] = useState(null);
+    const [scheduleMonth, setScheduleMonth] = useState(() => {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+    });
+    const [employeeSchedules, setEmployeeSchedules] = useState([]);
+    const [scheduleLoading, setScheduleLoading] = useState(false);
+    const [showScheduleCrudModal, setShowScheduleCrudModal] = useState(false);
+    const [scheduleModalType, setScheduleModalType] = useState('add');
+    const [selectedSchedule, setSelectedSchedule] = useState(null);
+    const [scheduleForm, setScheduleForm] = useState({ employee_id: '', date: '', shift_type: 'morning', start_time: '08:00', end_time: '16:00', notes: '' });
+
 
     useEffect(() => {
         fetchEmployees();
@@ -159,6 +176,100 @@ const EmployeeManagement = () => {
         );
     };
 
+    // Lấy lịch làm việc của nhân viên theo tháng
+    const fetchEmployeeSchedules = async (employeeId, monthDate) => {
+        setScheduleLoading(true);
+        try {
+            const year = monthDate.getFullYear();
+            const month = monthDate.getMonth();
+            const startDate = new Date(year, month, 1).toISOString().split('T')[0];
+            const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
+            const res = await axios.get(`/schedules/employee/${employeeId}?startDate=${startDate}&endDate=${endDate}`);
+            if (res.data.success) {
+                setEmployeeSchedules(res.data.data.schedules || []);
+            }
+        } catch (err) {
+            setEmployeeSchedules([]);
+        } finally {
+            setScheduleLoading(false);
+        }
+    };
+
+    // Khi click vào nhân viên
+    const handleShowSchedule = (employee) => {
+        setScheduleEmployee(employee);
+        setScheduleMonth(new Date());
+        setShowScheduleModal(true);
+        setSelectedSchedule(null);
+        fetchEmployeeSchedules(employee._id, new Date());
+    };
+
+    // Điều hướng tháng
+    const handleScheduleMonthChange = (delta) => {
+        setScheduleMonth(prev => {
+            const y = prev.getFullYear();
+            const m = prev.getMonth() + delta;
+            const newMonth = new Date(y, m, 1);
+            if (scheduleEmployee) fetchEmployeeSchedules(scheduleEmployee._id, newMonth);
+            return newMonth;
+        });
+    };
+
+    // Click ngày trên calendar
+    const handleScheduleDayClick = (date, hasSchedule) => {
+        if (!scheduleEmployee) return;
+        const dateStr = date.toISOString().split('T')[0];
+        const sch = employeeSchedules.find(s => s.date === dateStr);
+        if (sch) {
+            setSelectedSchedule(sch);
+            setScheduleModalType('edit');
+            setScheduleForm({
+                employee_id: scheduleEmployee._id,
+                date: sch.date,
+                shift_type: sch.shiftType || 'morning',
+                start_time: sch.startTime || '08:00',
+                end_time: sch.endTime || '16:00',
+                notes: sch.notes || ''
+            });
+        } else {
+            setSelectedSchedule(null);
+            setScheduleModalType('add');
+            setScheduleForm({
+                employee_id: scheduleEmployee._id,
+                date: dateStr,
+                shift_type: 'morning',
+                start_time: '08:00',
+                end_time: '16:00',
+                notes: ''
+            });
+        }
+        setShowScheduleCrudModal(true);
+    };
+
+    // CRUD schedule
+    const handleAddSchedule = async () => {
+        try {
+            await axios.post('/schedules', scheduleForm);
+            setShowScheduleCrudModal(false);
+            fetchEmployeeSchedules(scheduleEmployee._id, scheduleMonth);
+        } catch (err) { }
+    };
+    const handleEditSchedule = async () => {
+        try {
+            await axios.put(`/schedules/${selectedSchedule.id}`, scheduleForm);
+            setShowScheduleCrudModal(false);
+            fetchEmployeeSchedules(scheduleEmployee._id, scheduleMonth);
+        } catch (err) { }
+    };
+    const handleDeleteSchedule = async () => {
+        try {
+            await axios.delete(`/schedules/${selectedSchedule.id}`);
+            setShowScheduleCrudModal(false);
+            fetchEmployeeSchedules(scheduleEmployee._id, scheduleMonth);
+        } catch (err) { }
+    };
+
+
     return (
         <div className="employee-management-container">
             <div className="employee-management" style={{
@@ -236,7 +347,7 @@ const EmployeeManagement = () => {
                                 {employees.length > 0 ? (
                                     employees.map(employee => (
                                         <tr key={employee._id}>
-                                            <td>{employee.full_name || '-'}</td>
+                                            <td style={{ cursor: 'pointer', color: '#2563eb', textDecoration: 'underline' }} onClick={() => handleShowSchedule(employee)}>{employee.full_name || '-'}</td>
                                             <td>{employee.username}</td>
                                             <td>{employee.email}</td>
                                             <td>{employee.phone || '-'}</td>
@@ -321,6 +432,74 @@ const EmployeeManagement = () => {
                     onConfirm={confirmToggleStatus}
                     onCancel={() => setShowConfirmModal(false)}
                 />
+            )}
+
+            {/* Schedule Modal */}
+            {showScheduleModal && scheduleEmployee && (
+                <div className="modal-overlay" onClick={() => setShowScheduleModal(false)}>
+                    <div className="modal-content" style={{ width: '100%', overflow: 'auto' }} onClick={e => e.stopPropagation()}>
+                        <h3>Lịch làm việc: {scheduleEmployee.full_name || scheduleEmployee.username}</h3>
+                        <CalendarGrid
+                            schedules={employeeSchedules}
+                            onDayClick={handleScheduleDayClick}
+                            currentMonth={scheduleMonth}
+                            onMonthChange={handleScheduleMonthChange}
+                        />
+                        <div style={{ textAlign: 'right', marginTop: 12 }}>
+                            <button onClick={() => setShowScheduleModal(false)}>Đóng</button>
+                        </div>
+                    </div>
+                    {/* CRUD modal */}
+                    {showScheduleCrudModal && (
+                        <div className="modal-overlay" onClick={() => setShowScheduleCrudModal(false)}>
+                            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                                <h3>{scheduleModalType === "add" ? "Thêm" : scheduleModalType === "edit" ? "Sửa" : "Xóa"} ca làm việc</h3>
+                                <div style={{ margin: "20px 0" }}>
+                                    {scheduleModalType === "delete" ? (
+                                        <p>Bạn có chắc muốn xóa ca làm việc này?</p>
+                                    ) : (
+                                        <>
+                                            <div>
+                                                <label>Ngày: </label>
+                                                <input type="date" value={scheduleForm.date} onChange={e => setScheduleForm(f => ({ ...f, date: e.target.value }))} />
+                                            </div>
+                                            <div>
+                                                <label>Ca: </label>
+                                                <select value={scheduleForm.shift_type} onChange={e => setScheduleForm(f => ({ ...f, shift_type: e.target.value }))}>
+                                                    <option value="morning">Sáng</option>
+                                                    <option value="afternoon">Chiều</option>
+                                                    <option value="night">Tối</option>
+                                                    <option value="full_day">Cả ngày</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label>Bắt đầu: </label>
+                                                <input type="time" value={scheduleForm.start_time} onChange={e => setScheduleForm(f => ({ ...f, start_time: e.target.value }))} />
+                                            </div>
+                                            <div>
+                                                <label>Kết thúc: </label>
+                                                <input type="time" value={scheduleForm.end_time} onChange={e => setScheduleForm(f => ({ ...f, end_time: e.target.value }))} />
+                                            </div>
+                                            <div>
+                                                <label>Ghi chú: </label>
+                                                <input type="text" value={scheduleForm.notes} onChange={e => setScheduleForm(f => ({ ...f, notes: e.target.value }))} />
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                                <div className="modal-actions">
+                                    <button onClick={() => setShowScheduleCrudModal(false)}>Hủy</button>
+                                    {scheduleModalType === "add" && <button onClick={handleAddSchedule}>Lưu</button>}
+                                    {scheduleModalType === "edit" && <>
+                                        <button onClick={handleEditSchedule}>Lưu</button>
+                                        <button style={{ background: '#dc3545', color: '#fff' }} onClick={() => setScheduleModalType('delete')}>Xóa</button>
+                                    </>}
+                                    {scheduleModalType === "delete" && <button onClick={handleDeleteSchedule}>Xóa</button>}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     );

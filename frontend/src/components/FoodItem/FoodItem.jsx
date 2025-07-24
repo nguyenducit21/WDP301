@@ -5,12 +5,12 @@ const FoodItem = ({ name, price, description, image }) => {
   // Hàm xử lý URL ảnh - tự động detect cloud URL hoặc local path
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '/default-image.png'; // Ảnh mặc định khi không có ảnh
-    
+
     // Nếu là URL cloud (bắt đầu bằng http/https)
     if (imagePath.startsWith('http')) {
       return imagePath;
     }
-    
+
     // Nếu là đường dẫn local
     return `http://localhost:3000/uploads/${imagePath}`;
   };

@@ -46,6 +46,8 @@ import ManagerDashboard from "./pages/Dashboard/ManagerDashboard";
 import ManagerLayout from "./pages/Manager/ManagerLayout";
 import AdminLayout from "./pages/Admin/AdminLayout";
 import TableWaiter from "./pages/Waiter/Table/TableWaiter";
+import ScheduleManagement from "./pages/Manager/ScheduleManagement";
+import OrderAssignmentsPage from "./pages/OrderAssignmentsPage";
 
 const App = () => {
   const location = useLocation();
@@ -61,6 +63,7 @@ const App = () => {
       <div className="app">
         {!isChefPage && !isDashboardPage && !isWaiterPage && !isManagerPage && <Navbar isPositionUnset={isTableBooking || isMenuPage} />}
         <Routes>
+          <Route path="/order-assignments" element={<OrderAssignmentsPage />} />
           <Route path="/" element={<Home />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/menu" element={<Menu />} />
@@ -92,6 +95,7 @@ const App = () => {
             <Route path="menu/category" element={<CategoryManagement />} />
             <Route path="deleted-menu-items" element={<DeletedMenuItems />} />
             <Route path="employees" element={<EmployeeManagement />} />
+            <Route path="schedule" element={<ScheduleManagement />} />
           </Route>
 
 
@@ -124,6 +128,9 @@ const App = () => {
             <Route path="areas" element={<AreaManagement />} />
             <Route path="products" element={<WaiterProducts />} />
             <Route path="schedule" element={<Schedule />} />
+            <Route path="order-assignments" element={<OrderAssignmentsPage />} />
+            <Route path="menu" element={<Menu />} />
+
           </Route>
 
         </Routes>

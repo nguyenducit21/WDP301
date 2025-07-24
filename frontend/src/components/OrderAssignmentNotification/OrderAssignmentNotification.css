@@ -68,44 +68,166 @@
 }
 
 .panel-header {
-    background: #2196f3;
-    color: white;
-    padding: 20px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
+    background: #2196f3;
+    color: #fff;
+    padding: 18px 24px 10px 24px;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    position: relative;
 }
 
 .panel-header h3 {
     margin: 0;
-    font-size: 18px;
-    font-weight: 600;
+    font-size: 1.6rem;
+    font-weight: bold;
+    letter-spacing: 0.5px;
 }
 
 .panel-actions {
     display: flex;
-    gap: 10px;
+    align-items: center;
+    gap: 8px;
 }
 
-.refresh-btn,
-.close-btn {
-    background: rgba(255, 255, 255, 0.2);
+.panel-actions button {
+    background: #fff;
     border: none;
-    color: white;
-    padding: 8px;
-    border-radius: 8px;
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin-left: 2px;
     cursor: pointer;
-    transition: background 0.2s;
+    font-size: 18px;
+    transition: background 0.15s, box-shadow 0.15s;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    width: 32px;
 }
 
-.refresh-btn:hover,
-.close-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
+.panel-actions button:hover {
+    background: #e3f2fd;
 }
 
-.refresh-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.panel-actions .clear-btn {
+    color: #f44336;
+    font-size: 20px;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.panel-actions .close-btn {
+    color: #888;
+    font-size: 22px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.panel-actions .close-btn:hover {
+    background: #f8bbd0;
+    color: #c62828;
+}
+
+.notification-tabs {
+    display: flex;
+    gap: 0;
+    margin: 0 0 10px 0;
+}
+
+.notification-tabs button {
+    border: 1px solid #bdbdbd;
+    border-radius: 6px 6px 0 0;
+    background: #f5f5f5;
+    color: #333;
+    font-size: 1rem;
+    padding: 7px 18px;
+    margin-right: 2px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    outline: none;
+}
+
+.notification-tabs button.active {
+    background: #fff;
+    color: #1976d2;
+    border-bottom: 2px solid #2196f3;
+    font-weight: bold;
+}
+
+.notification-tabs button:hover {
+    background: #e3f2fd;
+}
+
+/* Popup xác nhận xóa */
+.confirm-clear-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.18);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.confirm-clear-modal {
+    background: #fff;
+    border-radius: 10px;
+    padding: 28px 32px 20px 32px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.13);
+    min-width: 320px;
+    text-align: center;
+}
+
+.confirm-clear-modal p {
+    font-size: 1.1rem;
+    margin-bottom: 18px;
+}
+
+.confirm-clear-actions {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+}
+
+.confirm-clear-actions .confirm-btn {
+    background: #1976d2;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 18px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.confirm-clear-actions .confirm-btn:hover {
+    background: #0d47a1;
+}
+
+.confirm-clear-actions .cancel-btn {
+    background: #f5f5f5;
+    color: #333;
+    border: 1px solid #bdbdbd;
+    border-radius: 6px;
+    padding: 7px 18px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.confirm-clear-actions .cancel-btn:hover {
+    background: #e3f2fd;
 }
 
 /* Panel Content */
@@ -191,6 +313,7 @@
     border-radius: 12px;
     font-size: 12px;
     font-weight: 600;
+    margin-left: 8px;
 }
 
 .assignment-time {
@@ -349,7 +472,7 @@
     }
 
     .notification-panel {
-        width: 90vw;
+        width: 95vw;
         right: -20px;
     }
 
@@ -380,4 +503,132 @@
 
 .panel-content::-webkit-scrollbar-thumb:hover {
     background: #999;
+}
+
+.order-assignment-item.my-order {
+    border-left-color: #4caf50 !important;
+    background: #e8f5e9 !important;
+    box-shadow: 0 2px 12px rgba(76, 175, 80, 0.08);
+    position: relative;
+}
+
+.my-order-badge {
+    background: #4caf50;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.preorder-items-list {
+    margin-top: 8px;
+    margin-bottom: 8px;
+}
+
+.preorder-items-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.preorder-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #fff3e0;
+    border-radius: 6px;
+    padding: 2px 8px 2px 2px;
+    font-size: 13px;
+}
+
+.item-image-mini {
+    width: 24px;
+    height: 24px;
+    object-fit: cover;
+    border-radius: 4px;
+    margin-right: 4px;
+    border: 1px solid #eee;
+}
+
+.paid-status {
+    color: #388e3c;
+    font-weight: bold;
+}
+
+.unpaid-status {
+    color: #f44336;
+    font-weight: bold;
+}
+
+.search-filter-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 20px 0 20px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.order-assignments-page .search-input,
+.order-assignments-page .filter-select {
+    width: 0%;
+}
+
+.search-input {
+    flex: 1;
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid #bdbdbd;
+    font-size: 1rem;
+}
+
+.filter-select {
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid #bdbdbd;
+    font-size: 1rem;
+    background: #fff;
+}
+
+@media (max-width: 768px) {
+    .search-filter-bar {
+        flex-direction: column;
+        gap: 6px;
+        padding: 10px 8px 0 8px;
+    }
+
+    .search-input,
+    .filter-select {
+        width: 100%;
+    }
+
+    .order-assignment-notification {
+        top: 10px;
+        right: 10px;
+    }
+
+    .notification-panel {
+        width: 95vw;
+        right: -20px;
+    }
+
+    .assignment-actions {
+        flex-direction: column;
+    }
+
+    .claim-btn,
+    .complete-btn,
+    .release-btn {
+        width: 100%;
+    }
+}
+
+.order-assignment-item.my-order:hover {
+    box-shadow: 0 4px 18px rgba(76, 175, 80, 0.18);
+    background: #d0f8ce !important;
 }

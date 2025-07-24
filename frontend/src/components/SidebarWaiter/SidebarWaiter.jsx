@@ -1,6 +1,6 @@
 
 import React, { useState, useContext, useEffect } from "react";
-import { FaHome, FaUtensils, FaSignOutAlt, FaChevronDown, FaList, FaUsers, FaUserTie, FaClipboardList, FaCog, FaChartBar, FaBoxes, FaReceipt, FaFileInvoice, FaTrash, FaShoppingCart, FaCreditCard } from "react-icons/fa";
+import { FaHome, FaUtensils, FaSignOutAlt, FaChevronDown, FaList, FaUsers, FaUserTie, FaClipboardList, FaCog, FaChartBar, FaBoxes, FaReceipt, FaFileInvoice, FaTrash, FaShoppingCart, FaCreditCard, FaTable } from "react-icons/fa";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../../assets/logo.png";
 import { AuthContext } from "../../context/AuthContext";
@@ -44,6 +44,7 @@ const SidebarWaiter = ({ collapsed, setCollapsed }) => {
         if (location.pathname.includes("permissions")) return "permissions";
         if (location.pathname.includes("orders")) return "orders";
         if (location.pathname.includes("payments")) return "payments";
+        if (location.pathname.includes("order-assignments")) return "order-assignments";
         return "dashboard";
     };
 
@@ -70,7 +71,7 @@ const SidebarWaiter = ({ collapsed, setCollapsed }) => {
         if (['employees', 'permissions'].includes(currentTab)) {
             setEmployeeMenu(true);
         }
-        
+
     }, [currentTab]);
 
     const handleToggle = () => setCollapsed((p) => !p);
@@ -100,23 +101,18 @@ const SidebarWaiter = ({ collapsed, setCollapsed }) => {
             </div>
 
             <ul className="chef-sidebar-menu">
-                {/* Dashboard */}
+
+
                 <li
-                    className={currentTab === "dashboard" ? "active" : ""}
-                    onClick={() => navigate("/waiter")}
+                    className={currentTab === "order-assignments" ? "active" : ""}
+                    onClick={() => navigate("/waiter/order-assignments")}
                 >
-                    <FaChartBar className="sidebar-icon" />
-                    {!collapsed && <span>Thống kê</span>}
+                    <FaTable className="sidebar-icon" />
+                    {!collapsed && <span>Bàn đặt trước</span>}
                 </li>
 
-                {/* Lịch làm việc */}
-                <li
-                    className={currentTab === "schedule" ? "active" : ""}
-                    onClick={() => navigate("/waiter/schedule")}
-                >
-                    <FaChartBar className="sidebar-icon" />
-                    {!collapsed && <span>Lịch làm việc</span>}
-                </li>
+
+
 
                 {/* Đặt bàn */}
                 <li
@@ -159,53 +155,51 @@ const SidebarWaiter = ({ collapsed, setCollapsed }) => {
                     </ul>
                 )}
 
-                {/* Quản lý món ăn */}
+                {/* Menu món ăn */}
                 <li
-                    className={`menu-parent ${collapsed ? "collapsed" : ""}`}
-                    onClick={() => setMenuItemsMenu((v) => !v)}
+                    className={currentTab === "menu-items" ? "active" : ""}
+                    onClick={() => navigate("/waiter/menu")}
                 >
                     <FaUtensils className="sidebar-icon" />
-                    {!collapsed && (
-                        <>
-                            <span>Quản lý món ăn</span>
-                            <FaChevronDown className={`chevron ${menuItemsMenu ? "open" : ""}`} />
-                        </>
-                    )}
+                    {!collapsed && <span>Menu món ăn</span>}
                 </li>
 
-                {/* Submenu món ăn */}
-                {!collapsed && (
-                    <ul className={`chef-sidebar-submenu ${menuItemsMenu ? "open" : ""}`}>
+                {/* Lịch làm việc */}
+                <li
+                    className={currentTab === "schedule" ? "active" : ""}
+                    onClick={() => navigate("/waiter/schedule")}
+                >
+                    <FaChartBar className="sidebar-icon" />
+                    {!collapsed && <span>Lịch làm việc</span>}
+                </li>
 
-                        <li
-                            className={currentTab === "products" ? "active" : ""}
-                            onClick={() => navigate("/waiter/products")}
-                        >
-                            <FaUtensils className="sidebar-icon" />
-                            <span>Sản phẩm</span>
-                        </li>
 
-                    </ul>
-                )}
-
+                {/* Dashboard */}
+                <li
+                    className={currentTab === "dashboard" ? "active" : ""}
+                    onClick={() => navigate("/waiter")}
+                >
+                    <FaChartBar className="sidebar-icon" />
+                    {!collapsed && <span>Thống kê</span>}
+                </li>
 
                 {/* Đơn hàng */}
-                <li
+                {/* <li
                     className={currentTab === "orders" ? "active" : ""}
                     onClick={() => navigate("/waiter/orders")}
                 >
                     <FaShoppingCart className="sidebar-icon" />
                     {!collapsed && <span>Đơn hàng</span>}
-                </li>
+                </li> */}
 
                 {/* Thanh toán */}
-                <li
+                {/* <li
                     className={currentTab === "payments" ? "active" : ""}
                     onClick={() => navigate("/waiter/payments")}
                 >
                     <FaCreditCard className="sidebar-icon" />
                     {!collapsed && <span>Thanh toán</span>}
-                </li>
+                </li> */}
                 {/* Nút đăng xuất */}
                 <li className="logout-item" onClick={handleLogout}>
                     <FaSignOutAlt className="sidebar-icon" />

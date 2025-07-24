@@ -6,7 +6,6 @@ mongoose.connect('mongodb://localhost:27017/RMS', {
   useUnifiedTopology: true,
 });
 
-// Mẫu ID thật lấy từ dữ liệu ông gửi
 const STAFF_ID = new mongoose.Types.ObjectId("68395986e751992ef4491bbf");
 const MENU_IDS = [
   new mongoose.Types.ObjectId("68426253b3170c9158d80a36"), // Cơm cháy
@@ -31,7 +30,6 @@ const SLOT_IDS = [
   new mongoose.Types.ObjectId("68549713bfece1302d5b5c8f"),
 ];
 
-// Dữ liệu mẫu customer, có thể thay bằng khách mới nếu cần
 const CUSTOMER_NAMES = ["Nguyễn Văn A", "Nguyễn Tiến Đạt", "Trần Thị B", "Hoàng Văn C", "Lê Thị D"];
 const CUSTOMER_PHONES = ["0321123123", "0968338829", "0912345678", "0987654321", "0909123456"];
 const CUSTOMER_EMAILS = ["a@gmail.com", "dat10bn@gmail.com", "b@gmail.com", "c@gmail.com", "d@gmail.com"];

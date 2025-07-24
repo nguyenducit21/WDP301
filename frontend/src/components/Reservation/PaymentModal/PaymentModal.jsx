@@ -7,7 +7,8 @@ const PaymentModal = ({
     onClose,
     reservationId,
     totalAmount,
-    orderInfo
+    orderInfo,
+    promotion
 }) => {
     const [paymentStatus, setPaymentStatus] = useState('pending'); // pending, checking, success, failed
     const [timeLeft, setTimeLeft] = useState(300); // 5 minutes countdown
@@ -45,10 +46,14 @@ const PaymentModal = ({
 
                 if (isSuccess) {
                     // Update reservation payment status
-                    await customFetch.put(`/reservations/${reservationId}`, {
+                    const updateBody = {
                         payment_status: 'paid',
                         paid_at: new Date().toISOString()
-                    });
+                    };
+                    if (promotion) {
+                        updateBody.promotion = promotion;
+                    }
+                    await customFetch.put(`/reservations/${reservationId}`, updateBody);
 
                     setPaymentStatus('success');
                 }
@@ -66,7 +71,7 @@ const PaymentModal = ({
         setTimeout(checkPayment, 3000);
 
         return () => clearInterval(checkInterval);
-    }, [isOpen, paymentStatus, reservationId]);
+    }, [isOpen, paymentStatus, reservationId, promotion]);
 
     // Format time display
     const formatTime = (seconds) => {
@@ -86,10 +91,14 @@ const PaymentModal = ({
             const isSuccess = Math.random() > 0.1;
 
             if (isSuccess) {
-                await customFetch.put(`/reservations/${reservationId}`, {
+                const updateBody = {
                     payment_status: 'paid',
                     paid_at: new Date().toISOString()
-                });
+                };
+                if (promotion) {
+                    updateBody.promotion = promotion;
+                }
+                await customFetch.put(`/reservations/${reservationId}`, updateBody);
                 setPaymentStatus('success');
             } else {
                 alert('Chưa nhận được thanh toán. Vui lòng thử lại sau!');

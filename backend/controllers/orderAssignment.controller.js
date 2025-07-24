@@ -10,7 +10,7 @@ const getPendingOrders = async (req, res) => {
         const { page = 1, limit = 20 } = req.query;
         const employeeId = req.user.userId;
 
-        // Lấy orders đang chờ hoặc đã được assign cho user hiện tại
+        // Lấy assignments đang chờ hoặc đã được assign cho user hiện tại
         const assignments = await OrderAssignment.find({
             $or: [
                 { status: 'waiting' },
@@ -21,6 +21,7 @@ const getPendingOrders = async (req, res) => {
                 path: 'order_id',
                 populate: [
                     { path: 'customer_id', select: 'full_name username phone' },
+                    { path: 'created_by_staff', select: 'full_name' },
                     { path: 'table_ids', select: 'name' },
                     { path: 'pre_order_items.menu_item_id', select: 'name price image' }
                 ]
@@ -30,27 +31,38 @@ const getPendingOrders = async (req, res) => {
             .limit(limit * 1)
             .skip((page - 1) * limit);
 
-        // Format dữ liệu
+        // Build lại order_details từ reservation mới nhất
         const formattedOrders = assignments.map(assignment => {
-            const order = assignment.order_id;
+            const reservation = assignment.order_id;
+            let orderDetails = {};
+            if (reservation) {
+                const hasPreOrder = reservation.pre_order_items && reservation.pre_order_items.length > 0;
+                orderDetails = {
+                    customer_name: reservation.contact_name,
+                    customer_phone: reservation.contact_phone,
+                    tables: reservation.table_ids?.map(t => t && t.name).filter(Boolean).join(', ') || 'N/A',
+                    guest_count: reservation.guest_count,
+                    items: reservation.pre_order_items || [],
+                    notes: reservation.notes || '',
+                    created_at: reservation.created_at,
+                    date: reservation.date,
+                    slot_id: reservation.slot_id,
+                    slot_start_time: reservation.slot_start_time,
+                    slot_end_time: reservation.slot_end_time,
+                    has_pre_order: hasPreOrder,
+                    reservation_type: hasPreOrder ? 'pre_order' : 'table_booking',
+                };
+            }
             return {
                 assignment_id: assignment._id,
-                order_id: order && order._id ? order._id : null,
+                order_id: reservation && reservation._id ? reservation._id : null,
                 order_type: assignment.order_type,
                 status: assignment.status,
                 assigned_to: assignment.assigned_to,
                 priority: assignment.priority,
                 can_take: assignment.status === 'waiting' && !assignment.rejected_by.some(r => r.employee_id.toString() === employeeId),
                 is_mine: assignment.assigned_to && assignment.assigned_to._id.toString() === employeeId,
-                order_details: {
-                    customer_name: order && order.contact_name ? order.contact_name : '',
-                    customer_phone: order && order.contact_phone ? order.contact_phone : '',
-                    tables: order && order.table_ids ? order.table_ids.map(t => t && t.name).filter(Boolean).join(', ') : 'N/A',
-                    guest_count: order && order.guest_count ? order.guest_count : '',
-                    items: order && order.pre_order_items ? order.pre_order_items : [],
-                    notes: order && order.notes ? order.notes : '',
-                    created_at: order && order.created_at ? order.created_at : ''
-                },
+                order_details: orderDetails,
                 created_at: assignment.created_at,
                 assigned_at: assignment.assigned_at
             };
@@ -102,17 +114,16 @@ const claimOrder = async (req, res) => {
             });
         }
 
-        // Kiểm tra xem user này đã từ chối đơn này chưa
-        const hasRejected = assignment.rejected_by.some(r =>
-            r.employee_id.toString() === employeeId
-        );
-
-        if (hasRejected) {
-            return res.status(400).json({
-                success: false,
-                message: 'Bạn đã từ chối đơn hàng này trước đó'
-            });
-        }
+        // BỎ kiểm tra đã từ chối (cho phép nhận lại)
+        // const hasRejected = assignment.rejected_by.some(r =>
+        //     r.employee_id.toString() === employeeId
+        // );
+        // if (hasRejected) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'Bạn đã từ chối đơn hàng này trước đó'
+        //     });
+        // }
 
         // Atomic update để tránh race condition
         const updatedAssignment = await OrderAssignment.findOneAndUpdate(
@@ -135,6 +146,18 @@ const claimOrder = async (req, res) => {
                 success: false,
                 message: 'Đơn hàng đã được người khác nhận'
             });
+        }
+
+        // Nếu là assignment cho reservation, cập nhật status reservation thành 'confirmed' và gán assigned_staff
+        if (updatedAssignment.order_type === 'reservation' && updatedAssignment.order_id) {
+            const Reservation = require('../models/reservation.model');
+            const reservation = await Reservation.findById(updatedAssignment.order_id._id || updatedAssignment.order_id);
+            if (reservation) {
+                reservation.status = 'confirmed';
+                reservation.assigned_staff = employeeId;
+                reservation.updated_at = new Date();
+                await reservation.save();
+            }
         }
 
         // Gửi thông báo real-time cho tất cả nhân viên
@@ -192,11 +215,12 @@ const releaseOrder = async (req, res) => {
         assignment.assigned_to = null;
         assignment.status = 'waiting';
         assignment.assigned_at = null;
-        assignment.rejected_by.push({
-            employee_id: employeeId,
-            reason: reason
-        });
-
+        if (reason) {
+            assignment.rejected_by.push({
+                employee_id: employeeId,
+                reason: reason
+            });
+        }
         await assignment.save();
 
         // Gửi thông báo real-time cho tất cả nhân viên khác
@@ -250,6 +274,20 @@ const completeOrder = async (req, res) => {
             });
         }
 
+        // Nếu là assignment cho reservation, cập nhật status reservation thành 'completed' và payment_status = 'paid'
+        if (updatedAssignment.order_type === 'reservation' && updatedAssignment.order_id) {
+            const Reservation = require('../models/reservation.model');
+            const reservation = await Reservation.findById(updatedAssignment.order_id._id || updatedAssignment.order_id);
+            if (reservation) {
+                reservation.status = 'completed';
+                if (reservation.payment_status !== 'paid') {
+                    reservation.payment_status = 'paid';
+                }
+                reservation.updated_at = new Date();
+                await reservation.save();
+            }
+        }
+
         // Gửi thông báo real-time
         const io = getIO();
         io.to('staff-room').emit('order_completed', {
@@ -271,6 +309,33 @@ const completeOrder = async (req, res) => {
             message: 'Lỗi khi hoàn thành đơn hàng',
             error: error.message
         });
+    }
+};
+
+// Xác nhận khách đã đến bàn (seated)
+const confirmArrived = async (req, res) => {
+    try {
+        const { assignmentId } = req.params;
+        const employeeId = req.user.userId;
+        // Tìm assignment
+        const assignment = await OrderAssignment.findById(assignmentId);
+        if (!assignment) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy assignment' });
+        }
+        if (assignment.order_type === 'reservation' && assignment.order_id) {
+            const Reservation = require('../models/reservation.model');
+            const reservation = await Reservation.findById(assignment.order_id._id || assignment.order_id);
+            if (reservation) {
+                reservation.status = 'seated';
+                reservation.updated_at = new Date();
+                await reservation.save();
+                return res.status(200).json({ success: true, message: 'Đã xác nhận khách đã đến bàn', data: reservation });
+            }
+        }
+        return res.status(400).json({ success: false, message: 'Không thể xác nhận khách đã đến cho loại đơn này' });
+    } catch (error) {
+        console.error('Error in confirmArrived:', error);
+        res.status(500).json({ success: false, message: 'Lỗi khi xác nhận khách đã đến', error: error.message });
     }
 };
 
@@ -508,6 +573,7 @@ module.exports = {
     claimOrder,
     releaseOrder,
     completeOrder,
+    confirmArrived,
     createOrderAssignment,
     updateOrderAssignment,
     getEmployeeStats

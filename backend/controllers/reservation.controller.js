@@ -6,7 +6,8 @@ const Log = require('../models/log.model');
 const Order = require('../models/order.model')
 const mongoose = require('mongoose');
 const User = require('../models/user.model');
-const { createOrderAssignment } = require('./orderAssignment.controller');
+const { createOrderAssignment, updateOrderAssignment } = require('./orderAssignment.controller');
+const { send: sendMail } = require('../helper/sendmail.helper');
 
 // Lấy tất cả đặt bàn
 const getReservations = async (req, res) => {
@@ -194,7 +195,7 @@ const getAvailableTables = async (req, res) => {
 
         // Nếu có yêu cầu về số lượng khách, tìm các combination có thể
         let tableCombinations = [];
-        if (guest_count && parseInt(guest_count) > 0) {
+        if (guest_count && parseInt(guest_count) >= 6) {
             const targetGuestCount = parseInt(guest_count);
 
             // Single table options
@@ -439,7 +440,7 @@ const createReservation = async (req, res) => {
             contact_email: contact_email ? contact_email.trim() : '',
             pre_order_items: processedPreOrderItems,
             notes: notes ? notes.trim() : '',
-            status: 'pending',
+            status: 'confirmed', // Đặt bàn thành công, không cần xác nhận thủ công
             payment_status: 'pending',
             created_at: now,
             updated_at: now
@@ -462,11 +463,6 @@ const createReservation = async (req, res) => {
 
         const reservation = new Reservation(reservationData);
         await reservation.save();
-
-        console.log('🍽️ Processed pre-order items:', processedPreOrderItems.length, processedPreOrderItems);
-
-        // Tạo order assignment cho reservation mới (luôn tạo cho mọi reservation)
-        console.log('📋 Creating order assignment for new reservation:', reservation._id);
         try {
             // Tính priority: nếu có pre_order_items thì priority cao hơn
             const priority = processedPreOrderItems.length > 0 ? 2 : 1;
@@ -489,6 +485,33 @@ const createReservation = async (req, res) => {
         } catch (populateError) {
             console.log('Populate error (non-critical):', populateError);
         }
+
+        // Gửi email xác nhận đặt bàn cho khách
+        // if (reservation.contact_email) {
+        //     try {
+        //         const tableNames = reservation.table_ids && reservation.table_ids.length > 0
+        //             ? reservation.table_ids.map(t => t.name).join(', ')
+        //             : (reservation.table_id?.name || '');
+        //         const subject = 'Xác nhận đặt bàn thành công tại Nhà hàng';
+        //         const content = `
+        //             <p>Xin chào <strong>${reservation.contact_name}</strong>,</p>
+        //             <p>Bạn đã đặt bàn thành công tại <strong>Nhà hàng</strong>.</p>
+        //             <ul>
+        //                 <li><strong>Mã đặt bàn:</strong> ${reservation._id}</li>
+        //                 <li><strong>Bàn:</strong> ${tableNames}</li>
+        //                 <li><strong>Ngày:</strong> ${reservation.date.toLocaleDateString('vi-VN')}</li>
+        //                 <li><strong>Khung giờ:</strong> ${reservation.slot_start_time} - ${reservation.slot_end_time}</li>
+        //                 <li><strong>Số khách:</strong> ${reservation.guest_count}</li>
+        //                 <li><strong>Số điện thoại:</strong> ${reservation.contact_phone}</li>
+        //             </ul>
+        //             <p>Chúng tôi sẽ chuẩn bị bàn cho bạn đúng giờ. Nếu có thay đổi, vui lòng liên hệ lại với nhà hàng.</p>
+        //             <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi!</p>
+        //         `;
+        //         sendMail(reservation.contact_email, subject, content);
+        //     } catch (mailErr) {
+        //         console.error('Lỗi khi gửi email xác nhận đặt bàn:', mailErr);
+        //     }
+        // }
 
         if (global.io && !reservationData.created_by_staff) {
             const notificationData = {
@@ -745,8 +768,9 @@ const updateReservation = async (req, res) => {
             ...(status && { status }),
             ...(pre_order_items !== undefined && { pre_order_items }),
             ...(deposit_amount !== undefined && { deposit_amount }),
-            ...(payment_status && { payment_status }),
+            ...(payment_status !== undefined && { payment_status }),
             ...(notes !== undefined && { notes }),
+            ...(req.body.promotion !== undefined && { promotion: req.body.promotion }),
             updated_at: new Date()
         };
 
@@ -757,6 +781,10 @@ const updateReservation = async (req, res) => {
             }
         }
 
+        // Lưu lại pre_order_items cũ để so sánh
+        const oldPreOrderItems = reservation.pre_order_items ? JSON.stringify(reservation.pre_order_items) : null;
+        const newPreOrderItems = pre_order_items ? JSON.stringify(pre_order_items) : null;
+
         const updatedReservation = await Reservation.findByIdAndUpdate(
             req.params.id,
             updateData,
@@ -765,10 +793,17 @@ const updateReservation = async (req, res) => {
             { path: 'customer_id', select: 'username full_name email phone' },
             { path: 'table_id', select: 'name capacity area_id' },
             { path: 'created_by_staff', select: 'username full_name' },
-            { path: 'pre_order_items.menu_item_id', select: 'name price' }
+            { path: 'pre_order_items.menu_item_id', select: 'name price image' }
         ]);
 
-
+        // Nếu pre_order_items thay đổi, cập nhật assignment và gửi socket update cho nhân viên
+        if (oldPreOrderItems !== newPreOrderItems && pre_order_items !== undefined) {
+            try {
+                await updateOrderAssignment(updatedReservation._id, 'reservation', pre_order_items);
+            } catch (err) {
+                console.error('Error updating order assignment after pre_order_items change:', err);
+            }
+        }
 
         res.status(200).json({
             success: true,
@@ -1056,7 +1091,6 @@ const getInvoiceData = async (req, res) => {
 
 
 // Xác nhận đặt bàn
-// Xác nhận đặt bàn
 const confirmReservation = async (req, res) => {
     try {
         const { assigned_staff } = req.body || {};
@@ -1225,7 +1259,7 @@ const completeReservation = async (req, res) => {
 // Cập nhật trạng thái thanh toán
 const updatePaymentStatus = async (req, res) => {
     try {
-        const { payment_status, payment_method, payment_note, amount } = req.body;
+        const { payment_status, payment_method, payment_note, amount, promotion } = req.body;
 
         if (!payment_status) {
             return res.status(400).json({
@@ -1301,6 +1335,9 @@ const updatePaymentStatus = async (req, res) => {
         // Thêm timestamp cho thanh toán
         if (payment_status === 'paid') {
             updateData.payment_date = new Date();
+            if (promotion) {
+                updateData.promotion = promotion;
+            }
         }
 
         const updatedReservation = await Reservation.findByIdAndUpdate(
@@ -1767,6 +1804,35 @@ const updateReservationItems = async (req, res) => {
     }
 };
 
+const send15MinReminders = async () => {
+    const now = new Date();
+    const in15 = new Date(now.getTime() + 15 * 60 * 1000);
+    // Tìm các reservation confirmed, chưa reminder, thời gian đến trong 15 phút tới
+    const reservations = await Reservation.find({
+        status: 'confirmed',
+        reminder_sent: { $ne: true },
+        date: {
+            $gte: now,
+            $lte: in15
+        }
+    }).populate('table_ids', 'name');
+
+    for (const reservation of reservations) {
+        if (global.io) {
+            global.io.to('waiters').emit('reservation_reminder', {
+                id: reservation._id,
+                tables: reservation.table_ids?.map(t => t.name).join(', ') || '',
+                customer: reservation.contact_name,
+                guest_count: reservation.guest_count,
+                time: reservation.date,
+                slot_time: `${reservation.slot_start_time} - ${reservation.slot_end_time}`
+            });
+        }
+        reservation.reminder_sent = true;
+        await reservation.save();
+    }
+};
+
 module.exports = {
     getReservations,
     getReservationById,
@@ -1787,5 +1853,6 @@ module.exports = {
     getChefOrders,
     updateReservationStatus,
     updateReservationItems,
-    assignStaffToReservation
+    assignStaffToReservation,
+    send15MinReminders
 };

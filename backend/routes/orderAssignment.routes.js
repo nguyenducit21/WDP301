@@ -5,7 +5,8 @@ const {
     claimOrder,
     releaseOrder,
     completeOrder,
-    getEmployeeStats
+    getEmployeeStats,
+    confirmArrived
 } = require('../controllers/orderAssignment.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware');
@@ -44,5 +45,12 @@ router.get('/stats',
     roleMiddleware(['admin', 'manager', 'waiter', 'kitchen_staff']),
     getEmployeeStats
 );
+
+router.post('/:assignmentId/confirm-arrived',
+    authMiddleware,
+    roleMiddleware(['admin', 'manager', 'waiter', 'kitchen_staff']),
+    confirmArrived
+);
+
 
 module.exports = router; 
