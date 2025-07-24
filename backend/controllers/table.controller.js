@@ -320,7 +320,7 @@ const updateTableStatus = async (req, res) => {
     try {
         const { status } = req.body;
 
-        if (!['available', 'reserved', 'occupied', 'cleaning', 'maintenance'].includes(status)) {
+        if (!['available', 'reserved', 'occupied', 'maintenance'].includes(status)) {
             return res.status(400).json({
                 success: false,
                 message: 'Trạng thái bàn không hợp lệ'

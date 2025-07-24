@@ -1042,31 +1042,6 @@ const ReservationManagement = () => {
                         }
 
                         if (response?.data?.success) {
-                            // Cập nhật trạng thái thanh toán cho reservation nếu cần
-                            if (formData.reservation_id) {
-                                try {
-                                    const currentReservation = reservations.find(r => r._id === formData.reservation_id);
-                                    // Cập nhật trạng thái thanh toán nếu đã thanh toán hoặc đã cọc
-                                    if (currentReservation && ['paid', 'partial'].includes(currentReservation.payment_status)) {
-                                        await axios.patch(`/reservations/${formData.reservation_id}/payment-status`, {
-                                            payment_status: 'partial',
-                                            payment_method: currentReservation.payment_method || 'bank_transfer',
-                                            payment_note: 'Tự động cập nhật: Đã thêm món mới cần thanh toán thêm'
-                                        });
-                                    }
-                                    // Nếu chưa cọc (pending), cập nhật thành partial để báo hiệu có món cần thanh toán
-                                    else if (currentReservation && currentReservation.payment_status === 'pending') {
-                                        await axios.patch(`/reservations/${formData.reservation_id}/payment-status`, {
-                                            payment_status: 'partial',
-                                            payment_method: 'cash',
-                                            payment_note: 'Đã thêm món - cần thanh toán'
-                                        });
-                                    }
-                                } catch (paymentUpdateError) {
-                                    console.error('Error updating payment status:', paymentUpdateError);
-                                    // Không throw error để không ảnh hưởng đến việc thêm món thành công
-                                }
-                            }
 
                             // Cập nhật dữ liệu ngay lập tức
                             await Promise.all([
@@ -2048,31 +2023,6 @@ const ReservationManagement = () => {
                                         }
 
                                         if (response?.data?.success) {
-                                            // Cập nhật trạng thái thanh toán nếu cần
-                                            if (formData.reservation_id) {
-                                                try {
-                                                    const currentReservation = reservations.find(r => r._id === formData.reservation_id);
-                                                    // Cập nhật trạng thái thanh toán nếu đã thanh toán hoặc đã cọc
-                                                    if (currentReservation && ['paid', 'partial'].includes(currentReservation.payment_status)) {
-                                                        await axios.patch(`/reservations/${formData.reservation_id}/payment-status`, {
-                                                            payment_status: 'partial',
-                                                            payment_method: currentReservation.payment_method || 'bank_transfer',
-                                                            payment_note: 'Tự động cập nhật: Đã thêm món mới cần thanh toán thêm'
-                                                        });
-                                                    }
-                                                    // Nếu chưa cọc (pending), cập nhật thành partial để báo hiệu có món cần thanh toán
-                                                    else if (currentReservation && currentReservation.payment_status === 'pending') {
-                                                        await axios.patch(`/reservations/${formData.reservation_id}/payment-status`, {
-                                                            payment_status: 'partial',
-                                                            payment_method: 'cash',
-                                                            payment_note: 'Đã thêm món - cần thanh toán'
-                                                        });
-                                                    }
-                                                } catch (paymentUpdateError) {
-                                                    console.error('Error updating payment status:', paymentUpdateError);
-                                                    // Không throw error để không ảnh hưởng đến việc thêm món thành công
-                                                }
-                                            }
 
                                             // Cập nhật tất cả dữ liệu
                                             await Promise.all([

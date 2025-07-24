@@ -1228,9 +1228,9 @@ const completeReservation = async (req, res) => {
         reservation.updated_at = new Date();
         await reservation.save();
 
-        // Cập nhật trạng thái bàn từ occupied → cleaning (hoặc available)
+        // Cập nhật trạng thái bàn về available khi hoàn thành
         await Table.findByIdAndUpdate(reservation.table_id, {
-            status: 'cleaning', // Hoặc 'available' nếu không cần dọn
+            status: 'available',
             updated_at: new Date()
         });
 

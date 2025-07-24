@@ -9,7 +9,7 @@ const TableSchema = new Schema({
     status: {
         type: String,
         // enum: ['available', 'reserved', 'occupied', 'cleaning', 'maintenance'],
-        enum: ['available', 'occupied', 'cleaning', 'maintenance'],
+        enum: ['available', 'reserved', 'occupied', 'cleaning', 'maintenance'],
         default: 'available'
     },
     image: { type: String }, // link ảnh bàn

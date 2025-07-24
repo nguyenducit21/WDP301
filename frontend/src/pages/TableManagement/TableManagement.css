@@ -199,13 +199,14 @@
     border-color: #52c41a;
 }
 
+.table-card.reserved {
+    border-color: #faad14;
+    background: #fffbe6;
+}
+
 .table-card.occupied {
     border-color: #fa8c16;
     background: #fff7e6;
-}
-
-.table-card.cleaning {
-    border-color: #1890ff;
 }
 
 .table-status.available {
@@ -213,14 +214,14 @@
     color: #52c41a;
 }
 
+.table-status.reserved {
+    background-color: #fffbe6;
+    color: #faad14;
+}
+
 .table-status.occupied {
     background-color: #fff1f0;
     color: #f5222d;
-}
-
-.table-status.cleaning {
-    background-color: #e6f7ff;
-    color: #1890ff;
 }
 
 /* Loading overlay */
@@ -285,14 +286,14 @@
     color: #52c41a;
 }
 
+.status-badge.reserved {
+    background-color: #fffbe6;
+    color: #faad14;
+}
+
 .status-badge.occupied {
     background-color: #fff1f0;
     color: #f5222d;
-}
-
-.status-badge.cleaning {
-    background-color: #e6f7ff;
-    color: #1890ff;
 }
 
 .status-badge.pending {
@@ -2070,6 +2071,11 @@
 .table-card.available {
     border-color: #52c41a;
     background: #f6ffed;
+}
+
+.table-card.reserved {
+    border-color: #faad14;
+    background: #fffbe6;
 }
 
 .table-card.occupied {

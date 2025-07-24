@@ -64,8 +64,9 @@ const TableWaiter = () => {
     const getTableStatusLabel = (status) => {
         const statusMap = {
             'available': 'Bàn trống',
+            'reserved': 'Đã đặt',
             'occupied': 'Đang phục vụ',
-            'cleaning': 'Đang dọn',
+            // 'cleaning': 'Đang dọn',
             'maintenance': 'Bảo trì'
         };
         return statusMap[status] || status;
@@ -245,15 +246,27 @@ const TableWaiter = () => {
                         reservationIds.includes(safeGet(order, 'reservation_id._id')))
                 );
 
-                const hasConfirmedOrSeatedReservation = reservationsForSelectedDate.some(res =>
-                    (safeGet(res, 'table_id._id') || res.table_id) === table._id &&
-                    ['confirmed', 'seated'].includes(res.status)
+                // Kiểm tra trạng thái reservation cho bàn này
+                const tableReservations = reservationsForSelectedDate.filter(res =>
+                    (safeGet(res, 'table_id._id') || res.table_id) === table._id
                 );
 
                 let status = table.status;
-                if (hasConfirmedOrSeatedReservation || hasActiveOrder) {
+
+                // Ưu tiên theo thứ tự: seated > pending/confirmed > completed/cancelled
+                const hasSeatedReservation = tableReservations.some(res => res.status === 'seated');
+                const hasPendingOrConfirmedReservation = tableReservations.some(res =>
+                    ['pending', 'confirmed'].includes(res.status)
+                );
+
+                if (hasSeatedReservation || hasActiveOrder) {
+                    // Khi có reservation seated hoặc có order đang hoạt động -> đang phục vụ
                     status = 'occupied';
-                } else if (table.status !== 'cleaning' && table.status !== 'maintenance') {
+                } else if (hasPendingOrConfirmedReservation) {
+                    // Khi có reservation pending/confirmed -> đã đặt
+                    status = 'reserved';
+                } else if (table.status !== 'maintenance') {
+                    // Khi không có reservation hoặc reservation đã completed/cancelled -> trống
                     status = 'available';
                 }
 
@@ -624,7 +637,7 @@ const TableWaiter = () => {
                         </div>
 
                         {/* Show reservations for selected table */}
-                        {selectedTable.status === 'occupied' && (
+                        {/* {selectedTable.status === 'occupied' && (
                             <div className="table-reservations">
                                 <h4>Thông tin đặt bàn (Ngày {new Date(selectedDate).toLocaleDateString()})</h4>
                                 {getTableReservations(selectedTable._id).map(res => (
@@ -643,7 +656,7 @@ const TableWaiter = () => {
                                     </div>
                                 ))}
                             </div>
-                        )}
+                        )} */}
                     </div>
                 )}
             </div>
