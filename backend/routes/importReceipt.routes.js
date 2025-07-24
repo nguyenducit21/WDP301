@@ -4,11 +4,10 @@ const { getAllImportReceipts, createImportReceipt, getImportReceiptById } = requ
 const authMiddleware = require('../middlewares/auth.middleware');
 const roleMiddleware = require('../middlewares/role.middleware');
 
-// Chỉ cho kitchen_staff, admin sử dụng
 router.use(authMiddleware, roleMiddleware(['kitchen_staff', 'admin']));
 
-router.get('/', getAllImportReceipts);            // Liệt kê phiếu nhập hàng
-router.post('/create', createImportReceipt);      // Tạo mới phiếu nhập hàng
-router.get('/:id', getImportReceiptById);         // Xem chi tiết phiếu nhập
+router.get('/', getAllImportReceipts);            
+router.post('/create', createImportReceipt);      
+router.get('/:id', getImportReceiptById);         
 
 module.exports = router;
