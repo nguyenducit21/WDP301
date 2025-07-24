@@ -43,6 +43,10 @@ const PromotionSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    description: {
+        type: String,
+        default: ''
     }
 }, {
     timestamps: true

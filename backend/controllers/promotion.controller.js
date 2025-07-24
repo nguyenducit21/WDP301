@@ -5,8 +5,44 @@ const Promotion = require('../models/promotion.model');
  */
 const getAllPromotions = async (req, res) => {
     try {
-        const promotions = await Promotion.find().sort({ createdAt: -1 });
-        return res.status(200).json({ success: true, data: promotions });
+        const { isClient, includeAll } = req.query;
+        const now = new Date();
+        
+        // Xác định filter dựa trên tham số
+        let filter = {};
+        
+        // Nếu không yêu cầu includeAll, áp dụng các filter thông thường
+        if (includeAll !== 'true') {
+            // Filter cơ bản: đang active và còn hạn
+            filter = {
+                isActive: true,
+                startDate: { $lte: now },
+                endDate: { $gte: now }
+            };
+            
+            // Nếu là client request, chỉ trả về các mã còn lượt dùng
+            if (isClient === 'true') {
+                filter.$or = [
+                    { usageLimit: null },
+                    { $expr: { $lt: ["$usedCount", "$usageLimit"] } }
+                ];
+            }
+        }
+        
+        // Lấy danh sách mã khuyến mại theo filter
+        const promotions = await Promotion.find(filter).sort({ createdAt: -1 });
+        
+        // Thêm trường isExhausted để đánh dấu mã đã hết lượt dùng
+        const processedPromotions = promotions.map(promo => {
+            const promoObj = promo.toObject();
+            promoObj.isExhausted = promo.usageLimit !== null && promo.usedCount >= promo.usageLimit;
+            return promoObj;
+        });
+        
+        return res.status(200).json({ 
+            success: true, 
+            data: processedPromotions
+        });
     } catch (error) {
         return res.status(500).json({ success: false, message: error.message });
     }
@@ -42,7 +78,7 @@ const createPromotion = async (req, res) => {
             endDate,
             usageLimit,
             isActive,
-            
+            description
         } = req.body;
 
         // Kiểm tra mã đã tồn tại
@@ -61,7 +97,7 @@ const createPromotion = async (req, res) => {
             endDate,
             usageLimit,
             isActive,
-            
+            description
         });
 
         await newPromo.save();
@@ -77,7 +113,20 @@ const createPromotion = async (req, res) => {
  */
 const updatePromotion = async (req, res) => {
     try {
-        const updatedPromo = await Promotion.findByIdAndUpdate(req.params.id, req.body, {
+        // Không cho phép cập nhật usedCount trực tiếp từ API
+        const updateData = { ...req.body };
+        delete updateData.usedCount;
+
+        // Chỉ cho phép cập nhật các trường hợp lệ
+        const allowedFields = [
+            'code', 'type', 'value', 'minOrderValue', 'maxDiscount',
+            'startDate', 'endDate', 'usageLimit', 'isActive', 'description'
+        ];
+        Object.keys(updateData).forEach(key => {
+            if (!allowedFields.includes(key)) delete updateData[key];
+        });
+
+        const updatedPromo = await Promotion.findByIdAndUpdate(req.params.id, updateData, {
             new: true,
             runValidators: true
         });
@@ -109,7 +158,7 @@ const deletePromotion = async (req, res) => {
 
 /**
  * Kiểm tra và áp dụng mã khuyến mại
- * Khi áp dụng thành công, tăng usedCount lên 1
+ * Chỉ kiểm tra điều kiện, KHÔNG tăng usedCount ở đây
  */
 const validateAndApplyPromotion = async (req, res) => {
     try {
@@ -131,7 +180,7 @@ const validateAndApplyPromotion = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Mã khuyến mại đã hết lượt sử dụng' });
         }
 
-        if (promotion.minOrderValue && orderTotal < promotion.minOrderValue) {
+        if (promotion.minOrderValue && Number(orderTotal) < Number(promotion.minOrderValue)) {
             return res.status(400).json({
                 success: false,
                 message: `Đơn hàng phải từ ${promotion.minOrderValue}đ để áp dụng mã này`
@@ -153,9 +202,9 @@ const validateAndApplyPromotion = async (req, res) => {
             discount = promotion.value;
         }
 
-        // Tăng usedCount lên 1 và lưu lại
-        promotion.usedCount = (promotion.usedCount || 0) + 1;
-        await promotion.save();
+        // KHÔNG tăng usedCount ở đây nữa
+        // promotion.usedCount = (promotion.usedCount || 0) + 1;
+        // await promotion.save();
 
         return res.status(200).json({ success: true, discount, promotion });
     } catch (error) {
