@@ -43,9 +43,13 @@ const PromotionSchema = new mongoose.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    description: {
+        type: String,
+        default: ''
     }
 }, {
     timestamps: true
 });
 
-module.exports = mongoose.model('Promotion', PromotionSchema); 
+module.exports = mongoose.model('Promotion', PromotionSchema);
