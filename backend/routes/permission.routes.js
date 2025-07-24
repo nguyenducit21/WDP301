@@ -3,6 +3,7 @@ const router = express.Router();
 const {
     getAllPermissions,
     getAllRoles,
+    getRolesForSelection,
     getRoleById,
     createRole,
     updateRole,
@@ -20,6 +21,8 @@ router.get('/matrix', authMiddleware, permissionMiddleware('manage_permission'),
 
 // Role routes
 router.get('/roles', authMiddleware, permissionMiddleware('read_role'), getAllRoles);
+router.get('/roles-for-selection', authMiddleware, getRolesForSelection); 
+router.get('/test-roles', getRolesForSelection); // Endpoint test không cần auth
 router.get('/roles/:id', authMiddleware, permissionMiddleware('read_role'), getRoleById);
 router.post('/roles', authMiddleware, permissionMiddleware('create_role'), createRole);
 router.put('/roles/:id', authMiddleware, permissionMiddleware('update_role'), updateRole);

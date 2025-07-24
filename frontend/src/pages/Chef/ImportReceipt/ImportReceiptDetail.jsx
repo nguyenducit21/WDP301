@@ -178,12 +178,6 @@ const ImportReceiptDetail = () => {
           <button className="btn btn-outline" onClick={handlePrint}>
             <FaPrint /> In phiếu nhập
           </button>
-          <button className="btn btn-secondary" onClick={handleExportExcel}>
-            <FaFileAlt /> Xuất Excel
-          </button>
-          <button className="btn btn-primary" onClick={handleDownloadDetail}>
-            <FaDownload /> Tải chi tiết
-          </button>
         </div>
       </div>
 

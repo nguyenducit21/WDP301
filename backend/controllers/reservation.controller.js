@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const User = require('../models/user.model');
 const { createOrderAssignment, updateOrderAssignment } = require('./orderAssignment.controller');
 const { send: sendMail } = require('../helper/sendmail.helper');
+const Promotion = require('../models/promotion.model');
 
 // Lấy tất cả đặt bàn
 const getReservations = async (req, res) => {
@@ -1351,7 +1352,22 @@ const updatePaymentStatus = async (req, res) => {
             { path: 'pre_order_items.menu_item_id', select: 'name price' }
         ]);
 
-
+        // Tăng usedCount của promotion nếu thanh toán thành công và có áp dụng mã
+        if (payment_status === 'paid' && reservation.promotion && reservation.promotion.code) {
+            try {
+                const promotion = await Promotion.findOne({ code: reservation.promotion.code });
+                if (promotion) {
+                    promotion.usedCount = (promotion.usedCount || 0) + 1;
+                    await promotion.save();
+                    console.log(`Đã tăng lượt sử dụng của mã ${reservation.promotion.code} lên ${promotion.usedCount}`);
+                } else {
+                    console.log(`Không tìm thấy mã khuyến mại: ${reservation.promotion.code}`);
+                }
+            } catch (err) {
+                console.error('Lỗi khi cập nhật lượt sử dụng mã giảm giá:', err);
+                // Không throw lỗi để tiếp tục xử lý API
+            }
+        }
 
         res.status(200).json({
             success: true,

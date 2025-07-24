@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from '../../utils/axios.customize';
 import './EmployeeManagement.css';
 import EmployeeForm from './EmployeeForm';
 import ConfirmModal from './ConfirmModal';
 import CalendarGrid from '../Manager/CalendarGrid';
 import '../Manager/CalendarGrid.css';
+import { AuthContext } from '../../context/AuthContext';
 
 const EmployeeManagement = () => {
     const [employees, setEmployees] = useState([]);
@@ -39,6 +40,8 @@ const EmployeeManagement = () => {
     const [selectedSchedule, setSelectedSchedule] = useState(null);
     const [scheduleForm, setScheduleForm] = useState({ employee_id: '', date: '', shift_type: 'morning', start_time: '08:00', end_time: '16:00', notes: '' });
 
+    const { user } = useContext(AuthContext);
+    const currentRole = user?.user?.role;
 
     useEffect(() => {
         fetchEmployees();
@@ -61,10 +64,14 @@ const EmployeeManagement = () => {
 
     const fetchRoles = async () => {
         try {
-            const response = await axios.get('/permissions/roles');
+            const response = await axios.get('/permissions/roles-for-selection');
+            console.log("RAW ROLE DATA:", response.data.data); // Debug log
+
             // Lọc bỏ role customer
             const filteredRoles = response.data.data.filter(role => role.name !== 'customer');
             setRoles(filteredRoles);
+            console.log("FILTERED ROLES:", filteredRoles); // Debug log
+
         } catch (error) {
             console.error('Lỗi khi lấy danh sách roles:', error);
         }
@@ -176,99 +183,38 @@ const EmployeeManagement = () => {
         );
     };
 
-    // Lấy lịch làm việc của nhân viên theo tháng
-    const fetchEmployeeSchedules = async (employeeId, monthDate) => {
-        setScheduleLoading(true);
-        try {
-            const year = monthDate.getFullYear();
-            const month = monthDate.getMonth();
-            const startDate = new Date(year, month, 1).toISOString().split('T')[0];
-            const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
-            const res = await axios.get(`/schedules/employee/${employeeId}?startDate=${startDate}&endDate=${endDate}`);
-            if (res.data.success) {
-                setEmployeeSchedules(res.data.data.schedules || []);
-            }
-        } catch (err) {
-            setEmployeeSchedules([]);
-        } finally {
-            setScheduleLoading(false);
-        }
-    };
+    // Lọc employees: nếu là manager thì ẩn admin
+    const filteredEmployees = currentRole === 'manager'
+        ? employees.filter(emp => {
+            const roleName = emp.role_id?.name || emp.role?.name || emp.role;
+            return roleName !== 'admin';
+        })
+        : employees;
+    // Lọc roles cho filter (dropdown filter ngoài giao diện):
+    const filteredRolesForFilter = currentRole === 'manager'
+        ? roles.filter(role => role.name !== 'admin')
+        : roles;
+    // Lọc roles cho form thêm/sửa:
+    const filteredRolesForForm = currentRole === 'manager'
+        ? roles.filter(role => role.name !== 'admin' && role.name !== 'manager')
+        : currentRole === 'admin'
+            ? roles.filter(role => role.name !== 'admin')
+            : roles;
 
-    // Khi click vào nhân viên
-    const handleShowSchedule = (employee) => {
-        setScheduleEmployee(employee);
-        setScheduleMonth(new Date());
-        setShowScheduleModal(true);
-        setSelectedSchedule(null);
-        fetchEmployeeSchedules(employee._id, new Date());
-    };
+    console.log("Current Role:", currentRole); // Debug log
+    console.log("All Roles:", roles); // Debug log
+    console.log("Filtered Roles For Form:", filteredRolesForForm); // Debug log
 
-    // Điều hướng tháng
-    const handleScheduleMonthChange = (delta) => {
-        setScheduleMonth(prev => {
-            const y = prev.getFullYear();
-            const m = prev.getMonth() + delta;
-            const newMonth = new Date(y, m, 1);
-            if (scheduleEmployee) fetchEmployeeSchedules(scheduleEmployee._id, newMonth);
-            return newMonth;
-        });
-    };
-
-    // Click ngày trên calendar
-    const handleScheduleDayClick = (date, hasSchedule) => {
-        if (!scheduleEmployee) return;
-        const dateStr = date.toISOString().split('T')[0];
-        const sch = employeeSchedules.find(s => s.date === dateStr);
-        if (sch) {
-            setSelectedSchedule(sch);
-            setScheduleModalType('edit');
-            setScheduleForm({
-                employee_id: scheduleEmployee._id,
-                date: sch.date,
-                shift_type: sch.shiftType || 'morning',
-                start_time: sch.startTime || '08:00',
-                end_time: sch.endTime || '16:00',
-                notes: sch.notes || ''
-            });
-        } else {
-            setSelectedSchedule(null);
-            setScheduleModalType('add');
-            setScheduleForm({
-                employee_id: scheduleEmployee._id,
-                date: dateStr,
-                shift_type: 'morning',
-                start_time: '08:00',
-                end_time: '16:00',
-                notes: ''
-            });
-        }
-        setShowScheduleCrudModal(true);
-    };
-
-    // CRUD schedule
-    const handleAddSchedule = async () => {
-        try {
-            await axios.post('/schedules', scheduleForm);
-            setShowScheduleCrudModal(false);
-            fetchEmployeeSchedules(scheduleEmployee._id, scheduleMonth);
-        } catch (err) { }
-    };
-    const handleEditSchedule = async () => {
-        try {
-            await axios.put(`/schedules/${selectedSchedule.id}`, scheduleForm);
-            setShowScheduleCrudModal(false);
-            fetchEmployeeSchedules(scheduleEmployee._id, scheduleMonth);
-        } catch (err) { }
-    };
-    const handleDeleteSchedule = async () => {
-        try {
-            await axios.delete(`/schedules/${selectedSchedule.id}`);
-            setShowScheduleCrudModal(false);
-            fetchEmployeeSchedules(scheduleEmployee._id, scheduleMonth);
-        } catch (err) { }
-    };
-
+    //format birth_date
+    const formatDate = (dateString) => {
+        if (!dateString) return '-';
+        const date = new Date(dateString);
+        if (isNaN(date)) return '-';
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+    }
 
     return (
         <div className="employee-management-container">
@@ -285,7 +231,6 @@ const EmployeeManagement = () => {
                         Thêm nhân viên
                     </button>
                 </div>
-
                 {/* Filters */}
                 <div className="filters">
                     <div className="filter-group">
@@ -297,7 +242,6 @@ const EmployeeManagement = () => {
                             className="search-input"
                         />
                     </div>
-
                     <div className="filter-group">
                         <select
                             value={filters.role}
@@ -305,14 +249,13 @@ const EmployeeManagement = () => {
                             className="filter-select"
                         >
                             <option value="">Tất cả vai trò</option>
-                            {roles.map(role => (
+                            {filteredRolesForFilter.map(role => (
                                 <option key={role._id} value={role.name}>
                                     {role.name}
                                 </option>
                             ))}
                         </select>
                     </div>
-
                     <div className="filter-group">
                         <select
                             value={filters.status}
@@ -325,7 +268,6 @@ const EmployeeManagement = () => {
                         </select>
                     </div>
                 </div>
-
                 {/* Employee Table */}
                 <div className="table-container">
                     {loading ? (
@@ -338,46 +280,54 @@ const EmployeeManagement = () => {
                                     <th>Username</th>
                                     <th>Email</th>
                                     <th>Số điện thoại</th>
+                                    <th>Ngày sinh</th>
                                     <th>Vai trò</th>
                                     <th>Trạng thái</th>
                                     <th>Thao tác</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {employees.length > 0 ? (
-                                    employees.map(employee => (
-                                        <tr key={employee._id}>
-                                            <td style={{ cursor: 'pointer', color: '#2563eb', textDecoration: 'underline' }} onClick={() => handleShowSchedule(employee)}>{employee.full_name || '-'}</td>
-                                            <td>{employee.username}</td>
-                                            <td>{employee.email}</td>
-                                            <td>{employee.phone || '-'}</td>
-                                            <td>
-                                                {employee.role_id ?
-                                                    getRoleBadge(employee.role_id) :
-                                                    employee.role ?
-                                                        getRoleBadge(employee.role) :
-                                                        <span className="role-badge default">Không xác định</span>
-                                                }
-                                            </td>
-                                            <td>{getStatusBadge(employee.status)}</td>
-                                            <td>
-                                                <div className="action-buttons">
-                                                    <button
-                                                        className="btn btn-sm btn-secondary"
-                                                        onClick={() => handleEditEmployee(employee)}
-                                                    >
-                                                        Sửa
-                                                    </button>
-                                                    <button
-                                                        className="btn btn-sm btn-warning"
-                                                        onClick={() => handleToggleStatus(employee)}
-                                                    >
-                                                        {employee.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
+                                {filteredEmployees.length > 0 ? (
+                                    filteredEmployees.map(employee => {
+                                        const isAdminRow = (employee.role_id?.name || employee.role?.name || employee.role) === 'admin';
+                                        return (
+                                            <tr key={employee._id}>
+                                                <td>{employee.full_name || '-'}</td>
+                                                <td>{employee.username}</td>
+                                                <td>{employee.email}</td>
+                                                <td>{employee.phone || '-'}</td>
+                                                <td>{formatDate(employee.birth_date)}</td>
+                                                <td>
+                                                    {employee.role_id ?
+                                                        getRoleBadge(employee.role_id) :
+                                                        employee.role ?
+                                                            getRoleBadge(employee.role) :
+                                                            <span className="role-badge default">Không xác định</span>
+                                                    }
+                                                </td>
+                                                <td>{getStatusBadge(employee.status)}</td>
+                                                <td>
+                                                    <div className="action-buttons">
+                                                        <button
+                                                            className="btn btn-sm btn-secondary"
+                                                            onClick={() => handleEditEmployee(employee)}
+                                                        >
+                                                            Sửa
+                                                        </button>
+                                                        {/* Ẩn nút vô hiệu hóa nếu là admin và đang xem bằng admin */}
+                                                        {!(currentRole === 'admin' && isAdminRow) && (
+                                                            <button
+                                                                className="btn btn-sm btn-warning"
+                                                                onClick={() => handleToggleStatus(employee)}
+                                                            >
+                                                                {employee.status === 'active' ? 'Vô hiệu hóa' : 'Kích hoạt'}
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
                                 ) : (
                                     <tr>
                                         <td colSpan="7" style={{ textAlign: 'center' }}>
@@ -389,7 +339,6 @@ const EmployeeManagement = () => {
                         </table>
                     )}
                 </div>
-
                 {/* Pagination */}
                 {pagination.totalPages > 1 && (
                     <div className="pagination">
@@ -413,17 +362,16 @@ const EmployeeManagement = () => {
                     </div>
                 )}
             </div>
-
             {/* Employee Form Modal */}
             {showForm && (
                 <EmployeeForm
                     employee={editingEmployee}
-                    roles={roles}
+                    roles={filteredRolesForForm}
+                    currentRole={currentRole}
                     onSubmit={handleFormSubmit}
                     onCancel={() => setShowForm(false)}
                 />
             )}
-
             {/* Confirm Modal */}
             {showConfirmModal && (
                 <ConfirmModal

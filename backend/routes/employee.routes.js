@@ -9,21 +9,21 @@ const {
 } = require('../controllers/employee.controller');
 
 const authMiddleware = require('../middlewares/auth.middleware');
-const { resourcePermissionMiddleware } = require('../middlewares/permission.middleware');
+const roleMiddleware = require('../middlewares/role.middleware');
 
 // Lấy danh sách tất cả nhân viên
-router.get('/', authMiddleware, resourcePermissionMiddleware('users', 'read'), getAllEmployees);
+router.get('/', authMiddleware, roleMiddleware(['admin', 'manager']), getAllEmployees);
 
 // Lấy thông tin chi tiết một nhân viên
-router.get('/:id', authMiddleware, resourcePermissionMiddleware('users', 'read'), getEmployeeById);
+router.get('/:id', authMiddleware, roleMiddleware(['admin', 'manager']), getEmployeeById);
 
 // Tạo nhân viên mới
-router.post('/', authMiddleware, resourcePermissionMiddleware('users', 'create'), createEmployee);
+router.post('/', authMiddleware, roleMiddleware(['admin', 'manager']), createEmployee);
 
 // Cập nhật thông tin nhân viên
-router.put('/:id', authMiddleware, resourcePermissionMiddleware('users', 'update'), updateEmployee);
+router.put('/:id', authMiddleware, roleMiddleware(['admin', 'manager']), updateEmployee);
 
 // Toggle trạng thái nhân viên (active/inactive)
-router.patch('/:id/toggle-status', authMiddleware, resourcePermissionMiddleware('users', 'update'), toggleEmployeeStatus);
+router.patch('/:id/toggle-status', authMiddleware, roleMiddleware(['admin', 'manager']), toggleEmployeeStatus);
 
 module.exports = router;

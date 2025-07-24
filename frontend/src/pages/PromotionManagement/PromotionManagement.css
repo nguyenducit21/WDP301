@@ -3,78 +3,141 @@
     padding: 32px 24px;
     max-width: 1200px;
     margin: 0 auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f8fafc;
+    min-height: 100vh;
 }
 
+/* Header */
 .promotion-management-container h2 {
-    margin-bottom: 20px;
-    color: #1a7f37;
+    margin-bottom: 24px;
+    color: #0f766e;
+    font-size: 1.75rem;
+    font-weight: 700;
+    display: inline-block;
+    position: relative;
 }
 
+.promotion-management-container h2:after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 0;
+    width: 60px;
+    height: 3px;
+    background-color: #0ea5e9;
+    border-radius: 2px;
+}
+
+/* Form */
 .promotion-form {
-    background: #f9f9f9;
-    padding: 20px 16px 12px 16px;
-    border-radius: 10px;
+    background: #ffffff;
+    padding: 24px;
+    border-radius: 8px;
     margin-bottom: 32px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
 }
 
 .promotion-form .form-row {
     display: flex;
     gap: 16px;
     flex-wrap: wrap;
-    margin-bottom: 10px;
-}
-
-.promotion-form input,
-.promotion-form select {
-    padding: 8px 10px;
-    border: 1px solid #d0d7de;
-    border-radius: 5px;
-    font-size: 15px;
-    flex: 1;
+    margin-bottom: 16px;
 }
 
 .promotion-form label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 15px;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 6px;
+    display: block;
+    font-size: 0.9rem;
+}
+
+.promotion-form input, .promotion-form select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    background: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.promotion-form input:focus, .promotion-form select:focus {
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+    outline: none;
+}
+
+.promotion-form input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
 }
 
 .promotion-form button {
-    background: #1a7f37;
+    background: #0ea5e9;
     color: #fff;
     border: none;
-    padding: 8px 18px;
-    border-radius: 5px;
-    font-size: 15px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 500;
     cursor: pointer;
-    margin-right: 8px;
-    transition: background 0.2s;
+    margin-right: 10px;
+    transition: all 0.2s ease;
 }
 
 .promotion-form button:hover {
-    background: #155c2e;
+    background: #0284c7;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(14, 165, 233, 0.2);
 }
 
+.promotion-form button[type="button"] {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+}
+
+.promotion-form button[type="button"]:hover {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+/* Table */
 .promotion-table {
     width: 100%;
     background: #fff;
-    border-collapse: collapse;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border-collapse: separate;
+    border-spacing: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-top: 16px;
+    border: 1px solid #e2e8f0;
 }
 
-.promotion-table th,
-.promotion-table td {
-    padding: 10px 8px;
-    border: 1px solid #e0e0e0;
+.promotion-table th, .promotion-table td {
+    padding: 14px 12px;
     text-align: center;
-    font-size: 15px;
+    font-size: 0.95rem;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 .promotion-table th {
-    background: #eaffea;
-    color: #1a7f37;
+    background: #f1f5f9;
+    color: #334155;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.promotion-table tr:last-child td {
+    border-bottom: none;
 }
 
 .promotion-table tr {
@@ -82,32 +145,228 @@
 }
 
 .promotion-table tr:hover {
-    background: #f3f3f3;
+    background: #f8fafc;
 }
 
-.promotion-table .action-btn {
-    background: #fff;
-    color: #1a7f37;
-    border: 1px solid #1a7f37;
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 14px;
+.promotion-table tr.exhausted-row {
+    background-color: #fef2f2;
+}
+
+.promotion-table tr.exhausted-row:hover {
+    background-color: #fee2e2;
+}
+
+/* Buttons in table */
+.promotion-table button {
+    background: #ffffff;
+    color: #0ea5e9;
+    border: 1px solid #0ea5e9;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 500;
     cursor: pointer;
-    margin-right: 4px;
-    transition: background 0.2s, color 0.2s;
+    margin-right: 8px;
+    transition: all 0.2s ease;
 }
 
-.promotion-table .action-btn:hover {
-    background: #1a7f37;
-    color: #fff;
+.promotion-table button:hover {
+    background: #0ea5e9;
+    color: #ffffff;
 }
 
-.promotion-table .action-btn.delete {
-    border-color: #e74c3c;
-    color: #e74c3c;
+.promotion-table button.delete-btn {
+    border-color: #ef4444;
+    color: #ef4444;
 }
 
-.promotion-table .action-btn.delete:hover {
-    background: #e74c3c;
-    color: #fff;
+.promotion-table button.delete-btn:hover {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+/* Status indicators */
+.promotion-table .status-active {
+    color: #16a34a;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.promotion-table .status-inactive {
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+/* Refresh button */
+.refresh-button {
+    background: #0ea5e9;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.refresh-button:hover {
+    background: #0284c7;
+    transform: translateY(-1px);
+}
+
+.refresh-button:active {
+    transform: translateY(0);
+}
+
+/* Error and success messages */
+.error-message {
+    color: #ef4444;
+    background-color: #fee2e2;
+    border: 1px solid #fecaca;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+.success-message {
+    color: #16a34a;
+    background-color: #dcfce7;
+    border: 1px solid #bbf7d0;
+    padding: 10px 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .promotion-form .form-row {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .promotion-table {
+        display: block;
+        overflow-x: auto;
+    }
+}
+
+/* Editing indicator */
+.editing-indicator {
+    margin-bottom: 16px;
+    color: #0ea5e9;
+    font-weight: 600;
+    font-size: 1rem;
+    background-color: #f0f9ff;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border-left: 4px solid #0ea5e9;
+}
+
+.editing-indicator span {
+    color: #0284c7;
+    font-weight: 700;
+}
+
+/* Form header */
+.form-header {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #0f766e;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+/* Form field */
+.form-field {
+    margin-bottom: 16px;
+}
+
+/* Add button */
+.add-button {
+    background: #0ea5e9;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.add-button:hover {
+    background: #0284c7;
+}
+
+/* Table header */
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.table-header h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #0f766e;
+    margin: 0;
+}
+
+.table-counter {
+    color: #64748b;
+    font-size: 0.9rem;
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 12px;
+}
+
+/* Status badge */
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-badge.active {
+    background-color: #dcfce7;
+    color: #16a34a;
+}
+
+.status-badge.inactive {
+    background-color: #f1f5f9;
+    color: #64748b;
+}
+
+/* Code cell */
+.code-cell {
+    font-weight: 600;
+    color: #0f766e;
+}
+
+/* Exhausted badge */
+.exhausted-badge {
+    background-color: #fecaca;
+    color: #b91c1c;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-left: 6px;
 }

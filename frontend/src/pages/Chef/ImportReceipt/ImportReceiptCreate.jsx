@@ -123,7 +123,7 @@ const ImportReceiptCreate = () => {
 
     setLoading(true);
     try {
-      const response = await axios.post('/import-receipts', {
+      const response = await axios.post('/import-receipt/create', {
         content: content.trim(),
         items: validItems
       }, { withCredentials: true });
@@ -147,7 +147,6 @@ const ImportReceiptCreate = () => {
           <FaArrowLeft /> Quay lại
         </button>
         <h1>Tạo Phiếu Nhập Hàng</h1>
-        {/* ✅ BỎ PREFILLED INDICATOR */}
       </div>
 
       <form onSubmit={handleSubmit} className="form-container">
@@ -190,7 +189,7 @@ const ImportReceiptCreate = () => {
                     <td>{index + 1}</td>
                     <td>
                       <select 
-                        value={item.inventory_id} // ✅ QUAN TRỌNG: PHẢI CÓ VALUE
+                        value={item.inventory_id} 
                         onChange={(e) => handleItemChange(index, 'inventory_id', e.target.value)}
                         required
                       >

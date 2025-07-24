@@ -281,13 +281,6 @@ const ImportReceiptList = () => {
                                         >
                                             <FaEye />
                                         </button>
-                                        <button
-                                            className="action-btn pdf-btn"
-                                            onClick={() => handleExportPDF(receipt)}
-                                            title="Xuất PDF"
-                                        >
-                                            <FaFilePdf />
-                                        </button>
                                     </td>
                                 </tr>
                             ))}

@@ -56,7 +56,6 @@ const getAllImportReceipts = async (req, res) => {
  * Tạo mới phiếu nhập hàng
  */
 const createImportReceipt = async (req, res) => {
-    // ✅ SỬ DỤNG TRANSACTION để đảm bảo data consistency
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -81,7 +80,6 @@ const createImportReceipt = async (req, res) => {
             });
         }
 
-        // ✅ VALIDATE items với inventory check
         const processedItems = [];
         for (const item of items) {
             if (!item.inventory_id || !item.supplier || !item.quantity || !item.unit_price) {
@@ -92,7 +90,6 @@ const createImportReceipt = async (req, res) => {
                 });
             }
 
-            // ✅ KIỂM TRA inventory có tồn tại không
             const inventory = await Inventory.findById(item.inventory_id).session(session);
             if (!inventory || !inventory.isactive) {
                 await session.abortTransaction();
@@ -102,7 +99,6 @@ const createImportReceipt = async (req, res) => {
                 });
             }
 
-            // ✅ KIỂM TRA unit có match không
             if (item.unit !== inventory.unit) {
                 await session.abortTransaction();
                 return res.status(400).json({
@@ -121,7 +117,6 @@ const createImportReceipt = async (req, res) => {
             sum + item.total_price, 0
         );
 
-        // ✅ TẠO PHIẾU NHẬP
         const receipt = await ImportReceipt.create([{
             staff_id: staffId,
             content: content?.trim() || 'Phiếu nhập hàng',
@@ -140,7 +135,6 @@ const createImportReceipt = async (req, res) => {
                     },
                     costperunit: Number(item.unit_price),
                     supplier: item.supplier,
-                    // ✅ CẬP NHẬT TRACKING FIELDS
                     last_import_date: new Date(),
                     last_import_quantity: Number(item.quantity),
                     last_import_price: Number(item.unit_price),

@@ -4,6 +4,8 @@ import { io } from 'socket.io-client';
 import Sidebar from '../../components/SidebarManager/SidebarManager';
 import { AuthContext } from '../../context/AuthContext';
 import InvoicePrint from '../../components/InvoicePrint/InvoicePrint';
+import TableCombinations from '../../components/ReservationManagement/TableCombinations';
+import SelectedTablesSummary from '../../components/ReservationManagement/SelectedTablesSummary';
 import './ReservationManagement.css';
 import axios from '../../utils/axios.customize';
 
@@ -36,6 +38,11 @@ const ReservationManagement = () => {
     const [selectedDate, setSelectedDate] = useState(() => {
         return new Date().toISOString().slice(0, 10);
     });
+
+    // States cho tính năng ghép bàn
+    const [tableCombinations, setTableCombinations] = useState({});
+    const [selectedTables, setSelectedTables] = useState([]);
+    const [showTableCombinations, setShowTableCombinations] = useState(false);
 
     // States lọc & phân trang
     const [statusFilter, setStatusFilter] = useState('all');
@@ -111,6 +118,74 @@ const ReservationManagement = () => {
         if (!areaId || !Array.isArray(areas)) return 'N/A';
         const area = areas.find(a => a && a._id === areaId);
         return area?.name || 'N/A';
+    };
+
+    // ==================== HÀM GHÉP BÀN ====================
+    const isTableSelected = (table) => {
+        return selectedTables.some(t => t._id === table._id);
+    };
+
+    const isCombinationSelected = (combination) => {
+        if (selectedTables.length !== combination.length) return false;
+        return combination.every(table =>
+            selectedTables.some(selected => selected._id === table._id)
+        );
+    };
+
+    const handleTableSelect = (table) => {
+        if (isTableSelected(table)) {
+            // Bỏ chọn bàn
+            setSelectedTables(prev => prev.filter(t => t._id !== table._id));
+        } else {
+            // Chọn bàn (thay thế selection hiện tại)
+            setSelectedTables([table]);
+        }
+    };
+
+    const handleCombinationSelect = (combination) => {
+        setSelectedTables(combination);
+    };
+
+    const getTotalCapacity = () => {
+        return selectedTables.reduce((sum, table) => sum + table.capacity, 0);
+    };
+
+    const isTableSelectionValid = (guestCount) => {
+        return getTotalCapacity() >= parseInt(guestCount || 0);
+    };
+
+    const getSuggestedCombinations = (guestCount) => {
+        console.log('getSuggestedCombinations called with:', { tableCombinations, guestCount }); // Debug log
+        if (!tableCombinations || !guestCount) return [];
+
+        const combinations = [];
+
+        // Single tables
+        if (tableCombinations.single && tableCombinations.single.length > 0) {
+            combinations.push({
+                description: `Bàn đơn (phù hợp cho ${guestCount} người)`,
+                tables: tableCombinations.single
+            });
+        }
+
+        // Double combinations
+        if (tableCombinations.double && tableCombinations.double.length > 0) {
+            combinations.push({
+                description: `Ghép 2 bàn (cho ${guestCount} người)`,
+                tables: tableCombinations.double
+            });
+        }
+
+        // Triple combinations
+        if (tableCombinations.triple && tableCombinations.triple.length > 0) {
+            combinations.push({
+                description: `Ghép 3 bàn (cho ${guestCount} người)`,
+                tables: tableCombinations.triple
+            });
+        }
+
+        console.log('getSuggestedCombinations result:', combinations); // Debug log
+        return combinations;
     };
 
     // ==================== HÀM HỖ TRỢ DỮ LIỆU ====================
@@ -556,6 +631,11 @@ const ReservationManagement = () => {
         setModalType(type);
         setError('');
 
+        // Reset states ghép bàn
+        setSelectedTables([]);
+        setTableCombinations({});
+        setShowTableCombinations(false);
+
         if (type === 'add') {
             setFormData({
                 date: new Date().toISOString().split('T')[0],
@@ -691,10 +771,11 @@ const ReservationManagement = () => {
         // Xử lý đặc biệt khi thay đổi ngày hoặc giờ trong form đặt bàn
         if (modalType === 'add' || modalType === 'edit') {
             if (name === 'slot_id' && value && formData.date) {
-                // Khi chọn slot, lấy danh sách bàn trống
+                // Khi chọn slot, lấy danh sách bàn trống và combinations
                 try {
                     setLoading(true);
-                    const response = await axios.get(`/reservations/available-tables?date=${formData.date}&slot_id=${value}`);
+                    const guestCount = formData.guest_count || 2;
+                    const response = await axios.get(`/reservations/available-tables?date=${formData.date}&slot_id=${value}&guest_count=${guestCount}`);
                     if (response?.data?.success) {
                         // Tìm slot đã chọn để lưu thông tin
                         const selectedSlot = bookingSlots.find(slot => slot._id === value);
@@ -706,6 +787,12 @@ const ReservationManagement = () => {
                             table_id: '', // Reset bàn đã chọn
                             selectedSlotInfo: selectedSlot // Lưu thông tin slot đã chọn
                         });
+
+                        // Lưu table combinations và hiển thị gợi ý ghép bàn
+                        console.log('Table combinations from API:', response.data.combinations); // Debug log
+                        setTableCombinations(response.data.combinations || {});
+                        setShowTableCombinations(true);
+                        setSelectedTables([]); // Reset selected tables
                     } else {
                         setError('Không thể lấy danh sách bàn trống');
                     }
@@ -727,7 +814,23 @@ const ReservationManagement = () => {
                     table_id: '',
                     availableTables: []
                 });
+                setSelectedTables([]);
+                setTableCombinations({});
+                setShowTableCombinations(false);
                 return;
+            }
+
+            if (name === 'guest_count' && formData.slot_id && formData.date) {
+                // Khi thay đổi số khách, cập nhật table combinations
+                try {
+                    const response = await axios.get(`/reservations/available-tables?date=${formData.date}&slot_id=${formData.slot_id}&guest_count=${value}`);
+                    if (response?.data?.success) {
+                        setTableCombinations(response.data.combinations || {});
+                        setSelectedTables([]); // Reset selected tables
+                    }
+                } catch (error) {
+                    console.error('Error updating table combinations:', error);
+                }
             }
 
             if (name === 'table_id' && value) {
@@ -762,8 +865,23 @@ const ReservationManagement = () => {
 
             switch (modalType) {
                 case 'add':
+                    // Kiểm tra xem có sử dụng ghép bàn không
+                    const tablesToReserve = selectedTables.length > 0
+                        ? selectedTables.map(t => t._id)
+                        : [formData.table_id];
+
+                    // Validate table selection
+                    if (tablesToReserve.length === 0 || (tablesToReserve.length === 1 && !tablesToReserve[0])) {
+                        setError('Vui lòng chọn bàn');
+                        return;
+                    }
+
+                    if (selectedTables.length > 0 && !isTableSelectionValid(formData.guest_count)) {
+                        setError('Sức chứa các bàn đã chọn không đủ cho số lượng khách');
+                        return;
+                    }
+
                     const reservationData = {
-                        table_id: formData.table_id,
                         contact_name: formData.contact_name,
                         contact_phone: formData.contact_phone,
                         contact_email: formData.contact_email,
@@ -774,10 +892,18 @@ const ReservationManagement = () => {
                         payment_status: 'pending'
                     };
 
+                    // Thêm table_ids hoặc table_id tùy theo số lượng bàn
+                    if (tablesToReserve.length > 1) {
+                        reservationData.table_ids = tablesToReserve;
+                    } else {
+                        reservationData.table_id = tablesToReserve[0];
+                    }
+
                     if (formData.pre_order_items && formData.pre_order_items.length > 0) {
                         reservationData.pre_order_items = formData.pre_order_items.filter(item => item.quantity > 0);
                     }
 
+                    console.log('Sending reservation data:', reservationData); // Debug log
                     response = await axios.post('/reservations', reservationData);
                     if (response?.data?.success) {
                         alert('Đặt bàn thành công');
@@ -1114,7 +1240,7 @@ const ReservationManagement = () => {
                 </div>
 
                 {/* Bảng đặt bàn */}
-                <div className="reservations-table">
+                <div className="reservations-table" >
                     <table>
                         <thead>
                             <tr>
@@ -1463,8 +1589,8 @@ const ReservationManagement = () => {
 
             {/* Modal Forms */}
             {isModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-container">
+                <div className="modal-overlay" >
+                    <div className="modal-container" >
                         <div className="modal-header">
                             <h3>
                                 {modalType === 'add' && 'Đặt bàn mới'}
@@ -1515,6 +1641,19 @@ const ReservationManagement = () => {
                                         </select>
                                     </div>
 
+                                    <div className="form-group">
+                                        <label>Số khách</label>
+                                        <input
+                                            type="number"
+                                            name="guest_count"
+                                            value={formData.guest_count || 1}
+                                            onChange={handleInputChange}
+                                            min="1"
+                                            max="50"
+                                            required
+                                        />
+                                    </div>
+
                                     {/* Hiển thị thông báo nếu không có bàn trống */}
                                     {formData.slot_id && formData.availableTables && formData.availableTables.length === 0 && (
                                         <div className="warning-message">
@@ -1522,23 +1661,46 @@ const ReservationManagement = () => {
                                         </div>
                                     )}
 
-                                    <div className="form-group">
-                                        <label>Bàn</label>
-                                        <select
-                                            name="table_id"
-                                            value={formData.table_id || ''}
-                                            onChange={handleInputChange}
-                                            required
-                                            disabled={!formData.slot_id || (formData.availableTables && formData.availableTables.length === 0)}
-                                        >
-                                            <option value="">Chọn bàn</option>
-                                            {(formData.availableTables || []).map(table => (
-                                                <option key={table._id} value={table._id}>
-                                                    {table.name} (Sức chứa: {table.capacity} người) - {getAreaName(safeGet(table, 'area_id._id') || table.area_id)}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
+                                    {/* Hiển thị tính năng ghép bàn */}
+                                    {showTableCombinations && formData.slot_id && formData.guest_count && (
+                                        <div className="table-selection-section">
+                                            <SelectedTablesSummary
+                                                selectedTables={selectedTables}
+                                                guestCount={parseInt(formData.guest_count)}
+                                                getTotalCapacity={getTotalCapacity}
+                                                onRemoveTable={handleTableSelect}
+                                            />
+
+                                            <TableCombinations
+                                                combinations={getSuggestedCombinations(parseInt(formData.guest_count))}
+                                                onTableSelect={handleTableSelect}
+                                                onCombinationSelect={handleCombinationSelect}
+                                                isTableSelected={isTableSelected}
+                                                isCombinationSelected={isCombinationSelected}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Fallback: Chọn bàn đơn truyền thống (ẩn khi có table combinations) */}
+                                    {!showTableCombinations && (
+                                        <div className="form-group">
+                                            <label>Bàn</label>
+                                            <select
+                                                name="table_id"
+                                                value={formData.table_id || ''}
+                                                onChange={handleInputChange}
+                                                required
+                                                disabled={!formData.slot_id || (formData.availableTables && formData.availableTables.length === 0)}
+                                            >
+                                                <option value="">Chọn bàn</option>
+                                                {(formData.availableTables || []).map(table => (
+                                                    <option key={table._id} value={table._id}>
+                                                        {table.name} (Sức chứa: {table.capacity} người) - {getAreaName(safeGet(table, 'area_id._id') || table.area_id)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
 
                                     <div className="form-group">
                                         <label>Tên khách hàng</label>
@@ -1572,24 +1734,7 @@ const ReservationManagement = () => {
                                         />
                                     </div>
 
-                                    <div className="form-group">
-                                        <label>Số khách</label>
-                                        <input
-                                            type="number"
-                                            name="guest_count"
-                                            value={formData.guest_count || 1}
-                                            onChange={handleInputChange}
-                                            min="1"
-                                            max={formData.table_id ? (formData.availableTables.find(t => t._id === formData.table_id)?.capacity || 1) : 1}
-                                            required
-                                            disabled={!formData.table_id}
-                                        />
-                                        {formData.table_id && (
-                                            <small className="capacity-hint">
-                                                Sức chứa tối đa: {formData.availableTables.find(t => t._id === formData.table_id)?.capacity || 1} người
-                                            </small>
-                                        )}
-                                    </div>
+
 
                                     <div className="form-group">
                                         <label>Đặt món trước</label>
