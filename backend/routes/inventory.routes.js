@@ -13,7 +13,8 @@ const {
     getLowStockItems,
     deleteInventory,
     getInventoryHistory,
-    getDailyIngredientConsumption
+    getDailyIngredientConsumption,
+    restoreInventory
 } = require('../controllers/inventory.controller');
 const { getInventoryAnalytics } = require('../controllers/inventoryAnalytics.controller');
 
@@ -34,5 +35,6 @@ router.put('/:id', updateInventory);
 router.patch('/:id/stock-check', stockCheck);
 router.post('/:id/import', importStock);
 router.delete('/:id', deleteInventory);
+router.patch('/:id/restore', restoreInventory);
 
 module.exports = router;

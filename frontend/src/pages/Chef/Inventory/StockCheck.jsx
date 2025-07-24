@@ -21,11 +21,11 @@ const StockCheck = () => {
     setLoading(true);
     try {
       const response = await axios.get('/inventory', { withCredentials: true });
-      
+
       if (response.data.success) {
         const inventoriesData = response.data.data;
         setInventories(inventoriesData);
-        
+
         // Initialize stock data with current stock
         const initialStockData = {};
         inventoriesData.forEach(inv => {
@@ -45,28 +45,35 @@ const StockCheck = () => {
   };
 
   const handleStockChange = (inventoryId, actualStock) => {
+    let value = actualStock;
+    if (value === '') {
+      value = '';
+    } else if (Number(value) < 0) {
+      value = 0;
+    }
     const systemStock = inventories.find(inv => inv._id === inventoryId)?.currentstock || 0;
-    const difference = Number(actualStock) - systemStock;
-    
+    const difference = Number(value) - systemStock;
+
     setStockData(prev => ({
       ...prev,
       [inventoryId]: {
-        actual_stock: Number(actualStock),
+        actual_stock: value === '' ? '' : Number(value),
         system_stock: systemStock,
-        difference: difference
+        difference: value === '' ? 0 : difference
       }
     }));
   };
+
 
   const handleSaveStockCheck = async (inventoryId) => {
     setSaving(true);
     try {
       const data = stockData[inventoryId];
-      
+
       const response = await axios.patch(`/inventory/${inventoryId}/stock-check`, {
         actual_stock: data.actual_stock
       }, { withCredentials: true });
-      
+
       if (response.data.success) {
         toast.success(response.data.message);
         fetchInventories(); // Refresh data
@@ -96,7 +103,7 @@ const StockCheck = () => {
     <div className="stock-check-container">
       {/* Header */}
       <div className="page-header">
-        <button 
+        <button
           className="back-btn"
           onClick={() => navigate('/chef/inventory-list')}
         >
@@ -139,7 +146,7 @@ const StockCheck = () => {
               {inventories.map((inventory, index) => {
                 const data = stockData[inventory._id] || {};
                 const difference = data.difference || 0;
-                
+
                 return (
                   <tr key={inventory._id}>
                     <td>
@@ -155,7 +162,7 @@ const StockCheck = () => {
                     <td className="actual-stock">
                       <input
                         type="number"
-                        value={data.actual_stock || inventory.currentstock}
+                        value={data.actual_stock !== undefined && data.actual_stock !== null ? data.actual_stock : inventory.currentstock}
                         onChange={(e) => handleStockChange(inventory._id, e.target.value)}
                         min="0"
                         step="0.01"

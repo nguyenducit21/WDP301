@@ -1,4 +1,5 @@
-// pages/Chef/Inventory/InventoryList.jsx - CÓ THÊM STORAGETYPE
+// pages/Chef/Inventory/InventoryList.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -10,7 +11,9 @@ import {
   FaExclamationTriangle,
   FaEye,
   FaEdit,
-  FaPlus
+  FaPlus,
+  FaTrash,
+  FaUndo
 } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import axios from '../../../utils/axios.customize';
@@ -32,8 +35,8 @@ const InventoryList = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedInventory, setSelectedInventory] = useState(null);
+  const [showDeleted, setShowDeleted] = useState(false);
   const navigate = useNavigate();
-
 
   const stockStatuses = [
     { value: '', label: 'Tất cả trạng thái', icon: '📦' },
@@ -41,7 +44,6 @@ const InventoryList = () => {
     { value: 'low-stock', label: 'Sắp hết', icon: '⚠️' },
     { value: 'out-of-stock', label: 'Hết hàng', icon: '❌' }
   ];
-
 
   const storageTypes = [
     { value: '', label: 'Tất cả loại', icon: '📦' },
@@ -52,17 +54,18 @@ const InventoryList = () => {
 
   useEffect(() => {
     fetchInventories();
-  }, [filters.search, filters.stockStatus, filters.storageType]);
+    // eslint-disable-next-line
+  }, [filters.search, filters.stockStatus, filters.storageType, showDeleted]);
 
   const fetchInventories = async () => {
     setLoading(true);
     try {
       const params = {};
-
       if (filters.search) params.search = filters.search;
 
-      // ✅ XỬ LÝ FILTER TRẠNG THÁI
-      if (filters.stockStatus === 'low-stock') {
+      if (showDeleted) {
+        params.inactive = true;
+      } else if (filters.stockStatus === 'low-stock') {
         params.lowstock = true;
       }
 
@@ -74,15 +77,13 @@ const InventoryList = () => {
       if (response.data.success) {
         let filteredData = response.data.data || [];
 
-        // ✅ FILTER THEO TRẠNG THÁI Ở FRONTEND
-        if (filters.stockStatus) {
+        if (!showDeleted && filters.stockStatus) {
           filteredData = filteredData.filter(inventory => {
             const status = getStockStatus(inventory);
             return status === filters.stockStatus;
           });
         }
 
-        // ✅ FILTER THEO STORAGETYPE
         if (filters.storageType) {
           filteredData = filteredData.filter(inventory => {
             return (inventory.storageType || 'perishable') === filters.storageType;
@@ -137,11 +138,41 @@ const InventoryList = () => {
     setCurrentPage(1);
   };
 
+  const handleDeleteInventory = async (inventory) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa "${inventory.name}"?\nNguyên liệu sẽ bị ẩn khỏi danh sách.`)) return;
+    try {
+      const resp = await axios.delete(`/inventory/${inventory._id}`, { withCredentials: true });
+      if (resp.data.success) {
+        toast.success('Xóa nguyên liệu thành công!');
+        fetchInventories();
+      } else {
+        toast.error(resp.data.message || 'Có lỗi khi xóa nguyên liệu');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Lỗi khi xóa nguyên liệu');
+    }
+  };
+
+  const handleRestoreInventory = async (inventory) => {
+    if (!window.confirm(`Bạn có muốn khôi phục "${inventory.name}" về trạng thái hoạt động?`)) return;
+    try {
+      const resp = await axios.patch(`/inventory/${inventory._id}/restore`, {}, { withCredentials: true });
+      if (resp.data.success) {
+        toast.success('Khôi phục nguyên liệu thành công!');
+        fetchInventories();
+      } else {
+        toast.error(resp.data.message || 'Có lỗi khi khôi phục nguyên liệu');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Lỗi khi khôi phục nguyên liệu');
+    }
+  };
+
   const resetFilters = () => {
     setFilters({
       search: '',
       stockStatus: '',
-      storageType: '', 
+      storageType: '',
       entriesPerPage: 10,
       showFilter: false
     });
@@ -194,7 +225,6 @@ const InventoryList = () => {
     setShowEditModal(true);
   };
 
-
   const totalPages = Math.ceil(inventories.length / filters.entriesPerPage);
   const startIndex = (currentPage - 1) * filters.entriesPerPage;
   const endIndex = startIndex + filters.entriesPerPage;
@@ -220,6 +250,16 @@ const InventoryList = () => {
             <FaRedo /> Reset
           </button>
           <button
+            className="btn btn-outline"
+            onClick={() => {
+              setShowDeleted(prev => !prev);
+              setCurrentPage(1);
+            }}
+            style={{ fontWeight: showDeleted ? 'bold' : 'normal', color: showDeleted ? '#d9534f' : undefined }}
+          >
+            {showDeleted ? "← Về danh sách hoạt động" : "🗑 Nguyên liệu đã xóa"}
+          </button>
+          <button
             className="btn btn-secondary"
             onClick={handleStockCheck}
           >
@@ -234,7 +274,7 @@ const InventoryList = () => {
         </div>
       </div>
 
-      {lowStockCount > 0 && (
+      {!showDeleted && lowStockCount > 0 && (
         <div className="alert alert-warning">
           <FaExclamationTriangle />
           <strong>Cảnh báo:</strong> {lowStockCount} nguyên liệu sắp hết hàng!
@@ -250,6 +290,7 @@ const InventoryList = () => {
                 value={filters.stockStatus}
                 onChange={(e) => handleFilterChange('stockStatus', e.target.value)}
                 className="filter-input"
+                disabled={showDeleted}
               >
                 {stockStatuses.map(status => (
                   <option key={status.value} value={status.value}>
@@ -258,7 +299,7 @@ const InventoryList = () => {
                 ))}
               </select>
             </div>
-            
+
             <div className="filter-group">
               <label>Loại bảo quản:</label>
               <select
@@ -334,12 +375,17 @@ const InventoryList = () => {
                     <div className="empty-state">
                       <FaBoxes size={48} />
                       <p>Không có nguyên liệu nào</p>
-                      {filters.stockStatus && (
-                        <small>Không có nguyên liệu nào với trạng thái "{stockStatuses.find(s => s.value === filters.stockStatus)?.label}"</small>
+                      {filters.stockStatus && !showDeleted && (
+                        <small>
+                          Không có nguyên liệu nào với trạng thái "{stockStatuses.find(s => s.value === filters.stockStatus)?.label}"
+                        </small>
                       )}
                       {filters.storageType && (
-                        <small>Không có nguyên liệu nào với loại bảo quản "{storageTypes.find(s => s.value === filters.storageType)?.label}"</small>
+                        <small>
+                          Không có nguyên liệu nào với loại bảo quản "{storageTypes.find(s => s.value === filters.storageType)?.label}"
+                        </small>
                       )}
+                      {showDeleted && <small>Chưa có nguyên liệu nào đã bị xóa mềm</small>}
                     </div>
                   </td>
                 </tr>
@@ -379,20 +425,41 @@ const InventoryList = () => {
                     </span>
                   </td>
                   <td className="actions">
-                    <button
-                      className="action-btn view-btn"
-                      onClick={() => navigate(`/chef/inventory/${inventory._id}`)}
-                      title="Xem chi tiết và lịch sử"
-                    >
-                      <FaEye />
-                    </button>
-                    <button
-                      className="action-btn edit-btn"
-                      onClick={() => openEditModal(inventory)}
-                      title="Chỉnh sửa"
-                    >
-                      <FaEdit />
-                    </button>
+                    {!showDeleted ? (
+                      <>
+                        <button
+                          className="action-btn view-btn"
+                          onClick={() => navigate(`/chef/inventory/${inventory._id}`)}
+                          title="Xem chi tiết và lịch sử"
+                        >
+                          <FaEye />
+                        </button>
+                        <button
+                          className="action-btn edit-btn"
+                          onClick={() => openEditModal(inventory)}
+                          title="Chỉnh sửa"
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          className="action-btn delete-btn"
+                          onClick={() => handleDeleteInventory(inventory)}
+                          title="Xóa (ẩn khỏi danh sách)"
+                          style={{ color: '#d9534f' }}
+                        >
+                          <FaTrash />
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="action-btn restore-btn"
+                        onClick={() => handleRestoreInventory(inventory)}
+                        title="Khôi phục nguyên liệu"
+                        style={{ color: '#5cb85c' }}
+                      >
+                        <FaUndo />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -406,7 +473,7 @@ const InventoryList = () => {
           <span>
             Hiển thị {startIndex + 1} - {Math.min(endIndex, inventories.length)}
             trong tổng số {inventories.length} nguyên liệu
-            {filters.stockStatus && (
+            {filters.stockStatus && !showDeleted && (
               <span className="filter-info">
                 {' '}(Lọc trạng thái: {stockStatuses.find(s => s.value === filters.stockStatus)?.label})
               </span>
@@ -416,6 +483,7 @@ const InventoryList = () => {
                 {' '}(Lọc bảo quản: {storageTypes.find(s => s.value === filters.storageType)?.label})
               </span>
             )}
+            {showDeleted && <span className="filter-info"> (Đang xem nguyên liệu đã xóa)</span>}
           </span>
         </div>
 
