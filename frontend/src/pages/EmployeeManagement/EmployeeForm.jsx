@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const EmployeeForm = ({ employee, roles, onSubmit, onCancel }) => {
+const EmployeeForm = ({ employee, roles, onSubmit, onCancel, currentRole }) => {
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -102,7 +102,7 @@ const EmployeeForm = ({ employee, roles, onSubmit, onCancel }) => {
 
     return (
         <div className="modal-overlay">
-            <div className="modal-content employee-form-modal">
+            <div className="modal-content employee-form-modal" style={{ width: '1000px' }}>
                 <div className="modal-header">
                     <h2>{employee ? 'Sửa nhân viên' : 'Thêm nhân viên mới'}</h2>
                     <button className="close-btn" onClick={onCancel}>×</button>

@@ -5,13 +5,13 @@ const Role = require('../models/role.model');
 const getAllPermissions = async (req, res) => {
     try {
         const { module = '', resource = '' } = req.query;
-        
+
         const filter = {};
         if (module) filter.module = module;
         if (resource) filter.resource = resource;
-        
+
         const permissions = await Permission.find(filter).sort({ module: 1, resource: 1, action: 1 });
-        
+
         // Group permissions by module
         const groupedPermissions = permissions.reduce((acc, permission) => {
             if (!acc[permission.module]) {
@@ -20,7 +20,7 @@ const getAllPermissions = async (req, res) => {
             acc[permission.module].push(permission);
             return acc;
         }, {});
-        
+
         res.status(200).json({
             success: true,
             data: {
@@ -43,7 +43,27 @@ const getAllRoles = async (req, res) => {
         const roles = await Role.find()
             .populate('permissions', 'name resource action module description')
             .sort({ name: 1 });
-        
+
+        res.status(200).json({
+            success: true,
+            data: roles
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy danh sách roles',
+            error: error.message
+        });
+    }
+};
+
+// Lấy danh sách roles cho việc chọn vai trò (không yêu cầu permission đặc biệt)
+const getRolesForSelection = async (req, res) => {
+    try {
+        const roles = await Role.find()
+            .select('name description _id')
+            .sort({ name: 1 });
+
         res.status(200).json({
             success: true,
             data: roles
@@ -61,17 +81,17 @@ const getAllRoles = async (req, res) => {
 const getRoleById = async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         const role = await Role.findById(id)
             .populate('permissions', 'name resource action module description');
-        
+
         if (!role) {
             return res.status(404).json({
                 success: false,
                 message: 'Không tìm thấy role'
             });
         }
-        
+
         res.status(200).json({
             success: true,
             data: role
@@ -89,14 +109,14 @@ const getRoleById = async (req, res) => {
 const createRole = async (req, res) => {
     try {
         const { name, description, permission_ids = [] } = req.body;
-        
+
         if (!name) {
             return res.status(400).json({
                 success: false,
                 message: 'Tên role là bắt buộc'
             });
         }
-        
+
         // Kiểm tra role đã tồn tại chưa
         const existingRole = await Role.findOne({ name });
         if (existingRole) {
@@ -105,7 +125,7 @@ const createRole = async (req, res) => {
                 message: 'Role đã tồn tại'
             });
         }
-        
+
         // Kiểm tra permissions có tồn tại không
         if (permission_ids.length > 0) {
             const permissions = await Permission.find({ _id: { $in: permission_ids } });
@@ -116,7 +136,7 @@ const createRole = async (req, res) => {
                 });
             }
         }
-        
+
         // Tạo role mới
         const newRole = new Role({
             name,
@@ -124,13 +144,13 @@ const createRole = async (req, res) => {
             permissions: permission_ids,
             is_system_role: false
         });
-        
+
         await newRole.save();
-        
+
         // Lấy thông tin role vừa tạo
         const role = await Role.findById(newRole._id)
             .populate('permissions', 'name resource action module description');
-        
+
         res.status(201).json({
             success: true,
             message: 'Tạo role thành công',
@@ -150,7 +170,7 @@ const updateRole = async (req, res) => {
     try {
         const { id } = req.params;
         const { name, description, permission_ids, status } = req.body;
-        
+
         // Kiểm tra role có tồn tại không
         const role = await Role.findById(id);
         if (!role) {
@@ -159,7 +179,7 @@ const updateRole = async (req, res) => {
                 message: 'Không tìm thấy role'
             });
         }
-        
+
         // Không cho phép sửa system role
         if (role.is_system_role && name && name !== role.name) {
             return res.status(400).json({
@@ -167,7 +187,7 @@ const updateRole = async (req, res) => {
                 message: 'Không thể thay đổi tên của system role'
             });
         }
-        
+
         // Kiểm tra tên role đã tồn tại chưa (nếu thay đổi tên)
         if (name && name !== role.name) {
             const existingRole = await Role.findOne({ name });
@@ -178,7 +198,7 @@ const updateRole = async (req, res) => {
                 });
             }
         }
-        
+
         // Kiểm tra permissions có tồn tại không
         if (permission_ids && permission_ids.length > 0) {
             const permissions = await Permission.find({ _id: { $in: permission_ids } });
@@ -189,22 +209,22 @@ const updateRole = async (req, res) => {
                 });
             }
         }
-        
+
         // Chuẩn bị dữ liệu cập nhật
         const updateData = { updated_at: new Date() };
-        
+
         if (name) updateData.name = name;
         if (description !== undefined) updateData.description = description;
         if (permission_ids !== undefined) updateData.permissions = permission_ids;
         if (status) updateData.status = status;
-        
+
         // Cập nhật role
         const updatedRole = await Role.findByIdAndUpdate(
             id,
             updateData,
             { new: true }
         ).populate('permissions', 'name resource action module description');
-        
+
         res.status(200).json({
             success: true,
             message: 'Cập nhật role thành công',
@@ -223,7 +243,7 @@ const updateRole = async (req, res) => {
 const deleteRole = async (req, res) => {
     try {
         const { id } = req.params;
-        
+
         // Kiểm tra role có tồn tại không
         const role = await Role.findById(id);
         if (!role) {
@@ -232,7 +252,7 @@ const deleteRole = async (req, res) => {
                 message: 'Không tìm thấy role'
             });
         }
-        
+
         // Không cho phép xóa system role
         if (role.is_system_role) {
             return res.status(400).json({
@@ -240,21 +260,21 @@ const deleteRole = async (req, res) => {
                 message: 'Không thể xóa system role'
             });
         }
-        
+
         // Kiểm tra có user nào đang sử dụng role này không
         const User = require('../models/user.model');
         const usersWithRole = await User.countDocuments({ role_id: id });
-        
+
         if (usersWithRole > 0) {
             return res.status(400).json({
                 success: false,
                 message: `Không thể xóa role vì có ${usersWithRole} người dùng đang sử dụng`
             });
         }
-        
+
         // Xóa role
         await Role.findByIdAndDelete(id);
-        
+
         res.status(200).json({
             success: true,
             message: 'Xóa role thành công'
@@ -273,14 +293,14 @@ const assignPermissionsToRole = async (req, res) => {
     try {
         const { id } = req.params;
         const { permission_ids } = req.body;
-        
+
         if (!permission_ids || !Array.isArray(permission_ids)) {
             return res.status(400).json({
                 success: false,
                 message: 'Danh sách permissions không hợp lệ'
             });
         }
-        
+
         // Kiểm tra role có tồn tại không
         const role = await Role.findById(id);
         if (!role) {
@@ -289,7 +309,7 @@ const assignPermissionsToRole = async (req, res) => {
                 message: 'Không tìm thấy role'
             });
         }
-        
+
         // Kiểm tra permissions có tồn tại không
         const permissions = await Permission.find({ _id: { $in: permission_ids } });
         if (permissions.length !== permission_ids.length) {
@@ -298,17 +318,17 @@ const assignPermissionsToRole = async (req, res) => {
                 message: 'Một số permissions không tồn tại'
             });
         }
-        
+
         // Cập nhật permissions cho role
         const updatedRole = await Role.findByIdAndUpdate(
             id,
-            { 
+            {
                 permissions: permission_ids,
                 updated_at: new Date()
             },
             { new: true }
         ).populate('permissions', 'name resource action module description');
-        
+
         res.status(200).json({
             success: true,
             message: 'Gán permissions thành công',
@@ -330,7 +350,7 @@ const getPermissionsMatrix = async (req, res) => {
             Permission.find().sort({ module: 1, resource: 1, action: 1 }),
             Role.find().populate('permissions').sort({ name: 1 })
         ]);
-        
+
         // Tạo matrix
         const matrix = roles.map(role => {
             const rolePermissions = role.permissions.map(p => p._id.toString());
@@ -354,7 +374,7 @@ const getPermissionsMatrix = async (req, res) => {
                 }))
             };
         });
-        
+
         res.status(200).json({
             success: true,
             data: {
@@ -375,6 +395,7 @@ const getPermissionsMatrix = async (req, res) => {
 module.exports = {
     getAllPermissions,
     getAllRoles,
+    getRolesForSelection,
     getRoleById,
     createRole,
     updateRole,

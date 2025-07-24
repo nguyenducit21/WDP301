@@ -63,7 +63,7 @@ const SidebarAdmin = ({ collapsed, setCollapsed }) => {
 
                 <li
                     className={currentTab === "employees" ? "active" : ""}
-                    onClick={() => navigate("/manager/employees")}
+                    onClick={() => navigate("/admin/employees")}
                 >
                     <FaUsers className="sidebar-icon" />
                     {!collapsed && <span>Quản lý nhân viên</span>}
