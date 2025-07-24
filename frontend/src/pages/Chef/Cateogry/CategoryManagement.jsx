@@ -99,8 +99,16 @@ const CategoryManagement = () => {
             setSelected((prev) => prev.filter((id) => id !== deleteModal.id));
             closeDelete();
             toast.success("Xóa danh mục thành công!", { autoClose: 3000 });
-        } catch {
-            toast.error("Lỗi khi xóa.", { autoClose: 3000 });
+        } catch (err) {
+            // Hiển thị lỗi chi tiết nếu backend trả về danh sách món ăn còn lại
+            if (err.response && err.response.data && err.response.data.items) {
+                const { message, items } = err.response.data;
+                let detail = message + "\n";
+                detail += items.map(item => `- ${item.name}`).join("\n");
+                toast.error(detail, { autoClose: 7000 });
+            } else {
+                toast.error("Lỗi khi xóa.", { autoClose: 3000 });
+            }
         }
         setActionLoading(false);
     };

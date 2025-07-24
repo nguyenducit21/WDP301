@@ -1,4 +1,5 @@
 const Category = require("../models/category.model");
+const MenuItem = require("../models/menuItems.model");
 
 const getAllCategories = async (req, res) => {
   try {
@@ -46,6 +47,13 @@ const createCategory = async (req, res) => {
 
 const deleteCategory = async (req, res) => {
   try {
+    const menuItems = await MenuItem.find({ category_id: req.params.id, is_deleted: false });
+    if (menuItems.length > 0) {
+      return res.status(400).json({
+        message: `Không thể xóa danh mục vì còn ${menuItems.length} món ăn thuộc danh mục này!`,
+        items: menuItems.map(item => ({ _id: item._id, name: item.name }))
+      });
+    }
     const deletedCategory = await Category.findByIdAndDelete(req.params.id);
     if (!deletedCategory) {
       return res.status(404).json({ message: "Không tìm thấy danh mục để xóa" });

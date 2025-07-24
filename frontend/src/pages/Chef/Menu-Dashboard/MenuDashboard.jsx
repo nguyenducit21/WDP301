@@ -383,7 +383,7 @@ const MenuDashboard = () => {
                     <div className="item-actions">
                       <button 
                         className="action-btn view-btn"
-                        onClick={() => navigate(`/chef/products/${item._id}`)}
+                        onClick={() => navigate(`/chef/products/`)}
                         title="Xem chi tiết"
                       >
                         <FaEye />
