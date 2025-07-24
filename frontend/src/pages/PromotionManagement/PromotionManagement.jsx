@@ -2,166 +2,279 @@ import React, { useEffect, useState } from 'react';
 import customFetch from '../../utils/axios.customize';
 import './PromotionManagement.css';
 
-const emptyForm = {
-    code: '',
-    type: 'percent',
-    value: '',
-    minOrderValue: '',
-    maxDiscount: '',
-    startDate: '',
-    endDate: '',
-    usageLimit: '',
-    isActive: true,
-    description: '',
+const defaultPromotionForm = {
+  code: '',
+  type: 'percent',
+  value: '',
+  minOrderValue: '',
+  maxDiscount: '',
+  startDate: '',
+  endDate: '',
+  usageLimit: '',
+  isActive: true,
+  description: '',
 };
 
 const PromotionManagement = () => {
-    const [promotions, setPromotions] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [form, setForm] = useState(emptyForm);
-    const [editingId, setEditingId] = useState(null);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+  const [listPromotions, setListPromotions] = useState([]);
+  const [loadingData, setLoadingData] = useState(false);
+  const [currentForm, setCurrentForm] = useState(defaultPromotionForm);
+  const [currentEditId, setCurrentEditId] = useState(null);
 
-    const fetchPromotions = async () => {
-        setLoading(true);
-        try {
-            const res = await customFetch.get('/promotions');
-            setPromotions(res.data.data || []);
-        } catch (err) {
-            setError('Lỗi khi tải danh sách khuyến mại');
-        } finally {
-            setLoading(false);
-        }
-    };
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
-    useEffect(() => {
-        fetchPromotions();
-    }, []);
+  const loadPromotions = async () => {
+    setLoadingData(true);
+    try {
+      const response = await customFetch.get('/promotions');
+      setListPromotions(response.data.data || []);
+    } catch {
+      setErrorMsg('Không thể tải danh sách khuyến mại!');
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
-    const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
-        setForm((prev) => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value,
-        }));
-    };
+  useEffect(() => {
+    loadPromotions();
+  }, []);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setSuccess('');
-        try {
-            if (editingId) {
-                await customFetch.put(`/promotions/${editingId}`, form);
-                setSuccess('Cập nhật thành công!');
-            } else {
-                await customFetch.post('/promotions', form);
-                setSuccess('Thêm mới thành công!');
-            }
-            setForm(emptyForm);
-            setEditingId(null);
-            fetchPromotions();
-        } catch (err) {
-            setError(err.response?.data?.message || 'Lỗi khi lưu khuyến mại');
-        }
-    };
+  const updateFormField = (e) => {
+    const { name, type, value, checked } = e.target;
+    setCurrentForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
+  };
 
-    const handleEdit = (promo) => {
-        setForm({ ...promo, startDate: promo.startDate?.slice(0, 10), endDate: promo.endDate?.slice(0, 10) });
-        setEditingId(promo._id);
-        setError('');
-        setSuccess('');
-    };
+  const resetForm = () => {
+    setCurrentForm(defaultPromotionForm);
+    setCurrentEditId(null);
+    setErrorMsg('');
+    setSuccessMsg('');
+  };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm('Xác nhận xóa khuyến mại này?')) return;
-        try {
-            await customFetch.delete(`/promotions/${id}`);
-            setSuccess('Đã xóa!');
-            fetchPromotions();
-        } catch (err) {
-            setError('Lỗi khi xóa');
-        }
-    };
+  const submitForm = async (event) => {
+    event.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
 
-    const handleCancel = () => {
-        setForm(emptyForm);
-        setEditingId(null);
-        setError('');
-        setSuccess('');
-    };
+    try {
+      if (currentEditId) {
+        await customFetch.put(`/promotions/${currentEditId}`, currentForm);
+        setSuccessMsg('Cập nhật khuyến mại thành công!');
+      } else {
+        await customFetch.post('/promotions', currentForm);
+        setSuccessMsg('Tạo khuyến mại mới thành công!');
+      }
+      resetForm();
+      loadPromotions();
+    } catch (error) {
+      setErrorMsg(error.response?.data?.message || 'Lỗi khi lưu khuyến mại');
+    }
+  };
 
-    return (
-        <div className="promotion-management-container">
-            <h2>Quản lý khuyến mại</h2>
-            <form onSubmit={handleSubmit} className="promotion-form">
-                <div className="form-row">
-                    <input name="code" value={form.code} onChange={handleChange} placeholder="Mã khuyến mại" required />
-                    <select name="type" value={form.type} onChange={handleChange}>
-                        <option value="percent">Giảm theo %</option>
-                        <option value="fixed">Giảm số tiền</option>
-                        <option value="first_order">Đơn đầu tiên</option>
-                    </select>
-                    <input name="value" value={form.value} onChange={handleChange} placeholder="Giá trị" type="number" required />
-                    <input name="minOrderValue" value={form.minOrderValue} onChange={handleChange} placeholder="Đơn tối thiểu" type="number" />
-                    <input name="maxDiscount" value={form.maxDiscount} onChange={handleChange} placeholder="Giảm tối đa" type="number" />
-                    <input name="usageLimit" value={form.usageLimit} onChange={handleChange} placeholder="Số lượt dùng" type="number" />
-                    <input name="startDate" value={form.startDate} onChange={handleChange} type="date" required />
-                    <input name="endDate" value={form.endDate} onChange={handleChange} type="date" required />
-                    <input name="description" value={form.description} onChange={handleChange} placeholder="Mô tả" />
-                    <label>
-                        <input name="isActive" type="checkbox" checked={form.isActive} onChange={handleChange} /> Kích hoạt
-                    </label>
-                </div>
-                <div style={{ marginTop: 12 }}>
-                    <button type="submit">{editingId ? 'Cập nhật' : 'Thêm mới'}</button>
-                    {editingId && <button type="button" onClick={handleCancel} style={{ marginLeft: 8 }}>Hủy</button>}
-                </div>
-                {error && <div style={{ color: 'red', marginTop: 8 }}>{error}</div>}
-                {success && <div style={{ color: 'green', marginTop: 8 }}>{success}</div>}
-            </form>
-            <table className="promotion-table">
-                <thead>
-                    <tr>
-                        <th>Mã</th>
-                        <th>Loại</th>
-                        <th>Giá trị</th>
-                        <th>Đơn tối thiểu</th>
-                        <th>Giảm tối đa</th>
-                        <th>Số lượt</th>
-                        <th>Đã dùng</th>
-                        <th>Ngày bắt đầu</th>
-                        <th>Ngày kết thúc</th>
-                        <th>Kích hoạt</th>
-                        <th>Mô tả</th>
-                        <th>Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {promotions.map((promo) => (
-                        <tr key={promo._id} style={{ background: promo.isActive ? '#eaffea' : '#ffeaea' }}>
-                            <td>{promo.code}</td>
-                            <td>{promo.type}</td>
-                            <td>{promo.value}</td>
-                            <td>{promo.minOrderValue}</td>
-                            <td>{promo.maxDiscount}</td>
-                            <td>{promo.usageLimit}</td>
-                            <td>{promo.usedCount}</td>
-                            <td>{promo.startDate ? new Date(promo.startDate).toLocaleDateString() : ''}</td>
-                            <td>{promo.endDate ? new Date(promo.endDate).toLocaleDateString() : ''}</td>
-                            <td>{promo.isActive ? '✔️' : '❌'}</td>
-                            <td>{promo.description}</td>
-                            <td>
-                                <button className="action-btn" onClick={() => handleEdit(promo)}>Sửa</button>
-                                <button className="action-btn delete" onClick={() => handleDelete(promo._id)}>Xóa</button>
-                            </td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+  const startEditing = (promotion) => {
+    setCurrentForm({
+      ...promotion,
+      startDate: promotion.startDate?.slice(0, 10) || '',
+      endDate: promotion.endDate?.slice(0, 10) || '',
+    });
+    setCurrentEditId(promotion._id);
+    setErrorMsg('');
+    setSuccessMsg('');
+  };
+
+  const confirmAndRemove = async (id) => {
+    if (!window.confirm('Bạn chắc chắn muốn xóa khuyến mại này?')) return;
+    try {
+      await customFetch.delete(`/promotions/${id}`);
+      setSuccessMsg('Xóa khuyến mại thành công!');
+      loadPromotions();
+    } catch {
+      setErrorMsg('Lỗi khi xóa khuyến mại!');
+    }
+  };
+
+  const formatDateString = (dateStr) => {
+    if (!dateStr) return '';
+    return new Date(dateStr).toLocaleDateString('vi-VN');
+  };
+
+  return (
+    <div className="promo-manage-wrapper">
+      <h2>Quản lý Khuyến mại</h2>
+
+      <form className="promo-form" onSubmit={submitForm}>
+        <div className="input-group">
+          <input
+            type="text"
+            name="code"
+            placeholder="Mã khuyến mại"
+            value={currentForm.code}
+            onChange={updateFormField}
+            required
+          />
+
+          <select name="type" value={currentForm.type} onChange={updateFormField}>
+            <option value="percent">Giảm %</option>
+            <option value="fixed">Giảm số tiền</option>
+            <option value="first_order">Đơn hàng đầu</option>
+          </select>
+
+          <input
+            type="number"
+            name="value"
+            min={0}
+            placeholder="Giá trị"
+            value={currentForm.value}
+            onChange={updateFormField}
+            required
+          />
+
+          <input
+            type="number"
+            name="minOrderValue"
+            min={0}
+            placeholder="Đơn hàng tối thiểu"
+            value={currentForm.minOrderValue}
+            onChange={updateFormField}
+          />
+
+          <input
+            type="number"
+            name="maxDiscount"
+            min={0}
+            placeholder="Giảm tối đa"
+            value={currentForm.maxDiscount}
+            onChange={updateFormField}
+          />
+
+          <input
+            type="number"
+            name="usageLimit"
+            min={0}
+            placeholder="Số lượt sử dụng"
+            value={currentForm.usageLimit}
+            onChange={updateFormField}
+          />
+
+          <input
+            type="date"
+            name="startDate"
+            value={currentForm.startDate}
+            onChange={updateFormField}
+            required
+          />
+
+          <input
+            type="date"
+            name="endDate"
+            value={currentForm.endDate}
+            onChange={updateFormField}
+            required
+          />
+
+          <input
+            type="text"
+            name="description"
+            placeholder="Mô tả"
+            value={currentForm.description}
+            onChange={updateFormField}
+          />
+
+          <label>
+            <input
+              type="checkbox"
+              name="isActive"
+              checked={currentForm.isActive}
+              onChange={updateFormField}
+            />{' '}
+            Kích hoạt
+          </label>
         </div>
-    );
+
+        <div className="btn-group">
+          <button type="submit" disabled={loadingData}>
+            {currentEditId ? 'Cập nhật' : 'Thêm mới'}
+          </button>
+          {currentEditId && (
+            <button type="button" onClick={resetForm} className="btn-cancel">
+              Hủy
+            </button>
+          )}
+        </div>
+
+        {errorMsg && <p className="message error">{errorMsg}</p>}
+        {successMsg && <p className="message success">{successMsg}</p>}
+      </form>
+
+      <table className="promo-table">
+        <thead>
+          <tr>
+            <th>Mã</th>
+            <th>Loại</th>
+            <th>Giá trị</th>
+            <th>Đơn tối thiểu</th>
+            <th>Giảm tối đa</th>
+            <th>Số lượt</th>
+            <th>Đã dùng</th>
+            <th>Ngày bắt đầu</th>
+            <th>Ngày kết thúc</th>
+            <th>Kích hoạt</th>
+            <th>Mô tả</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {listPromotions.map((promotion) => (
+            <tr
+              key={promotion._id}
+              className={promotion.isActive ? 'row-active' : 'row-inactive'}
+            >
+              <td>{promotion.code}</td>
+              <td>{promotion.type}</td>
+              <td>{promotion.value}</td>
+              <td>{promotion.minOrderValue ?? '-'}</td>
+              <td>{promotion.maxDiscount ?? '-'}</td>
+              <td>{promotion.usageLimit ?? '-'}</td>
+              <td>{promotion.usedCount ?? 0}</td>
+              <td>{formatDateString(promotion.startDate)}</td>
+              <td>{formatDateString(promotion.endDate)}</td>
+              <td>{promotion.isActive ? '✔️' : '❌'}</td>
+              <td>{promotion.description || '-'}</td>
+              <td>
+                <button
+                  className="btn-edit"
+                  onClick={() => startEditing(promotion)}
+                  title="Sửa khuyến mại"
+                >
+                  Sửa
+                </button>
+                <button
+                  className="btn-delete"
+                  onClick={() => confirmAndRemove(promotion._id)}
+                  title="Xóa khuyến mại"
+                >
+                  Xóa
+                </button>
+              </td>
+            </tr>
+          ))}
+
+          {listPromotions.length === 0 && (
+            <tr>
+              <td colSpan="12" style={{ textAlign: 'center', padding: 16 }}>
+                Không có khuyến mại nào
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 };
 
-export default PromotionManagement; 
+export default PromotionManagement;
