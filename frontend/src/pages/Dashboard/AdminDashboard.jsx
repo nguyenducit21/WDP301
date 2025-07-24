@@ -208,7 +208,10 @@ function AdminDashboard() {
                     <div className="card-content">
                         <span className="card-title">Mã giảm giá</span>
                         <span className="card-value">
-                            {formatNumber(promotionStats.total)} tạo / {formatNumber(promotionStats.used)} đã dùng
+                            {formatNumber(promotionStats.total)} mã / {formatNumber(promotionStats.used)} lượt dùng
+                        </span>
+                        <span className="card-change neutral">
+                            Tỷ lệ sử dụng: {promotionStats.total > 0 ? ((promotionStats.used / promotionStats.total) * 100).toFixed(1) : 0}%
                         </span>
                     </div>
                 </div>

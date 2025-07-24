@@ -617,13 +617,25 @@ const getPromotionStats = async (req, res) => {
             return 0;
         });
 
-        const usedPromotions = await Promotion.countDocuments({
-            createdAt: { $gte: start, $lt: end },
-            usedCount: { $gt: 0 }
-        }).catch(err => {
-            console.error('Error counting used promotions:', err);
-            return 0;
+        // Tính tổng số lượt dùng mã giảm giá (sum of usedCount)
+        const usedPromotionsResult = await Promotion.aggregate([
+            {
+                $match: {
+                    createdAt: { $gte: start, $lt: end }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalUsedCount: { $sum: "$usedCount" }
+                }
+            }
+        ]).catch(err => {
+            console.error('Error aggregating used promotions:', err);
+            return [{ totalUsedCount: 0 }];
         });
+
+        const usedPromotions = usedPromotionsResult.length > 0 ? usedPromotionsResult[0].totalUsedCount : 0;
 
         res.json({
             success: true,
@@ -642,7 +654,7 @@ const managerDashboard = async (req, res) => {
     try {
         const { period = 'today', startDate, endDate } = req.query;
         const dateRange = calculateDateRange(period, startDate, endDate);
-        
+
         console.log('Dashboard query:', { period, dateRange });
 
         // 1. Tính doanh thu từ Orders
@@ -698,12 +710,12 @@ const managerDashboard = async (req, res) => {
             {
                 $group: {
                     _id: null,
-                    totalRevenue: { 
-                        $sum: { 
+                    totalRevenue: {
+                        $sum: {
                             $multiply: [
-                                '$pre_order_items.quantity', 
+                                '$pre_order_items.quantity',
                                 { $ifNull: ['$menuItem.price', 0] }
-                            ] 
+                            ]
                         }
                     },
                     reservationIds: { $addToSet: '$_id' }
@@ -738,7 +750,7 @@ const managerDashboard = async (req, res) => {
 
         // 5. Đếm nhân viên đang hoạt động
         const waiterRole = await Role.findOne({ name: 'waiter' });
-        const activeStaff = waiterRole ? 
+        const activeStaff = waiterRole ?
             await User.countDocuments({ role_id: waiterRole._id, status: 'active' }) : 0;
 
         // 6. Tính tỷ lệ lấp đầy bàn
@@ -750,7 +762,7 @@ const managerDashboard = async (req, res) => {
             })
         ]);
 
-        const tableOccupancy = totalTables > 0 ? 
+        const tableOccupancy = totalTables > 0 ?
             Math.round((occupiedTables / totalTables) * 100) : 0;
 
         // 7. Đánh giá khách hàng (mặc định hoặc từ review model)
@@ -812,9 +824,9 @@ const managerDashboard = async (req, res) => {
 const getRecentReservations = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 5;
-        
+
         console.log('Getting recent reservations with limit:', limit);
-        
+
         // Populate theo schema thực tế
         const reservations = await Reservation.find({})
             .populate('customer_id', 'full_name username')
@@ -830,7 +842,7 @@ const getRecentReservations = async (req, res) => {
         const formattedReservations = reservations.map(reservation => {
             // Tính total amount từ pre_order_items hoặc sử dụng total_amount
             let totalAmount = 0;
-            
+
             if (reservation.total_amount) {
                 totalAmount = reservation.total_amount;
             } else if (reservation.pre_order_items && reservation.pre_order_items.length > 0) {
@@ -879,8 +891,8 @@ const getRecentReservations = async (req, res) => {
                 guestCount: reservation.guest_count,
                 phone: reservation.contact_phone,
                 paymentStatus: reservation.payment_status,
-                createdBy: reservation.created_by_staff ? 
-                    (reservation.created_by_staff.full_name || reservation.created_by_staff.username) : 
+                createdBy: reservation.created_by_staff ?
+                    (reservation.created_by_staff.full_name || reservation.created_by_staff.username) :
                     'Khách tự đặt'
             };
         });
@@ -909,7 +921,7 @@ const getRecentReservations = async (req, res) => {
 const getStaffStatus = async (req, res) => {
     try {
         const { limit = 10, period = 'week', startDate, endDate } = req.query;
-        
+
         const waiterRole = await Role.findOne({ name: 'waiter' });
         if (!waiterRole) {
             return res.status(404).json({
@@ -949,11 +961,11 @@ const getStaffStatus = async (req, res) => {
                 // ĐẾM ĐỖN HÔM NAY - từ created_by_staff
                 const ordersToday = await Reservation.countDocuments({
                     $or: [
-                      { created_by_staff: employee._id },
-                      { assigned_staff: employee._id }
+                        { created_by_staff: employee._id },
+                        { assigned_staff: employee._id }
                     ],
                     date: { $gte: todayStart, $lt: todayEnd }
-                  }).catch(() => 0);
+                }).catch(() => 0);
 
                 return {
                     id: employee._id,
@@ -1193,7 +1205,7 @@ const waiterDashboard = async (req, res) => {
         const completedOrders = await Reservation.countDocuments({
             assigned_staff: userId,
             status: 'completed',
-            updated_at: { $gte: dateRange.current.start, $lt: dateRange.current.end } 
+            updated_at: { $gte: dateRange.current.start, $lt: dateRange.current.end }
         });
 
         // 2. Tính doanh thu cá nhân (theo bộ lọc thời gian)
@@ -1288,7 +1300,7 @@ const getWaiterOrders = async (req, res) => {
                     $or: [
                         { status: 'pending' },
                         { status: 'confirmed' },
-                        { 
+                        {
                             status: 'seated',
                             assigned_staff: new mongoose.Types.ObjectId(userId)
                         }
@@ -1296,18 +1308,18 @@ const getWaiterOrders = async (req, res) => {
                 }
             ]
         })
-        .populate('table_id table_ids', 'name')
-        .populate('customer_id', 'full_name username phone')
-        .sort({ created_at: -1 })
-        .limit(20);
+            .populate('table_id table_ids', 'name')
+            .populate('customer_id', 'full_name username phone')
+            .sort({ created_at: -1 })
+            .limit(20);
 
         const formattedReservations = reservationsNeedProcessing.map(reservation => {
             const table = reservation.table_id || (reservation.table_ids && reservation.table_ids[0]);
-            
+
             // Format ngày giờ chi tiết
             const bookingDateTime = new Date(reservation.created_at).toLocaleString('vi-VN', {
                 day: '2-digit',
-                month: '2-digit', 
+                month: '2-digit',
                 year: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
@@ -1319,7 +1331,7 @@ const getWaiterOrders = async (req, res) => {
                 month: '2-digit',
                 year: 'numeric'
             });
-            
+
             return {
                 id: `#${reservation._id.toString().slice(-6)}`,
                 reservationId: reservation._id,
@@ -1352,7 +1364,7 @@ const getWaiterOrders = async (req, res) => {
 };
 
 const getPriorityByStatus = (status) => {
-    switch(status) {
+    switch (status) {
         case 'pending': return 'urgent';    // Chờ xác nhận = khẩn cấp
         case 'confirmed': return 'high';    // Đã xác nhận, chờ khách đến = cao
         case 'seated': return 'normal';     // Khách đã vào bàn = bình thường
