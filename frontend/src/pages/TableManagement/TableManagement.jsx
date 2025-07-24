@@ -423,8 +423,20 @@ const TableManagement = () => {
                     return resDate === selectedDate;
                 });
 
+                // Helper function để kiểm tra table có trong reservation không
+                const isTableInReservation = (reservation, tableId) => {
+                    // Kiểm tra table_ids (multiple tables)
+                    if (reservation.table_ids && Array.isArray(reservation.table_ids)) {
+                        return reservation.table_ids.some(t =>
+                            (typeof t === 'object' ? t._id : t) === tableId
+                        );
+                    }
+                    // Kiểm tra table_id đơn
+                    return (safeGet(reservation, 'table_id._id') || reservation.table_id) === tableId;
+                };
+
                 const reservationIds = reservationsForSelectedDate
-                    .filter(res => (safeGet(res, 'table_id._id') || res.table_id) === table._id)
+                    .filter(res => isTableInReservation(res, table._id))
                     .map(res => res._id);
 
                 // Chỉ lấy đơn hàng liên quan đến đặt bàn của ngày được chọn
@@ -437,7 +449,7 @@ const TableManagement = () => {
 
                 // Kiểm tra trạng thái reservation cho bàn này
                 const tableReservations = reservationsForSelectedDate.filter(res =>
-                    (safeGet(res, 'table_id._id') || res.table_id) === table._id
+                    isTableInReservation(res, table._id)
                 );
 
                 let status = table.status;
@@ -481,11 +493,16 @@ const TableManagement = () => {
 
     // Helper functions
     const hasActiveReservations = useCallback((tableId) => {
-        return reservations.some(res =>
-            (safeGet(res, 'table_id._id') || res.table_id) === tableId &&
-            ['confirmed', 'pending', 'seated'].includes(res.status) &&
-            new Date(res.date).toISOString().split('T')[0] === selectedDate
-        );
+        return reservations.some(res => {
+            // Kiểm tra multiple tables
+            const isTableInRes = res.table_ids && Array.isArray(res.table_ids)
+                ? res.table_ids.some(t => (typeof t === 'object' ? t._id : t) === tableId)
+                : (safeGet(res, 'table_id._id') || res.table_id) === tableId;
+
+            return isTableInRes &&
+                ['confirmed', 'pending', 'seated'].includes(res.status) &&
+                new Date(res.date).toISOString().split('T')[0] === selectedDate;
+        });
     }, [reservations, selectedDate]);
 
     const getTableOrders = useCallback((tableId) => {
@@ -498,12 +515,18 @@ const TableManagement = () => {
     const getTableReservations = (tableId) => {
         if (!tableId || !Array.isArray(reservations)) return [];
 
-        return reservations.filter(res =>
-            res &&
-            (safeGet(res, 'table_id._id') || res.table_id) === tableId &&
-            ['confirmed', 'pending', 'seated'].includes(res.status) &&
-            new Date(res.date).toISOString().split('T')[0] === selectedDate
-        );
+        return reservations.filter(res => {
+            if (!res) return false;
+
+            // Kiểm tra multiple tables
+            const isTableInRes = res.table_ids && Array.isArray(res.table_ids)
+                ? res.table_ids.some(t => (typeof t === 'object' ? t._id : t) === tableId)
+                : (safeGet(res, 'table_id._id') || res.table_id) === tableId;
+
+            return isTableInRes &&
+                ['confirmed', 'pending', 'seated'].includes(res.status) &&
+                new Date(res.date).toISOString().split('T')[0] === selectedDate;
+        });
     };
 
     const hasActiveOrder = useCallback((tableId) => {
