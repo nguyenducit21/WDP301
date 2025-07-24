@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     FaShoppingCart, FaDollarSign, FaUsers, FaSync,
-    FaCalendarDay, FaCalendarWeek, FaCalendarAlt, FaFilter, FaCrown, FaClock, FaTag
+    FaCalendarDay, FaCalendarWeek, FaCalendarAlt, FaFilter, FaCrown, FaClock, FaTag,
+    FaCheck, FaTimes, FaMobileAlt
 } from 'react-icons/fa';
 import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -41,6 +42,17 @@ function AdminDashboard() {
     const [customStartDate, setCustomStartDate] = useState(todayStr);
     const [customEndDate, setCustomEndDate] = useState(todayStr);
 
+    const [orderCompletionStats, setOrderCompletionStats] = useState({
+        totalOrders: 0,
+        statusData: {},
+        completionRate: 0,
+        cancellationRate: 0,
+        chartData: []
+    });
+    const [topCustomers, setTopCustomers] = useState([]);
+    const [loadingStats, setLoadingStats] = useState(false);
+    const [loadingCustomers, setLoadingCustomers] = useState(false);
+
     useEffect(() => {
         switch (filter) {
             case 'today':
@@ -75,7 +87,78 @@ function AdminDashboard() {
 
     useEffect(() => {
         fetchAllData();
-    }, [customStartDate, customEndDate]);
+        fetchOrderCompletionStats();
+        fetchTopCustomers();
+    }, [filter]);
+
+    const fetchOrderCompletionStats = async () => {
+        setLoadingStats(true);
+        try {
+            let params = {};
+            
+            switch (filter) {
+                case 'today':
+                case 'week':
+                case 'month':
+                case 'year':
+                    params = { period: filter };
+                    break;
+                case 'custom':
+                    params = { startDate: customStartDate, endDate: customEndDate };
+                    break;
+                default:
+                    params = { period: 'month' };
+            }
+            
+            const response = await axios.get('/dashboard/order-completion-stats', { params });
+            if (response.data.success) {
+                setOrderCompletionStats(response.data.data);
+            }
+        } catch (error) {
+            console.error('Error fetching order completion stats:', error);
+            toast.error('Lỗi khi tải thống kê đơn hàng');
+        } finally {
+            setLoadingStats(false);
+        }
+    };
+    
+    const fetchTopCustomers = async () => {
+        setLoadingCustomers(true);
+        try {
+            let params = { limit: 5 };
+            
+            switch (filter) {
+                case 'today':
+                case 'week':
+                case 'month':
+                case 'year':
+                    params.period = filter;
+                    break;
+                case 'custom':
+                    params.startDate = customStartDate;
+                    params.endDate = customEndDate;
+                    break;
+                default:
+                    params.period = 'month';
+            }
+            
+            console.log("Fetching top customers with params:", params);
+            const response = await axios.get('/dashboard/top-customers', { params });
+            
+            if (response.data.success) {
+                console.log("Top customers data:", response.data.data);
+                setTopCustomers(response.data.data);
+            } else {
+                console.error("Error in top customers response:", response.data);
+                toast.error('Không thể lấy dữ liệu khách hàng');
+            }
+        } catch (error) {
+            console.error('Error fetching top customers:', error);
+            toast.error('Lỗi khi tải danh sách khách hàng: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setLoadingCustomers(false);
+        }
+    };
 
     const fetchAllData = async () => {
         setLoading(true);
@@ -106,14 +189,14 @@ function AdminDashboard() {
                 setKpi({
                     orders: statsRes.data.totalInvoices,
                     revenue: statsRes.data.totalRevenue,
-                    customers: statsRes.data.newCustomers
+                    customers: statsRes.data.newCustomers,
+                    ingredientCost: statsRes.data.totalIngredientCost,
+                    profit: statsRes.data.totalProfit,
+                    reservationCount: statsRes.data.reservationCount,
+                    completedReservations: statsRes.data.completedReservations,
+                    cancelledReservations: statsRes.data.cancelledReservations
                 });
-                setMainChart(
-                    statsRes.data.chartData.map(d => ({
-                        ...d,
-                        LoiNhuan: Math.round((d.revenue || 0) * 0.28)
-                    }))
-                );
+                setMainChart(statsRes.data.chartData || []);
                 setPeriodStart(new Date(statsRes.data.period?.from));
             }
 
@@ -139,6 +222,112 @@ function AdminDashboard() {
 
     const formatCurrency = n => n ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n) : '0 đ';
     const formatNumber = n => n ? new Intl.NumberFormat().format(n) : '0';
+
+    // Helper function to get status label
+    const getStatusLabel = (status) => {
+        const statusLabels = {
+            pending: 'Chờ xác nhận',
+            confirmed: 'Đã xác nhận',
+            seated: 'Đã vào bàn',
+            completed: 'Hoàn thành',
+            cancelled: 'Đã hủy',
+            no_show: 'Không đến'
+        };
+        return statusLabels[status] || status;
+    };
+
+    // Render order completion stats - chỉ hiển thị tỷ lệ hoàn thành và hủy đơn
+    const renderOrderCompletionStats = () => {
+        return (
+            <div className="order-completion-stats">
+                <h3>Tỷ lệ hoàn thành đơn và hủy đơn</h3>
+                <div className="completion-stats-simple">
+                    <div className="stat-card">
+                        <div className="stat-icon success">
+                            <FaCheck />
+                        </div>
+                        <div className="stat-content">
+                            <span className="stat-title">Tỷ lệ hoàn thành</span>
+                            <span className="stat-value">{orderCompletionStats.completionRate}%</span>
+                            <span className="stat-detail">
+                                {orderCompletionStats.statusData?.completed?.count || 0} / {orderCompletionStats.totalOrders} đơn
+                            </span>
+                        </div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-icon danger">
+                            <FaTimes />
+                        </div>
+                        <div className="stat-content">
+                            <span className="stat-title">Tỷ lệ hủy</span>
+                            <span className="stat-value">{orderCompletionStats.cancellationRate}%</span>
+                            <span className="stat-detail">
+                                {orderCompletionStats.statusData?.cancelled?.count || 0} / {orderCompletionStats.totalOrders} đơn
+                            </span>
+                        </div>
+                    </div>
+                    <div className="stat-card">
+                        <div className="stat-icon primary">
+                            <FaShoppingCart />
+                        </div>
+                        <div className="stat-content">
+                            <span className="stat-title">Tổng đơn</span>
+                            <span className="stat-value">{formatNumber(orderCompletionStats.totalOrders)}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    // Render top customers table
+    const renderTopCustomers = () => {
+        return (
+            <div className="top-customers">
+                <h3>Khách hàng chi tiêu nhiều nhất</h3>
+                {loadingCustomers ? (
+                    <div className="loading-indicator">Đang tải dữ liệu khách hàng...</div>
+                ) : (
+                    <table className="custom-table">
+                        <thead>
+                            <tr>
+                                <th>Khách hàng</th>
+                                <th>Số điện thoại</th>
+                                <th>Số đơn</th>
+                                <th>Tổng chi tiêu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {topCustomers.map((customer, index) => (
+                                <tr key={customer.phone} className={index < 3 ? `rank-${index+1}` : ''}>
+                                    <td>
+                                        <div className="customer-info">
+                                            <span className={`customer-rank ${index < 3 ? `rank-${index+1}` : ''}`}>{index + 1}</span>
+                                            <span className="customer-name">{customer.name}</span>
+                                            {index === 0 && <FaCrown className="crown-icon" />}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="phone-number">
+                                            <FaMobileAlt />
+                                            <span>{customer.phone}</span>
+                                        </div>
+                                    </td>
+                                    <td>{customer.orderCount} đơn</td>
+                                    <td className="total-spent">{formatCurrency(customer.totalSpent)}</td>
+                                </tr>
+                            ))}
+                            {topCustomers.length === 0 && (
+                                <tr>
+                                    <td colSpan="4" className="no-data">Không có dữ liệu</td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div className="admin-dashboard">
@@ -176,8 +365,12 @@ function AdminDashboard() {
                 <div className="card">
                     <div className="card-icon blue"><FaShoppingCart /></div>
                     <div className="card-content">
-                        <span className="card-title">Hóa đơn</span>
-                        <span className="card-value">{formatNumber(kpi.orders)}</span>
+                        <span className="card-title">Đơn đặt bàn</span>
+                        <span className="card-value">{formatNumber(kpi.reservationCount || 0)}</span>
+                        <span className="card-detail">
+                            {kpi.completedReservations > 0 && kpi.reservationCount > 0 ? 
+                                `${Math.round((kpi.completedReservations / kpi.reservationCount) * 100)}% hoàn thành` : ''}
+                        </span>
                     </div>
                 </div>
                 <div className="card">
@@ -215,6 +408,31 @@ function AdminDashboard() {
                         </span>
                     </div>
                 </div>
+                <div className="card">
+                    <div className="card-icon red"><FaDollarSign /></div>
+                    <div className="card-content">
+                        <span className="card-title">Chi phí nguyên liệu</span>
+                        <span className="card-value">{formatCurrency(kpi.ingredientCost)}</span>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="card-icon purple"><FaDollarSign /></div>
+                    <div className="card-content">
+                        <span className="card-title">Lợi nhuận</span>
+                        <span className="card-value">{formatCurrency(kpi.profit)}</span>
+                    </div>
+                </div>
+                <div className="card">
+                    <div className="card-icon red"><FaTimes /></div>
+                    <div className="card-content">
+                        <span className="card-title">Đơn đã hủy</span>
+                        <span className="card-value">{formatNumber(kpi.cancelledReservations || 0)}</span>
+                        <span className="card-detail">
+                            {kpi.cancelledReservations > 0 && kpi.reservationCount > 0 ? 
+                                `${Math.round((kpi.cancelledReservations / kpi.reservationCount) * 100)}% tổng đơn` : ''}
+                        </span>
+                    </div>
+                </div>
             </div>
 
             <div className="main-chart-container">
@@ -227,7 +445,8 @@ function AdminDashboard() {
                         <Tooltip formatter={value => formatCurrency(value)} />
                         <Legend />
                         <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} name="Doanh thu" />
-                        <Area type="monotone" dataKey="LoiNhuan" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} name="Lợi nhuận" />
+                        <Area type="monotone" dataKey="ingredientCost" stroke="#ff8042" fill="#ff8042" fillOpacity={0.6} name="Chi phí nguyên liệu" />
+                        <Area type="monotone" dataKey="profit" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.6} name="Lợi nhuận" />
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
@@ -324,6 +543,13 @@ function AdminDashboard() {
                     </ResponsiveContainer>
                 </div>
             </div>
+
+            {/* Order Completion Stats */}
+            {renderOrderCompletionStats()}
+            
+            {/* Top Customers */}
+            {renderTopCustomers()}
+            
             {loading && <div className="admin-dashboard-loading">Đang tải dữ liệu...</div>}
         </div>
     );
