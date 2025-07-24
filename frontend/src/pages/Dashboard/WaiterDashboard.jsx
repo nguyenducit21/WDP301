@@ -121,7 +121,7 @@ const WaiterDashboard = () => {
                 <div className="waiter-stats-grid">
                     <div className="waiter-stat-card tables"><div className="stat-icon"><FaTable /></div><div className="stat-content"><h3>Đang Phục Vụ</h3><p className="stat-number">{stats.servingNowCount}</p><span className="stat-detail">bàn</span></div></div>
                     <div className="waiter-stat-card orders"><div className="stat-icon"><FaClipboardList /></div><div className="stat-content"><h3>Đơn Hoàn Thành</h3><p className="stat-number">{stats.completedOrders}</p><span className="stat-detail">trong {getPeriodLabel(filter.period).toLowerCase()}</span></div></div>
-                    <div className="waiter-stat-card earnings"><div className="stat-icon"><FaMoneyBillWave /></div><div className="stat-content"><h3>Doanh Thu Cá Nhân</h3><p className="stat-number">{formatCurrency(stats.personalRevenue)}</p><span className="stat-detail">trong {getPeriodLabel(filter.period).toLowerCase()}</span></div></div>
+                    
                 </div>
             </div>
 
