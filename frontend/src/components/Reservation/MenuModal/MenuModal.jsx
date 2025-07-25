@@ -22,8 +22,8 @@ const MenuModal = ({
         <div className="menu-modal-overlay">
             <div className="menu-modal">
                 <div className="menu-modal-header">
-                    <h3>Chọn món đặt trước (Giảm 15%)</h3>
-                    <button className="close-modal-btn" onClick={onClose}>×</button>
+                    <h3>Chọn món đặt trước</h3>
+                    <button className="close-modal-btn" onClick={() => onClose(false)}>×</button>
                 </div>
 
                 <div className="menu-modal-content">
@@ -110,7 +110,7 @@ const MenuModal = ({
                         <span>Tổng tiền: <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong></span>
                         <span>Số món: <strong>{getSelectedItemsCount()}</strong></span>
                     </div>
-                    <button className="confirm-menu-btn" onClick={onClose}>
+                    <button className="confirm-menu-btn" onClick={() => onClose(true)}>
                         Xác nhận ({getSelectedItemsCount()} món)
                     </button>
                 </div>

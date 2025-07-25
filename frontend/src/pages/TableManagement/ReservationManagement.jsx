@@ -131,8 +131,8 @@ const ReservationManagement = () => {
         const statusMap = {
             'pending': 'Chưa thanh toán',
             'partial': 'Đã cọc',
-            'paid': 'Đã thanh toán',
-            'refunded': 'Đã hoàn tiền'
+            'prepaid': 'Đã thanh toán trước',
+            'paid': 'Đã thanh toán'
         };
         return statusMap[paymentStatus] || paymentStatus;
     };
@@ -269,12 +269,21 @@ const ReservationManagement = () => {
 
         const reservationId = reservation._id;
 
-        return orders.some(order => {
+        // Log for debugging
+        console.log(`Checking related orders for reservation ${reservationId}`);
+        const relatedOrders = orders.filter(order => {
             const orderReservationId = safeGet(order, 'reservation_id._id') || order.reservation_id;
-            return orderReservationId === reservationId &&
+            const isRelated = orderReservationId === reservationId &&
                 order.order_items &&
                 order.order_items.length > 0;
+
+            if (isRelated) {
+                console.log(`Found related order: ${order._id} with ${order.order_items.length} items`);
+            }
+            return isRelated;
         });
+
+        return relatedOrders.length > 0;
     };
 
     // Enhanced function to check if reservation needs payment button
@@ -286,13 +295,11 @@ const ReservationManagement = () => {
             return false;
         }
 
-        // Don't show if payment is already fully paid AND no additional orders exist
-        if (reservation.payment_status === 'paid') {
+        // For prepaid or paid reservations, always show payment button if there are additional orders
+        if (reservation.payment_status === 'prepaid' || reservation.payment_status === 'paid') {
             // Check if there are additional orders beyond pre-order
             const hasAdditionalOrders = hasRelatedOrders(reservation);
-            if (!hasAdditionalOrders) {
-                return false;
-            }
+            return hasAdditionalOrders;
         }
 
         // Show payment button if:
@@ -310,17 +317,16 @@ const ReservationManagement = () => {
     // Enhanced total calculation including both pre-order and additional orders
     const getReservationTotal = useCallback((reservation) => {
         let total = 0;
+        let preOrderTotal = 0;
+        let additionalOrdersTotal = 0;
 
-        // Calculate pre-order total (with discount if applicable)
+        // Calculate pre-order total (no discount)
         if (reservation.pre_order_items && reservation.pre_order_items.length > 0) {
-            const preOrderTotal = reservation.pre_order_items.reduce((sum, item) => {
+            preOrderTotal = reservation.pre_order_items.reduce((sum, item) => {
                 const menuItem = menuItems.find(m => m._id === (item.menu_item_id._id || item.menu_item_id));
                 const price = menuItem ? menuItem.price : (item.price || 0);
                 return sum + (item.quantity * price);
             }, 0);
-
-            // Apply 15% discount for pre-order items
-            total += preOrderTotal * 0.85;
         }
 
         // Calculate additional orders total (no discount)
@@ -331,13 +337,23 @@ const ReservationManagement = () => {
 
         relatedOrders.forEach(order => {
             if (order.order_items && order.order_items.length > 0) {
-                total += order.order_items.reduce((sum, item) => {
+                additionalOrdersTotal += order.order_items.reduce((sum, item) => {
                     const menuItem = menuItems.find(m => m._id === (item.menu_item_id._id || item.menu_item_id));
                     const price = menuItem ? menuItem.price : (item.price || 0);
                     return sum + (item.quantity * price);
                 }, 0);
             }
         });
+
+        // For prepaid reservations, only show additional orders total
+        if (reservation.payment_status === 'prepaid') {
+            console.log(`Reservation ${reservation._id} is prepaid. Additional orders total: ${additionalOrdersTotal}`);
+            return Math.round(additionalOrdersTotal);
+        }
+
+        // For other statuses, show total of both
+        total = preOrderTotal + additionalOrdersTotal;
+        console.log(`Reservation ${reservation._id}: PreOrder: ${preOrderTotal}, Additional: ${additionalOrdersTotal}, Total: ${total}`);
 
         return Math.round(total);
     }, [orders, menuItems]);
@@ -349,14 +365,21 @@ const ReservationManagement = () => {
         const hasPreOrder = reservation.pre_order_items && reservation.pre_order_items.length > 0;
         const hasAdditionalOrders = hasRelatedOrders(reservation);
 
+        // If was fully paid but has additional orders, show as needing additional payment
         if (reservation.payment_status === 'paid' && hasAdditionalOrders) {
-            // If was paid but has additional orders, show as partial
+            return { status: 'partial', label: 'Cần thanh toán thêm' };
+        }
+
+        // For prepaid reservations with additional orders, show special status
+        if (reservation.payment_status === 'prepaid' && hasAdditionalOrders) {
             return { status: 'partial', label: 'Cần thanh toán thêm' };
         }
 
         switch (reservation.payment_status) {
             case 'paid':
                 return { status: 'paid', label: 'Đã thanh toán' };
+            case 'prepaid':
+                return { status: 'prepaid', label: 'Đã thanh toán trước' };
             case 'partial':
                 return { status: 'partial', label: 'Đã cọc' };
             default:
@@ -462,16 +485,57 @@ const ReservationManagement = () => {
         }, 0);
     };
 
+    // Get the quantity of a specific menu item in the pre-order
+    const getItemQuantity = (menuItemId) => {
+        if (!formData.pre_order_items || !Array.isArray(formData.pre_order_items)) return 0;
+
+        const item = formData.pre_order_items.find(item => {
+            // Handle both string IDs and object IDs
+            const itemId = typeof item.menu_item_id === 'object'
+                ? item.menu_item_id._id
+                : item.menu_item_id;
+            return itemId === menuItemId;
+        });
+
+        return item ? item.quantity : 0;
+    };
+
     const getPreOrderItemsCount = () => {
         if (!formData.pre_order_items || !formData.pre_order_items.length) return 0;
         return formData.pre_order_items.reduce((total, item) => total + (item.quantity || 0), 0);
     };
 
     const handlePreOrderItemChange = (menuItemId, quantity) => {
-        const currentItems = formData.pre_order_items || [];
-        let updatedItems = [...currentItems.filter(item => item.menu_item_id !== menuItemId)];
+        console.log(`Changing menu item ${menuItemId} to quantity ${quantity}`);
+        console.log('Current pre_order_items:', formData.pre_order_items);
 
-        if (quantity > 0) {
+        // Ensure we have an array to work with
+        const currentItems = Array.isArray(formData.pre_order_items) ? formData.pre_order_items : [];
+
+        // Find if the item already exists in the pre-order items
+        const existingItemIndex = currentItems.findIndex(item => {
+            // Handle both string IDs and object IDs
+            const itemId = typeof item.menu_item_id === 'object'
+                ? item.menu_item_id._id
+                : item.menu_item_id;
+            return itemId === menuItemId;
+        });
+
+        let updatedItems = [...currentItems];
+
+        // If item exists, update it or remove it if quantity is 0
+        if (existingItemIndex !== -1) {
+            if (quantity > 0) {
+                updatedItems[existingItemIndex] = {
+                    ...updatedItems[existingItemIndex],
+                    quantity: parseInt(quantity)
+                };
+            } else {
+                updatedItems.splice(existingItemIndex, 1);
+            }
+        }
+        // If item doesn't exist and quantity > 0, add it
+        else if (quantity > 0) {
             const menuItem = menuItems.find(m => m && m._id === menuItemId);
             updatedItems.push({
                 menu_item_id: menuItemId,
@@ -479,6 +543,8 @@ const ReservationManagement = () => {
                 price: menuItem ? menuItem.price : 0
             });
         }
+
+        console.log('Updated pre_order_items:', updatedItems);
 
         setFormData(prevFormData => ({
             ...prevFormData,
@@ -742,6 +808,27 @@ const ReservationManagement = () => {
                 table && (table.status === 'available' || table._id === currentTableId)
             );
 
+            // Process pre-order items to ensure they have the correct format
+            let processedPreOrderItems = [];
+            if (item.pre_order_items && item.pre_order_items.length > 0) {
+                processedPreOrderItems = item.pre_order_items.map(preOrderItem => {
+                    // Handle both populated and non-populated menu_item_id
+                    const menuItemId = typeof preOrderItem.menu_item_id === 'object'
+                        ? preOrderItem.menu_item_id._id
+                        : preOrderItem.menu_item_id;
+
+                    return {
+                        menu_item_id: menuItemId,
+                        quantity: preOrderItem.quantity || 0,
+                        price: preOrderItem.price || (
+                            menuItems.find(m => m._id === menuItemId)?.price || 0
+                        )
+                    };
+                });
+
+                console.log('Processed pre-order items:', processedPreOrderItems);
+            }
+
             setFormData({
                 _id: item._id,
                 table_id: currentTableId,
@@ -754,7 +841,7 @@ const ReservationManagement = () => {
                 status: item.status || 'pending',
                 payment_status: item.payment_status || 'pending',
                 notes: item.notes || '',
-                pre_order_items: item.pre_order_items || [],
+                pre_order_items: processedPreOrderItems,
                 availableTables: availableTablesForEdit,
                 bookingSlots: bookingSlots
             });
@@ -763,6 +850,7 @@ const ReservationManagement = () => {
                 _id: item._id,
                 contact_name: item.contact_name || '',
                 current_payment_status: item.payment_status || 'pending',
+                current_status: item.status || 'pending',
                 payment_status: item.payment_status || 'pending',
                 payment_method: 'bank_transfer',
                 payment_note: ''
@@ -1028,6 +1116,9 @@ const ReservationManagement = () => {
                     break;
 
                 case 'updatePayment':
+                    // Log the payment status update for debugging
+                    console.log('Updating payment status to:', formData.payment_status);
+
                     response = await axios.patch(`/reservations/${formData._id}/payment-status`, {
                         payment_status: formData.payment_status,
                         payment_method: formData.payment_method,
@@ -1062,7 +1153,19 @@ const ReservationManagement = () => {
                                 alert('Cập nhật trạng thái thanh toán thành công nhưng không thể hoàn thành đặt bàn');
                             }
                         } else {
-                            alert('Cập nhật trạng thái thanh toán thành công');
+                            // Thông báo cập nhật thành công cho các trạng thái khác
+                            let statusText = '';
+                            switch (formData.payment_status) {
+                                case 'prepaid':
+                                    statusText = 'đã thanh toán trước';
+                                    break;
+                                case 'partial':
+                                    statusText = 'đã cọc';
+                                    break;
+                                default:
+                                    statusText = formData.payment_status;
+                            }
+                            alert(`Cập nhật trạng thái thanh toán thành ${statusText} thành công`);
                         }
                     } else {
                         setError(response?.data?.message || 'Lỗi khi cập nhật trạng thái thanh toán');
@@ -1410,28 +1513,51 @@ const ReservationManagement = () => {
                                         <td>
                                             <div className="action-buttons action-buttons-reservation">
 
-                                                  {/* Nút thanh toán - hiển thị khi có món và chưa thanh toán đầy đủ */}
-                                                  {(() => {
+                                                {/* Nút thanh toán - hiển thị khi có món và chưa thanh toán đầy đủ */}
+                                                {(() => {
+                                                    // For prepaid reservations, show payment button if there are additional orders
+                                                    if (res.payment_status === 'prepaid' && hasRelatedOrders(res) &&
+                                                        ['confirmed', 'seated'].includes(res.status)) {
+                                                        return (
+                                                            <button style={{ marginBottom: '0px' }}
+                                                                className="action-button payment-status"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openModal('updatePayment', res);
+                                                                }}
+                                                                disabled={loading}
+                                                                title={`Thanh toán thêm món - Tổng: ${getReservationTotal(res).toLocaleString()}đ`}
+                                                            >
+                                                                💰 Thanh toán thêm <br /> ({getReservationTotal(res).toLocaleString()}đ)
+                                                            </button>
+                                                        );
+                                                    }
+
+                                                    // For other cases
                                                     const hasItems = (res.pre_order_items && res.pre_order_items.length > 0) ||
                                                         hasRelatedOrders(res) ||
                                                         getTotalOrderedItems(res) > 0;
                                                     const needsPayment = ['pending', 'partial'].includes(res.payment_status);
                                                     const validStatus = ['pending', 'confirmed', 'seated'].includes(res.status);
 
-                                                    return validStatus && hasItems && needsPayment;
-                                                })() && (
-                                                        <button style={{marginBottom: '0px'}}
-                                                            className="action-button payment-status"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                openModal('updatePayment', res);
-                                                            }}
-                                                            disabled={loading}
-                                                            title={`Cập nhật thanh toán - Tổng: ${getReservationTotal(res).toLocaleString()}đ`}
-                                                        >
-                                                            💰 Thanh toán <br /> ({getReservationTotal(res).toLocaleString()}đ)
-                                                        </button>
-                                                    )}
+                                                    if (validStatus && hasItems && needsPayment) {
+                                                        return (
+                                                            <button style={{ marginBottom: '0px' }}
+                                                                className="action-button payment-status"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    openModal('updatePayment', res);
+                                                                }}
+                                                                disabled={loading}
+                                                                title={`Cập nhật thanh toán - Tổng: ${getReservationTotal(res).toLocaleString()}đ`}
+                                                            >
+                                                                💰 Thanh toán <br /> ({getReservationTotal(res).toLocaleString()}đ)
+                                                            </button>
+                                                        );
+                                                    }
+
+                                                    return null;
+                                                })()}
 
                                                 {/* Dropdown cho Sửa, Hoàn thành, Chuyển */}
                                                 {(['pending', 'confirmed', 'seated'].includes(res.status)) && (
@@ -1503,6 +1629,19 @@ const ReservationManagement = () => {
                                                     </button>
                                                 )}
 
+                                                {res.status === 'confirmed' && (
+                                                    <button
+                                                        className="action-button seat"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleSeatCustomer(res._id);
+                                                        }}
+                                                        disabled={loading}
+                                                    >
+                                                        Vào bàn
+                                                    </button>
+                                                )}
+
                                                 {['pending', 'confirmed'].includes(res.status) && (
                                                     <button
                                                         className="action-button delete"
@@ -1516,7 +1655,7 @@ const ReservationManagement = () => {
                                                     </button>
                                                 )}
 
-                                              
+
                                                 {res.status === 'seated' && (
                                                     <button
                                                         className="action-button add-menu"
@@ -1887,17 +2026,9 @@ const ReservationManagement = () => {
                                                                 </div>
                                                             );
                                                         })}
-                                                        <div className="pre-order-total-row">
-                                                            <span>Tổng tiền (trước giảm giá):</span>
-                                                            <span>{calculatePreOrderTotal().toLocaleString()}đ</span>
-                                                        </div>
-                                                        <div className="pre-order-discount-row">
-                                                            <span>Giảm giá 15%:</span>
-                                                            <span>-{(calculatePreOrderTotal() * 0.15).toLocaleString()}đ</span>
-                                                        </div>
                                                         <div className="pre-order-final-total-row">
                                                             <span><strong>Thành tiền:</strong></span>
-                                                            <span><strong>{(calculatePreOrderTotal() * 0.85).toLocaleString()}đ</strong></span>
+                                                            <span><strong>{calculatePreOrderTotal().toLocaleString()}đ</strong></span>
                                                         </div>
                                                     </div>
                                                     <button
@@ -1962,6 +2093,7 @@ const ReservationManagement = () => {
                                         >
                                             <option value="pending">Chưa thanh toán</option>
                                             <option value="partial">Đã cọc</option>
+                                            <option value="prepaid">Đã thanh toán trước</option>
                                             <option value="paid">Đã thanh toán đầy đủ</option>
                                         </select>
                                     </div>
@@ -1996,6 +2128,7 @@ const ReservationManagement = () => {
                                         <p><strong>Lưu ý:</strong></p>
                                         <ul>
                                             <li>Đã cọc: Khách đã thanh toán một phần (tiền cọc)</li>
+                                            <li>Đã thanh toán trước: Khách đã thanh toán trước cho món đặt trước</li>
                                             <li>Đã thanh toán đầy đủ: Khách đã thanh toán 100% hóa đơn</li>
                                             <li>Vui lòng xác nhận kỹ trước khi cập nhật</li>
                                         </ul>
@@ -2251,9 +2384,7 @@ const ReservationManagement = () => {
 
                                 <div className="menu-items-grid">
                                     {getFilteredMenuItems().map((item) => {
-                                        const preOrderItem = (formData.pre_order_items || [])
-                                            .find(i => i.menu_item_id === item._id);
-                                        const quantity = preOrderItem ? parseInt(preOrderItem.quantity) || 0 : 0;
+                                        const quantity = getItemQuantity(item._id);
 
                                         return (
                                             <div key={item._id} className="menu-item-card">
@@ -2293,9 +2424,7 @@ const ReservationManagement = () => {
                         <div className="menu-modal-footer">
                             <div className="order-summary">
                                 <div className="pre-order-pricing">
-                                    <span>Tổng tiền (trước giảm giá): <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong></span>
-                                    <span>Giảm giá 15%: <strong>-{(calculatePreOrderTotal() * 0.15).toLocaleString()}đ</strong></span>
-                                    <span>Thành tiền: <strong>{(calculatePreOrderTotal() * 0.85).toLocaleString()}đ</strong></span>
+                                    <span>Tổng tiền: <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong></span>
                                 </div>
                                 <span>Số món: <strong>{getPreOrderItemsCount()}</strong></span>
                             </div>

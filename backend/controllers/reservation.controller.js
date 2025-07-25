@@ -1197,7 +1197,7 @@ const getInvoiceData = async (req, res) => {
         const order = await Order.findOne({
             $or: [
                 { reservation_id: reservationId },
-                { table_id: reservation.table_id._id }
+                // { table_id: reservation.table_id._id }
             ]
         }).populate({
             path: 'order_items.menu_item_id',
@@ -1226,8 +1226,9 @@ const getInvoiceData = async (req, res) => {
             total + (item.price * item.quantity), 0);
 
         const subtotal = preOrderTotal + orderTotal;
-        const tax = Math.round(subtotal * 0.1);
-        const total = subtotal + tax;
+        // const tax = Math.round(subtotal * 0.1);
+        // const total = subtotal + tax;
+        const total = subtotal;
         const remaining = orderTotal; // Số tiền còn lại phải thanh toán
 
         const totals = {
@@ -1235,7 +1236,7 @@ const getInvoiceData = async (req, res) => {
             orderTotal,
             subtotal,
             discount: 0,
-            tax,
+            // tax,
             total,
             remaining
         };
@@ -1472,7 +1473,7 @@ const updatePaymentStatus = async (req, res) => {
         }
 
         // Validate payment status
-        const validStatuses = ['pending', 'partial', 'paid', 'refunded'];
+        const validStatuses = ['pending', 'partial', 'paid', 'refunded', 'prepaid'];
         if (!validStatuses.includes(payment_status)) {
             return res.status(400).json({
                 success: false,
@@ -1483,8 +1484,9 @@ const updatePaymentStatus = async (req, res) => {
         //  Kiểm tra logic chuyển đổi trạng thái
         const currentStatus = reservation.payment_status || 'pending';
 
-        // Cho phép chuyển từ pending -> partial -> paid
-        // Hoặc từ partial -> paid
+        // Cho phép chuyển từ pending -> partial/prepaid -> paid
+        // Hoặc từ partial -> paid/prepaid
+        // Hoặc từ prepaid -> paid
         // Hoặc từ bất kỳ trạng thái nào -> refunded (với quyền admin)
         if (currentStatus === 'paid' && payment_status !== 'refunded') {
             return res.status(400).json({
@@ -1519,7 +1521,7 @@ const updatePaymentStatus = async (req, res) => {
         }
 
         // Thêm timestamp cho thanh toán
-        if (payment_status === 'paid') {
+        if (payment_status === 'paid' || payment_status === 'prepaid') {
             updateData.payment_date = new Date();
             if (promotion) {
                 updateData.promotion = promotion;

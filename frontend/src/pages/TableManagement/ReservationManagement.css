@@ -566,16 +566,20 @@ tr.highlight {
     color: #5b21b6;
 }
 
-.payment-badge.paid {
-    background: #d1fae5;
-    color: #065f46;
+.payment-badge.prepaid {
+    background-color: #d1ecf1;
+    color: #0c5460;
 }
 
-.action-buttons-reservation .action-dropdown-wrapper button{
+.payment-badge.paid {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.action-buttons-reservation .action-dropdown-wrapper button {
     background: #ffe5e5 !important;
     color: #c54848 !important;
 }
-
 
 /* Modern Action Buttons */
 .action-buttons {
@@ -1198,4 +1202,36 @@ tr.highlight {
     .modal-actions button {
         width: 100%;
     }
+}
+
+/* Action buttons */
+.action-button {
+    padding: 6px 12px;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.action-button.confirm {
+    background-color: #28a745;
+    color: white;
+}
+
+.action-button.seat {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.action-button.seat:hover {
+    background-color: #138496;
+}
+
+.action-button.delete {
+    background-color: #dc3545;
+    color: white;
 }

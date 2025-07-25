@@ -166,11 +166,11 @@ export default function MyReservations({ userId = null, title = "Danh sách đ�
   };
 
   // Đóng modal menu
-  const handleCloseMenuModal = async () => {
+  const handleCloseMenuModal = async (confirmed = true) => {
     setShowMenuModal(false);
 
-    // Nếu có món được chọn, cập nhật đặt bàn
-    if (selectedReservation && preOrderItems.length > 0) {
+    // Chỉ cập nhật và hiển thị thanh toán nếu người dùng xác nhận (không phải bấm X)
+    if (confirmed && selectedReservation && preOrderItems.length > 0) {
       try {
         await customFetch.put(`/reservations/${selectedReservation._id}`, {
           pre_order_items: preOrderItems
