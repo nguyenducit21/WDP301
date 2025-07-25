@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import customFetch from '../../../utils/axios.customize';
 import '../Reservation.css';
+import MenuModal from '../MenuModal/MenuModal';
+import PaymentModal from '../PaymentModal/PaymentModal';
+import { usePreOrder } from '../../../hooks/usePreOrder';
 
 const STATUS_COLORS = {
   pending: '#ffc107',
@@ -23,6 +26,24 @@ export default function MyReservations({ userId = null, title = "Danh sách đ�
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('all'); // all, pending, confirmed, seated, completed, cancelled
+  const [showMenuModal, setShowMenuModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedReservation, setSelectedReservation] = useState(null);
+
+  // Use the pre-order hook
+  const {
+    menuItems,
+    categories,
+    preOrderItems,
+    loadingMenu,
+    handleMenuItemChange,
+    calculatePreOrderTotal,
+    getSelectedItemsCount,
+    getFilteredMenuItems,
+    getItemQuantity,
+    setPreOrderItems,
+    clearPreOrderItems
+  } = usePreOrder();
 
   useEffect(() => {
     fetchReservations();
@@ -126,6 +147,52 @@ export default function MyReservations({ userId = null, title = "Danh sách đ�
 
   const formatTime = (timeString) => {
     return timeString;
+  };
+
+  // Mở modal menu để thêm món
+  const handleOpenMenuModal = (reservation) => {
+    setSelectedReservation(reservation);
+    // Nếu đã có món đặt trước, load vào state
+    if (reservation.pre_order_items && reservation.pre_order_items.length > 0) {
+      const existingItems = reservation.pre_order_items.map(item => ({
+        menu_item_id: item.menu_item_id?._id || item.menu_item_id,
+        quantity: item.quantity
+      }));
+      setPreOrderItems(existingItems);
+    } else {
+      clearPreOrderItems();
+    }
+    setShowMenuModal(true);
+  };
+
+  // Đóng modal menu
+  const handleCloseMenuModal = async () => {
+    setShowMenuModal(false);
+
+    // Nếu có món được chọn, cập nhật đặt bàn
+    if (selectedReservation && preOrderItems.length > 0) {
+      try {
+        await customFetch.put(`/reservations/${selectedReservation._id}`, {
+          pre_order_items: preOrderItems
+        });
+
+        // Cập nhật lại danh sách đặt bàn
+        await fetchReservations();
+
+        // Hiển thị modal thanh toán
+        setShowPaymentModal(true);
+      } catch (err) {
+        setError('Lỗi khi cập nhật món đặt trước');
+      }
+    }
+  };
+
+  // Xử lý đóng modal thanh toán
+  const handleClosePaymentModal = (success) => {
+    setShowPaymentModal(false);
+    if (success) {
+      fetchReservations();
+    }
   };
 
   if (loading) {
@@ -289,12 +356,22 @@ export default function MyReservations({ userId = null, title = "Danh sách đ�
                   <div className="reservation-actions">
                     {(reservation.status === 'pending' || reservation.status === 'confirmed') && !userId && (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                        <button
-                          className="cancel-btn"
-                          onClick={() => handleCancelReservation(reservation._id)}
-                        >
-                          Hủy đặt bàn
-                        </button>
+                        <div className="action-buttons">
+                          <button
+                            className="add-menu-btn"
+                            onClick={() => handleOpenMenuModal(reservation)}
+                          >
+                            {reservation.pre_order_items && reservation.pre_order_items.length > 0
+                              ? 'Chỉnh sửa món'
+                              : 'Thêm món đặt trước'}
+                          </button>
+                          <button
+                            className="cancel-btn"
+                            onClick={() => handleCancelReservation(reservation._id)}
+                          >
+                            Hủy đặt bàn
+                          </button>
+                        </div>
                         {reservation.status === 'confirmed' && (
                           <div className="confirmed-info">
                             ✅ Đặt bàn đã được xác nhận. Vui lòng đến đúng giờ!
@@ -313,6 +390,32 @@ export default function MyReservations({ userId = null, title = "Danh sách đ�
             )}
           </div>
         </>
+      )}
+
+      {/* Menu Modal */}
+      <MenuModal
+        isOpen={showMenuModal}
+        onClose={handleCloseMenuModal}
+        preOrderItems={preOrderItems}
+        onMenuItemChange={handleMenuItemChange}
+        calculatePreOrderTotal={calculatePreOrderTotal}
+        getSelectedItemsCount={getSelectedItemsCount}
+        menuItems={menuItems}
+        categories={categories}
+        loadingMenu={loadingMenu}
+        getFilteredMenuItems={getFilteredMenuItems}
+        getItemQuantity={getItemQuantity}
+      />
+
+      {/* Payment Modal */}
+      {selectedReservation && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={handleClosePaymentModal}
+          reservationId={selectedReservation._id}
+          totalAmount={calculatePreOrderTotal()}
+          orderInfo={`Đặt bàn #${selectedReservation._id.slice(-6)} - ${formatDate(selectedReservation.date)}`}
+        />
       )}
 
       <style jsx>{`
@@ -450,6 +553,27 @@ export default function MyReservations({ userId = null, title = "Danh sách đ�
           margin-top: 16px;
         }
         
+        .action-buttons {
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+        }
+        
+        .add-menu-btn {
+          background: #28a745;
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 0.9rem;
+          transition: background 0.2s;
+        }
+        
+        .add-menu-btn:hover {
+          background: #218838;
+        }
+        
         .cancel-btn {
           background: #dc3545;
           color: white;
@@ -493,6 +617,11 @@ export default function MyReservations({ userId = null, title = "Danh sách đ�
           .detail-row {
             flex-direction: column;
             gap: 4px;
+          }
+          
+          .action-buttons {
+            flex-direction: column;
+            width: 100%;
           }
         }
       `}</style>
