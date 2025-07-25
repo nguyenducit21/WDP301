@@ -401,6 +401,120 @@
     margin-top: 20px;
 }
 
+/* Modal overlay for schedule CRUD */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    padding: 32px 28px 24px 28px;
+    min-width: 340px;
+    max-width: 95vw;
+    width: 400px;
+    position: relative;
+    animation: modalFadeIn 0.25s;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 18px;
+    font-size: 22px;
+    color: #1a2340;
+    font-weight: 600;
+    text-align: center;
+}
+
+.modal-content label {
+    display: block;
+    margin-bottom: 6px;
+    color: #333;
+    font-weight: 500;
+}
+
+.modal-content input[type="date"],
+.modal-content input[type="time"],
+.modal-content input[type="text"],
+.modal-content select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    font-size: 15px;
+    margin-bottom: 16px;
+    background: #f9fafb;
+    transition: border 0.2s;
+}
+
+.modal-content input:focus,
+.modal-content select:focus {
+    border-color: #f4a70b;
+    outline: none;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.modal-actions button {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    background: #f4a70b;
+    color: #fff;
+    transition: background 0.2s;
+}
+
+.modal-actions button:hover {
+    background: #e69500;
+}
+
+.modal-actions button[style*='background: #dc3545'] {
+    background: #dc3545 !important;
+    color: #fff;
+}
+
+.modal-actions button[style*='background: #dc3545']:hover {
+    background: #b52a37 !important;
+}
+
+@media (max-width: 600px) {
+    .modal-content {
+        padding: 18px 8px 14px 8px;
+        min-width: 0;
+        width: 98vw;
+    }
+}
+
 @media (max-width: 768px) {
     .employee-management {
         padding: 15px;

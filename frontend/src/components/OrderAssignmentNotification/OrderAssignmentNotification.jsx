@@ -28,7 +28,7 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
     const [completedReservations, setCompletedReservations] = useState([]);
     const [showConfirmClear, setShowConfirmClear] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all'); // all | waiting | processing | completed
+    const [filterStatus, setFilterStatus] = useState('all');
     const [filterDate, setFilterDate] = useState(getCurrentDate()); // YYYY-MM-DD
     const [releaseReason, setReleaseReason] = useState('');
     const [showArrivedPopup, setShowArrivedPopup] = useState(false);
@@ -86,7 +86,7 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
 
             let title = '🛎️ Đặt bàn thành công';
             let icon = isPreOrder ? '🍽️' : '🛎️';
-            let message = `Khách hàng ${data.order_details.customer_name} đã đặt bàn thành công. Vui lòng chuẩn bị bàn đúng giờ!`;
+            let message = '';
             if (isPreOrder && data.order_details.items?.length > 0) {
                 message += `\nKhách đã đặt trước ${data.order_details.items.length} món ăn.`;
             }
@@ -99,7 +99,7 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
                 message: message,
                 data: data,
                 timestamp: new Date(),
-                status: 'waiting',
+                status: 'processing',
                 priority: data.priority,
                 can_take: true,
                 is_mine: false,
@@ -121,43 +121,6 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
             showToast(`Khách hàng ${data.order_details.customer_name} đã đặt bàn thành công. Vui lòng chuẩn bị bàn đúng giờ!`, 'info');
         });
 
-        // Đơn hàng đã được nhận
-        newSocket.on('order_claimed', (data) => {
-            setOrderAssignments(prev => prev.map(assignment =>
-                assignment.id === data.assignment_id
-                    ? {
-                        ...assignment,
-                        status: 'processing',
-                        assigned_to: data.assigned_to,
-                        can_take: false,
-                        is_mine: data.assigned_to.id === user.user.id
-                    }
-                    : assignment
-            ));
-
-            if (data.assigned_to.id === user.user.id) {
-                showToast('Bạn đã nhận đơn hàng thành công!', 'success');
-            } else {
-                showToast(`${data.assigned_to.full_name} đã nhận đơn hàng`, 'info');
-            }
-        });
-
-        // Đơn hàng được trả lại
-        newSocket.on('order_released', (data) => {
-            setOrderAssignments(prev => prev.map(assignment =>
-                assignment.id === data.assignment_id
-                    ? {
-                        ...assignment,
-                        status: 'waiting',
-                        assigned_to: null,
-                        can_take: true,
-                        is_mine: false
-                    }
-                    : assignment
-            ));
-
-            showToast('Có đơn hàng được trả lại', 'warning');
-        });
 
         // Đơn hàng hoàn thành
         newSocket.on('order_completed', (data) => {
@@ -262,7 +225,7 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
                 const formattedAssignments = response.data.data.map(assignment => ({
                     id: assignment.assignment_id,
                     type: 'existing_order',
-                    title: assignment.status === 'waiting' ? '⏳ Đơn đang chờ' : '🔄 Đơn đang xử lý',
+                    title: assignment.status === 'processing' ? '⏳ Đơn đang chờ' : '🔄 Đơn đang xử lý',
                     message: `${assignment.order_details.customer_name} - ${assignment.order_details.tables}`,
                     data: {
                         assignment_id: assignment.assignment_id,
@@ -295,7 +258,6 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
                 a.data?.order_details?.customer_phone?.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchStatus =
             filterStatus === 'all' ||
-            (filterStatus === 'waiting' && a.status === 'waiting') ||
             (filterStatus === 'processing' && a.status === 'processing') ||
             (filterStatus === 'completed' && a.status === 'completed');
         let matchDate = true;
@@ -313,7 +275,10 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
         return matchSearch && matchStatus && matchDate;
     });
 
-    const waitingOrders = filteredAssignments.filter(o => o.status === 'waiting');
+    const waitingOrders = filteredAssignments.filter(o =>
+        o.status === 'processing' &&
+        o.data?.order_details?.status !== 'completed'
+    );
     const myOrders = filteredAssignments.filter(o => o.is_mine && o.status === 'processing');
     const totalPending = waitingOrders.length + myOrders.length;
 
@@ -417,238 +382,205 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
     // Nếu là trang, luôn show panel, không cần nút đóng/mở
     return (
         <div className={isPage ? "order-assignments-page-container" : "order-assignment-notification"}>
+            {/* Notification Button (Floating) */}
             {!isPage && (
-                <div className="notification-button" onClick={() => setShowPanel(!showPanel)}>
-                    <div className="notification-icon">
-                        📋
-                        {(totalPending > 0 || completedReservations.length > 0) && (
-                            <span className="notification-badge">{totalPending + completedReservations.length}</span>
-                        )}
-                    </div>
-                    <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>{isConnected ? '🟢' : '🔴'}</div>
+                <div className="notification-fab" onClick={() => setShowPanel(!showPanel)}>
+                    <span className="fab-icon">📋</span>
+                    {(totalPending > 0 || completedReservations.length > 0) && (
+                        <span className="fab-badge">{totalPending + completedReservations.length}</span>
+                    )}
+                    <span className={`fab-status ${isConnected ? 'connected' : 'disconnected'}`}></span>
                 </div>
             )}
             {(isPage || showPanel) && (
-                <div className={isPage ? "notification-panel page-panel" : "notification-panel"}>
-
-                    {/* Popup xác nhận xóa */}
-                    {showConfirmClear && (
-                        <div className="confirm-clear-overlay">
-                            <div className="confirm-clear-modal">
-                                <p>Bạn có chắc chắn muốn xóa tất cả thông báo?</p>
-                                <div className="confirm-clear-actions">
-                                    <button className="confirm-btn" onClick={handleClearAllNotifications}>Xác nhận</button>
-                                    <button className="cancel-btn" onClick={() => setShowConfirmClear(false)}>Hủy</button>
-                                </div>
-                            </div>
+                <div className={isPage ? "notification-panel modern-panel page-panel" : "notification-panel modern-panel"}>
+                    {/* Header */}
+                    <div className="panel-header-modern">
+                        <div className="panel-header-left">
+                            <span className="panel-header-icon">📋</span>
+                            <span className="panel-header-title">Thông báo đơn hàng</span>
                         </div>
-                    )}
-                    {/* Popup xác nhận hoàn thành/trả lại */}
-                    {/* Removed */}
-
-                    {/* Tìm kiếm và lọc */}
-                    <div className="search-filter-bar">
+                        <div className="panel-header-actions">
+                            <button className="panel-clear-btn" title="Xóa tất cả" onClick={() => setShowConfirmClear(true)}>
+                                <span>🗑️</span>
+                            </button>
+                            {!isPage && (
+                                <button className="panel-close-btn" title="Đóng" onClick={() => setShowPanel(false)}>
+                                    <span>✖️</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                    {/* Tabs */}
+                    <div className="notification-tabs-modern">
+                        <button className={activeTab === 'orders' ? 'active' : ''} onClick={() => setActiveTab('orders')}>Đơn chờ</button>
+                        <button className={activeTab === 'completed_reservations' ? 'active' : ''} onClick={() => setActiveTab('completed_reservations')}>Bàn sẵn sàng</button>
+                    </div>
+                    {/* Search & Filter */}
+                    <div className="search-filter-bar-modern">
                         <input
                             type="text"
-                            placeholder="Tìm kiếm theo tên khách, số điện thoại hoặc bàn..."
+                            placeholder="Tìm kiếm khách, SĐT, bàn..."
                             value={searchTerm}
                             onChange={e => setSearchTerm(e.target.value)}
-                            className="search-input"
+                            className="search-input-modern"
                         />
                         <input
                             type="date"
                             value={filterDate}
                             onChange={e => setFilterDate(e.target.value)}
-                            className="filter-date"
-                            style={{ padding: '7px 12px', borderRadius: 6, border: '1px solid #bdbdbd', fontSize: '1rem', background: '#fff', marginLeft: 8, marginRight: 8 }}
+                            className="filter-date-modern"
                         />
-
-
                     </div>
-                    <div className="panel-content">
+                    {/* Panel Content */}
+                    <div className="panel-content-modern">
                         {activeTab === 'orders' && (
                             <>
                                 {/* Đơn hàng đang chờ */}
                                 {waitingOrders.length > 0 && (
-                                    <div className="orders-section">
+                                    <div className="orders-section-modern">
                                         {waitingOrders.map(assignment => (
                                             <div
                                                 key={assignment.id}
-                                                className={`order-assignment-item waiting${assignment.is_mine ? ' my-order' : ''}`}
+                                                className={`order-card-modern waiting${assignment.is_mine ? ' my-order' : ''}`}
                                                 tabIndex={0}
                                                 title="Xem chi tiết đơn"
                                                 onClick={() => handleShowArrived(assignment)}
                                             >
-                                                <div className="assignment-header">
-                                                    <div className="assignment-title">
-                                                        <span className="assignment-type-icon">
-                                                            {assignment.icon || ''}
-                                                        </span>
-                                                        <span className="priority" style={{ color: getPriorityColor(assignment.priority) }}>
-                                                            {getPriorityText(assignment.priority)}
-                                                        </span>
-                                                        {assignment.is_mine && <span className="my-order-badge">Của tôi</span>}
+                                                <div className="order-card-header">
+                                                    <span className="order-card-avatar">{assignment.icon || '🛎️'}</span>
+                                                    <div className="order-card-info">
+                                                        <span className="order-card-title">{assignment.title}</span>
+                                                        <span className="order-card-time">{formatDateTime(assignment.timestamp)}</span>
                                                     </div>
-                                                    <span className="assignment-time">
-                                                        {formatDateTime(assignment.timestamp)}
-                                                    </span>
+                                                    <span className={`order-card-priority priority-${assignment.priority}`}>{getPriorityText(assignment.priority)}</span>
                                                 </div>
-
-                                                <div className="assignment-content">
-                                                    <p className="assignment-message">{assignment.message}</p>
-
+                                                <div className="order-card-body">
+                                                    <div className="order-card-message">{assignment.message}</div>
                                                     {assignment.data?.order_details && (
-                                                        <div className="order-details">
-                                                            <p><strong>📞</strong> {assignment.data.order_details.customer_phone}</p>
-                                                            <p><strong>👥</strong> {assignment.data.order_details.guest_count} khách</p>
-                                                            {/* Thời gian khách đến nhận bàn: ngày + slot name + giờ */}
+                                                        <div className="order-card-details">
+                                                            <span>👤 {assignment.data.order_details.customer_name}</span>
+                                                            <span>📞 {assignment.data.order_details.customer_phone}</span>
+                                                            <span>👥 {assignment.data.order_details.guest_count} khách</span>
                                                             {assignment.data.order_details.date && (
-                                                                <p>
-                                                                    <strong>🕒</strong> Thời gian đến: {new Date(assignment.data.order_details.date).toLocaleDateString('vi-VN')}
-                                                                    {assignment.data.order_details.slot ?
-                                                                        ` - ${getSlotDisplayText(assignment.data.order_details.slot)}` :
-                                                                        assignment.data.order_details.slot_start_time ? ` - ${assignment.data.order_details.slot_start_time}` : ''}
-                                                                </p>
+                                                                <span>🕒 {new Date(assignment.data.order_details.date).toLocaleDateString('vi-VN')} - {assignment.data.order_details.slot_start_time || 'Chưa rõ'}</span>
                                                             )}
                                                             {assignment.data.order_details.has_pre_order && assignment.data.order_details.items?.length > 0 && (
-                                                                <div className="preorder-items-list">
-                                                                    <p><strong>🍽️</strong> {assignment.data.order_details.items.length} món đặt trước:</p>
-                                                                    <ul>
-                                                                        {assignment.data.order_details.items.map((item, idx) => (
-                                                                            <li key={idx} className="preorder-item">
-                                                                                {item.menu_item_id?.image && <img src={item.menu_item_id.image} alt={item.menu_item_id.name} className="item-image-mini" />}
-                                                                                <span className="item-name">{item.menu_item_id?.name || 'Món'}</span>
-                                                                                <span className="item-quantity">x{item.quantity}</span>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
+                                                                <div className="order-card-preorder">
+                                                                    <span>🍽️ {assignment.data.order_details.items.length} món đặt trước</span>
                                                                 </div>
-                                                            )}
-                                                            {!assignment.data.order_details.has_pre_order && (
-                                                                <p><strong>📅</strong> Đặt bàn (chưa order món)</p>
-                                                            )}
-                                                            {assignment.data.order_details.notes && (
-                                                                <p><strong>📝</strong> {assignment.data.order_details.notes}</p>
-                                                            )}
-                                                            {assignment.data.order_details.payment_status && (
-                                                                <p><strong>💵</strong> Trạng thái thanh toán: <span className={assignment.data.order_details.payment_status === 'paid' ? 'paid-status' : 'unpaid-status'}>{assignment.data.order_details.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}</span></p>
                                                             )}
                                                         </div>
                                                     )}
                                                 </div>
 
-                                                <div className="assignment-actions"></div>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                                 {/* Đơn hàng của tôi */}
                                 {myOrders.length > 0 && (
-                                    <div className="orders-section">
-                                        <h4>🔄 Đơn của tôi ({myOrders.length})</h4>
+                                    <div className="orders-section-modern">
+                                        <div className="my-orders-title">🔄 Đơn của tôi ({myOrders.length})</div>
                                         {myOrders.map(assignment => (
                                             <div
                                                 key={assignment.id}
-                                                className="order-assignment-item processing my-order"
+                                                className="order-card-modern processing my-order"
                                                 tabIndex={0}
                                                 title="Xem chi tiết đơn"
                                                 onClick={() => handleShowArrived(assignment)}
                                             >
-                                                <div className="assignment-header">
-                                                    <div className="assignment-title">
-                                                        <span className="priority" style={{ color: getPriorityColor(assignment.priority) }}>
-                                                            {getPriorityText(assignment.priority)}
-                                                        </span>
-                                                        <span className="my-order-badge">Của tôi</span>
+                                                <div className="order-card-header">
+                                                    <span className="order-card-avatar">{assignment.icon || '🛎️'}</span>
+                                                    <div className="order-card-info">
+                                                        <span className="order-card-title">{assignment.title}</span>
+                                                        <span className="order-card-time">{formatDateTime(assignment.timestamp)}</span>
                                                     </div>
-                                                    <span className="assignment-time">
-                                                        {formatDateTime(assignment.timestamp)}
-                                                    </span>
+                                                    <span className={`order-card-priority priority-${assignment.priority}`}>{getPriorityText(assignment.priority)}</span>
+                                                    <span className="my-order-badge-modern">Của tôi</span>
                                                 </div>
-
-                                                <div className="assignment-content">
-                                                    <p className="assignment-message">{assignment.message}</p>
-
+                                                <div className="order-card-body">
+                                                    <div className="order-card-message">{assignment.message}</div>
                                                     {assignment.data?.order_details && (
-                                                        <div className="order-details">
-                                                            <p><strong>📞</strong> {assignment.data.order_details.customer_phone}</p>
-                                                            <p><strong>👥</strong> {assignment.data.order_details.guest_count} khách</p>
+                                                        <div className="order-card-details">
+                                                            <span>👤 {assignment.data.order_details.customer_name}</span>
+                                                            <span>📞 {assignment.data.order_details.customer_phone}</span>
+                                                            <span>👥 {assignment.data.order_details.guest_count} khách</span>
                                                             {assignment.data.order_details.has_pre_order && assignment.data.order_details.items?.length > 0 && (
-                                                                <div className="preorder-items-list">
-                                                                    <p><strong>🍽️</strong> {assignment.data.order_details.items.length} món đặt trước:</p>
-                                                                    <ul>
-                                                                        {assignment.data.order_details.items.map((item, idx) => (
-                                                                            <li key={idx} className="preorder-item">
-                                                                                {item.menu_item_id?.image && <img src={item.menu_item_id.image} alt={item.menu_item_id.name} className="item-image-mini" />}
-                                                                                <span className="item-name">{item.menu_item_id?.name || 'Món'}</span>
-                                                                                <span className="item-quantity">x{item.quantity}</span>
-                                                                            </li>
-                                                                        ))}
-                                                                    </ul>
+                                                                <div className="order-card-preorder">
+                                                                    <span>🍽️ {assignment.data.order_details.items.length} món đặt trước</span>
                                                                 </div>
                                                             )}
                                                             {!assignment.data.order_details.has_pre_order && (
-                                                                <p><strong>📅</strong> Đặt bàn (chưa order món)</p>
+                                                                <span>📅 Đặt bàn (chưa order món)</span>
                                                             )}
                                                             {assignment.data.order_details.notes && (
-                                                                <p><strong>📝</strong> {assignment.data.order_details.notes}</p>
+                                                                <span>📝 {assignment.data.order_details.notes}</span>
                                                             )}
                                                             {assignment.data.order_details.payment_status && (
-                                                                <p><strong>💵</strong> Trạng thái thanh toán: <span className={assignment.data.order_details.payment_status === 'paid' ? 'paid-status' : 'unpaid-status'}>{assignment.data.order_details.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}</span></p>
+                                                                <span className={assignment.data.order_details.payment_status === 'paid' ? 'paid-status-modern' : 'unpaid-status-modern'}>{assignment.data.order_details.payment_status === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}</span>
                                                             )}
                                                         </div>
                                                     )}
                                                 </div>
-
-                                                <div className="assignment-actions"></div>
+                                                <div className="order-card-actions">
+                                                    {assignment.is_mine && assignment.status === 'processing' && (
+                                                        <>
+                                                            <button className="order-card-btn complete" onClick={e => { e.stopPropagation(); handleActionWithConfirm('complete', assignment.id); }}>Hoàn thành</button>
+                                                            <button className="order-card-btn release" onClick={e => { e.stopPropagation(); handleActionWithConfirm('release', assignment.id); }}>Trả lại</button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
                                 )}
                                 {totalPending === 0 && !loading && (
-                                    <div className="no-orders">
-                                        <p>📭 Không có đơn hàng nào</p>
+                                    <div className="no-orders-modern">
+                                        <span>📭 Không có đơn hàng nào</span>
                                     </div>
                                 )}
                                 {loading && (
-                                    <div className="loading">
-                                        <p>⏳ Đang tải...</p>
+                                    <div className="loading-modern">
+                                        <span>⏳ Đang tải...</span>
                                     </div>
                                 )}
                             </>
                         )}
                         {activeTab === 'completed_reservations' && (
-                            <div className="orders-section">
-                                <h4>🎉 Bàn sẵn sàng phục vụ ({completedReservations.length})</h4>
+                            <div className="orders-section-modern">
+                                <div className="my-orders-title">🎉 Bàn sẵn sàng phục vụ ({completedReservations.length})</div>
                                 {completedReservations.length === 0 ? (
-                                    <div className="no-orders">
-                                        <p>📭 Không có bàn nào chờ phục vụ</p>
+                                    <div className="no-orders-modern">
+                                        <span>📭 Không có bàn nào chờ phục vụ</span>
                                     </div>
                                 ) : (
                                     completedReservations.map(res => (
-                                        <div key={res.id + res.time} className="order-assignment-item completed-reservation">
-                                            <div className="assignment-header">
-                                                <div className="assignment-title">
-                                                    <span className="assignment-type-icon">🎉</span>
-                                                    <span>Bàn: {res.tables} đã sẵn sàng</span>
+                                        <div key={res.id + res.time} className="order-card-modern completed-reservation">
+                                            <div className="order-card-header">
+                                                <span className="order-card-avatar">🎉</span>
+                                                <div className="order-card-info">
+                                                    <span className="order-card-title">Bàn: {res.tables} đã sẵn sàng</span>
+                                                    <span className="order-card-time">{formatDateTime(res.time)}</span>
                                                 </div>
-                                                <span className="assignment-time">{formatDateTime(res.time)}</span>
                                             </div>
-                                            <div className="assignment-content">
-                                                <p><strong>Khách:</strong> {res.customer}</p>
-                                                <p><strong>Số khách:</strong> {res.guest_count}</p>
-                                                {res.note && <p><strong>Ghi chú:</strong> {res.note}</p>}
-                                                <p className="ready-message">🛎️ Vui lòng mang món ra cho khách!</p>
+                                            <div className="order-card-body">
+                                                <span>👤 {res.customer}</span>
+                                                <span>👥 {res.guest_count}</span>
+                                                {res.note && <span>📝 {res.note}</span>}
+                                                <span className="ready-message-modern">🛎️ Vui lòng mang món ra cho khách!</span>
                                                 {res.items && res.items.length > 0 && (
-                                                    <div className="order-items">
-                                                        <h4>🍽️ Món ăn:</h4>
-                                                        {res.items.map((item, idx) => (
-                                                            <div key={idx} className="order-item">
-                                                                {item.image && <img src={item.image} alt={item.name} className="item-image" />}
-                                                                <span className="item-name">{item.name}</span>
-                                                                <span className="item-quantity">x{item.quantity}</span>
-                                                            </div>
-                                                        ))}
+                                                    <div className="order-card-preorder">
+                                                        <span>🍽️ Món ăn:</span>
+                                                        <ul className="order-card-items-list">
+                                                            {res.items.map((item, idx) => (
+                                                                <li key={idx} className="order-card-item">
+                                                                    {item.image && <img src={item.image} alt={item.name} className="item-image-modern" />}
+                                                                    <span className="item-name-modern">{item.name}</span>
+                                                                    <span className="item-quantity-modern">x{item.quantity}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
                                                     </div>
                                                 )}
                                             </div>
@@ -658,20 +590,54 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
                             </div>
                         )}
                     </div>
+                    {/* Popup xác nhận xóa */}
+                    {showConfirmClear && (
+                        <div className="confirm-clear-overlay-modern">
+                            <div className="confirm-clear-modal-modern">
+                                <span className="modal-title">Xóa tất cả thông báo?</span>
+                                <div className="confirm-clear-actions-modern">
+                                    <button className="modal-btn confirm" onClick={handleClearAllNotifications}>Xác nhận</button>
+                                    <button className="modal-btn cancel" onClick={() => setShowConfirmClear(false)}>Hủy</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                     {/* Popup xác nhận khách đã đến */}
                     {showArrivedPopup && selectedAssignment && (
-                        <div className="confirm-clear-overlay">
-                            <div className="confirm-clear-modal">
-                                <h3>Xác nhận khách đã đến bàn?</h3>
-                                <div style={{ margin: '16px 0', textAlign: 'left', fontSize: '1rem' }}>
-                                    <p><strong>Bàn:</strong> {selectedAssignment.data?.order_details?.tables}</p>
-                                    <p><strong>Khách:</strong> {selectedAssignment.data?.order_details?.customer_name}</p>
-                                    <p><strong>Số khách:</strong> {selectedAssignment.data?.order_details?.guest_count}</p>
-                                    <p><strong>Giờ đến:</strong> {selectedAssignment.data?.order_details?.slot_start_time} - {selectedAssignment.data?.order_details?.slot_end_time}</p>
+                        <div className="confirm-clear-overlay-modern">
+                            <div className="confirm-clear-modal-modern">
+                                <span className="modal-title">Xác nhận khách đã đến bàn?</span>
+                                <div className="modal-content">
+                                    <span><strong>Bàn:</strong> {selectedAssignment.data?.order_details?.tables}</span>
+                                    <span><strong>Khách:</strong> {selectedAssignment.data?.order_details?.customer_name}</span>
+                                    <span><strong>Số khách:</strong> {selectedAssignment.data?.order_details?.guest_count}</span>
+                                    <span><strong>Giờ đến:</strong> {selectedAssignment.data?.order_details?.slot_start_time} - {selectedAssignment.data?.order_details?.slot_end_time}</span>
+                                    {/* Hiển thị món đặt trước nếu có */}
+                                    {selectedAssignment.data?.order_details?.has_pre_order && Array.isArray(selectedAssignment.data?.order_details?.items) && selectedAssignment.data.order_details.items.length > 0 && (
+                                        <div className="order-card-preorder">
+                                            <span>
+                                                🍽️ Món khách đặt trước:
+                                                {selectedAssignment.data.order_details.status === 'completed' && (
+                                                    <span className="cooked-status"> (Đã nấu xong)</span>
+                                                )}
+                                            </span>
+                                            <ul className="order-card-items-list">
+                                                {selectedAssignment.data.order_details.items.map((item, idx) => (
+                                                    <li key={idx} className="order-card-item">
+                                                        {item.menu_item_id?.image && (
+                                                            <img src={item.menu_item_id.image} alt={item.menu_item_id.name} className="item-image-modern" />
+                                                        )}
+                                                        <span className="item-name-modern">{item.menu_item_id?.name}</span>
+                                                        <span className="item-quantity-modern">x{item.quantity || 1}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="confirm-clear-actions">
-                                    <button className="confirm-btn" onClick={handleConfirmArrived}>Xác nhận</button>
-                                    <button className="cancel-btn" onClick={handleCancelArrived}>Hủy</button>
+                                <div className="confirm-clear-actions-modern">
+                                    <button className="modal-btn confirm" onClick={handleConfirmArrived}>Xác nhận</button>
+                                    <button className="modal-btn cancel" onClick={handleCancelArrived}>Hủy</button>
                                 </div>
                             </div>
                         </div>

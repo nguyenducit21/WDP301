@@ -56,7 +56,7 @@ const SuccessModal = ({
         const found = availablePromotions.find(p => p.code === promotionCode.trim());
         console.log('Selected promotion:', found);
         setSelectedPromotion(found || null);
-        
+
         // Nếu mã đã hết lượt dùng, hiển thị cảnh báo nhưng vẫn cho chọn
         if (found && (found.isExhausted || (found.usageLimit !== null && found.usedCount >= found.usageLimit))) {
             setPromotionError("Mã khuyến mại này đã hết lượt sử dụng, nhưng bạn vẫn có thể thử áp dụng");
@@ -147,14 +147,14 @@ const SuccessModal = ({
     const handleApplyPromotion = async () => {
         setPromotionError("");
         setPromotionResult(null);
-        
+
         // Kiểm tra nếu chưa chọn món
         const orderTotal = calculateOriginalTotal();
         if (orderTotal <= 0) {
             setPromotionError("Vui lòng chọn món trước khi áp dụng mã giảm giá");
             return;
         }
-        
+
         setPromotionLoading(true);
         try {
             // TODO: Lấy userId, isFirstOrder nếu cần (giả sử chưa có thì bỏ qua)
@@ -225,11 +225,11 @@ const SuccessModal = ({
                     {/* Promotion code section */}
                     <div className="promotion-section">
                         <label>Nhập mã khuyến mại (nếu có):</label>
-                        <div className="promotion-input-wrap" style={{ 
+                        <div className="promotion-input-wrap" style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '8px',
-                            marginBottom: '8px' 
+                            marginBottom: '8px'
                         }}>
                             <div style={{ position: 'relative', flex: 1 }}>
                                 <input
@@ -253,7 +253,7 @@ const SuccessModal = ({
                                         const isExhausted = promo.isExhausted || (promo.usageLimit !== null && promo.usedCount >= promo.usageLimit);
                                         return (
                                             <option key={promo.code} value={promo.code}>
-                                                {promo.code} - {promo.description || 'Không có mô tả'} 
+                                                {promo.code} - {promo.description || 'Không có mô tả'}
                                                 {isExhausted ? ' (Hết lượt)' : ''}
                                             </option>
                                         );
@@ -265,15 +265,15 @@ const SuccessModal = ({
                                 onClick={handleApplyPromotion}
                                 disabled={promotionLoading || !promotionCode.trim() || (promotionResult && promotionResult.success)}
                                 style={{
-                                    backgroundColor: promotionLoading || !promotionCode.trim() || (promotionResult && promotionResult.success) 
-                                        ? '#94a3b8' 
+                                    backgroundColor: promotionLoading || !promotionCode.trim() || (promotionResult && promotionResult.success)
+                                        ? '#94a3b8'
                                         : '#0ea5e9',
                                     color: 'white',
                                     border: 'none',
                                     borderRadius: '4px',
                                     padding: '10px 16px',
-                                    cursor: promotionLoading || !promotionCode.trim() || (promotionResult && promotionResult.success) 
-                                        ? 'not-allowed' 
+                                    cursor: promotionLoading || !promotionCode.trim() || (promotionResult && promotionResult.success)
+                                        ? 'not-allowed'
                                         : 'pointer',
                                     fontWeight: '500',
                                     minWidth: '100px',
@@ -281,24 +281,24 @@ const SuccessModal = ({
                                     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
                                 }}
                             >
-                                {promotionLoading ? 
+                                {promotionLoading ?
                                     <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                                        <span style={{ 
-                                            width: '12px', 
-                                            height: '12px', 
-                                            borderRadius: '50%', 
+                                        <span style={{
+                                            width: '12px',
+                                            height: '12px',
+                                            borderRadius: '50%',
                                             border: '2px solid #ffffff',
                                             borderTopColor: 'transparent',
                                             animation: 'spin 1s linear infinite',
                                             display: 'inline-block'
                                         }}></span>
                                         Đang kiểm tra
-                                    </span> : 
+                                    </span> :
                                     'Áp dụng'
                                 }
                             </button>
                         </div>
-                        
+
                         {/* Hiển thị danh sách gợi ý mã khuyến mại */}
                         {!selectedPromotion && !promotionResult?.success && availablePromotions.length > 0 && (
                             <div style={{
@@ -313,15 +313,15 @@ const SuccessModal = ({
                                 <div style={{ fontWeight: '500', marginBottom: '6px', color: '#475569' }}>
                                     Mã khuyến mại có thể sử dụng:
                                 </div>
-                                <div style={{ 
-                                    display: 'flex', 
-                                    flexWrap: 'wrap', 
+                                <div style={{
+                                    display: 'flex',
+                                    flexWrap: 'wrap',
                                     gap: '8px'
                                 }}>
                                     {availablePromotions.slice(0, 5).map(promo => {
                                         const isExhausted = promo.isExhausted || (promo.usageLimit !== null && promo.usedCount >= promo.usageLimit);
                                         return (
-                                            <div 
+                                            <div
                                                 key={promo.code}
                                                 onClick={() => !isExhausted && setPromotionCode(promo.code)}
                                                 style={{
@@ -357,20 +357,20 @@ const SuccessModal = ({
                                 </div>
                             </div>
                         )}
-                        
+
                         {/* Hiển thị thông tin mã khuyến mại đã chọn */}
                         {selectedPromotion && !promotionResult?.success && (
-                            <div style={{ 
-                                fontSize: '14px', 
+                            <div style={{
+                                fontSize: '14px',
                                 marginTop: '10px',
-                                marginBottom: '10px', 
+                                marginBottom: '10px',
                                 padding: '12px',
-                                backgroundColor: selectedPromotion.isExhausted || (selectedPromotion.usageLimit !== null && selectedPromotion.usedCount >= selectedPromotion.usageLimit) 
-                                    ? '#fef2f2' 
+                                backgroundColor: selectedPromotion.isExhausted || (selectedPromotion.usageLimit !== null && selectedPromotion.usedCount >= selectedPromotion.usageLimit)
+                                    ? '#fef2f2'
                                     : '#f0f9ff',
                                 borderRadius: '6px',
-                                border: `1px solid ${selectedPromotion.isExhausted || (selectedPromotion.usageLimit !== null && selectedPromotion.usedCount >= selectedPromotion.usageLimit) 
-                                    ? '#fecaca' 
+                                border: `1px solid ${selectedPromotion.isExhausted || (selectedPromotion.usageLimit !== null && selectedPromotion.usedCount >= selectedPromotion.usageLimit)
+                                    ? '#fecaca'
                                     : '#bae6fd'}`,
                                 display: 'flex',
                                 flexDirection: 'column',
@@ -378,10 +378,10 @@ const SuccessModal = ({
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <div>
-                                        <span style={{ 
-                                            fontWeight: '600', 
-                                            color: selectedPromotion.isExhausted || (selectedPromotion.usageLimit !== null && selectedPromotion.usedCount >= selectedPromotion.usageLimit) 
-                                                ? '#b91c1c' 
+                                        <span style={{
+                                            fontWeight: '600',
+                                            color: selectedPromotion.isExhausted || (selectedPromotion.usageLimit !== null && selectedPromotion.usedCount >= selectedPromotion.usageLimit)
+                                                ? '#b91c1c'
                                                 : '#0369a1',
                                             fontSize: '15px'
                                         }}>
@@ -401,33 +401,33 @@ const SuccessModal = ({
                                             </span>
                                         ) : null}
                                     </div>
-                                    
+
                                     {selectedPromotion.usageLimit !== null && (
-                                        <div style={{ 
-                                            fontSize: '12px', 
-                                            color: selectedPromotion.isExhausted || (selectedPromotion.usedCount >= selectedPromotion.usageLimit) 
-                                                ? '#b91c1c' 
+                                        <div style={{
+                                            fontSize: '12px',
+                                            color: selectedPromotion.isExhausted || (selectedPromotion.usedCount >= selectedPromotion.usageLimit)
+                                                ? '#b91c1c'
                                                 : '#0369a1'
                                         }}>
                                             Đã dùng: {selectedPromotion.usedCount || 0}/{selectedPromotion.usageLimit}
                                         </div>
                                     )}
                                 </div>
-                                
-                                <div style={{ 
-                                    fontSize: '13px', 
-                                    color: selectedPromotion.isExhausted || (selectedPromotion.usageLimit !== null && selectedPromotion.usedCount >= selectedPromotion.usageLimit) 
-                                        ? '#7f1d1d' 
+
+                                <div style={{
+                                    fontSize: '13px',
+                                    color: selectedPromotion.isExhausted || (selectedPromotion.usageLimit !== null && selectedPromotion.usedCount >= selectedPromotion.usageLimit)
+                                        ? '#7f1d1d'
                                         : '#075985'
                                 }}>
                                     {selectedPromotion.description || 'Không có mô tả'}
                                 </div>
-                                
-                                <div style={{ 
+
+                                <div style={{
                                     marginTop: '4px',
                                     fontSize: '13px',
-                                    color: selectedPromotion.isExhausted || (selectedPromotion.usageLimit !== null && selectedPromotion.usedCount >= selectedPromotion.usageLimit) 
-                                        ? '#7f1d1d' 
+                                    color: selectedPromotion.isExhausted || (selectedPromotion.usageLimit !== null && selectedPromotion.usedCount >= selectedPromotion.usageLimit)
+                                        ? '#7f1d1d'
                                         : '#075985'
                                 }}>
                                     {selectedPromotion.type === 'percent' && (
@@ -440,7 +440,7 @@ const SuccessModal = ({
                                 </div>
                             </div>
                         )}
-                        
+
                         {/* Hiển thị thông báo lỗi */}
                         {promotionError && !promotionResult?.success && (
                             <div style={{
@@ -459,7 +459,7 @@ const SuccessModal = ({
                                 <span>{promotionError}</span>
                             </div>
                         )}
-                        
+
                         {/* Hiển thị thông báo áp dụng thành công */}
                         {promotionResult && promotionResult.success && (
                             <div style={{
@@ -483,7 +483,7 @@ const SuccessModal = ({
 
                     {/* Pre-order section */}
                     <div className="pre-order-section">
-                       
+
                         {/* <p className="discount-info">
                             💥 <strong>Ưu đãi đặc biệt:</strong> Đặt món trước để nhận giảm giá 15% với mã <strong>PREORDER15</strong> !
                         </p> */}
@@ -618,10 +618,10 @@ const SuccessModal = ({
                     >
                         {loading ? (
                             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                <span style={{ 
-                                    width: '14px', 
-                                    height: '14px', 
-                                    borderRadius: '50%', 
+                                <span style={{
+                                    width: '14px',
+                                    height: '14px',
+                                    borderRadius: '50%',
                                     border: '2px solid #ffffff',
                                     borderTopColor: 'transparent',
                                     animation: 'spin 1s linear infinite',

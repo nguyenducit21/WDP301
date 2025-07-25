@@ -65,7 +65,6 @@ const Orders = () => {
 
     const getAvailableStatuses = (currentStatus, orderType = 'active') => {
         const allStatuses = [
-            { value: 'pending', label: 'Chờ xử lý' },
             { value: 'confirmed', label: 'Xác nhận' },
             { value: 'completed', label: 'Hoàn thành' },
             { value: 'cancelled', label: 'Hủy đơn' }
@@ -88,9 +87,9 @@ const Orders = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'pending':
-                return '#ff9800';
             case 'confirmed':
+                return '#ff9800';
+            case 'pending':
                 return '#2196f3';
 
             case 'completed':
@@ -104,11 +103,10 @@ const Orders = () => {
 
     const getStatusText = (status) => {
         switch (status) {
-            case 'pending':
-                return 'Chờ xử lý';
             case 'confirmed':
+                return 'Chờ xử lý';
+            case 'pending':
                 return 'Đang chế biến';
-
             case 'completed':
                 return 'Hoàn thành';
             case 'cancelled':

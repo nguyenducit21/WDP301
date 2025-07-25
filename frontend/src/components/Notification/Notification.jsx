@@ -80,7 +80,7 @@ const Notification = () => {
                 message: `Khách hàng ${data.order_details.customer_name} - Bàn ${data.order_details.tables}`,
                 data: data,
                 timestamp: new Date(),
-                status: 'waiting',
+                status: 'processing',
                 priority: data.priority
             };
 

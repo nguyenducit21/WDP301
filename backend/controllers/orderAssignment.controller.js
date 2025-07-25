@@ -13,7 +13,7 @@ const getPendingOrders = async (req, res) => {
         // Lấy assignments đang chờ hoặc đã được assign cho user hiện tại
         const assignments = await OrderAssignment.find({
             $or: [
-                { status: 'waiting' },
+                { status: 'processing' },
                 { assigned_to: employeeId, status: 'processing' }
             ]
         })
@@ -51,6 +51,7 @@ const getPendingOrders = async (req, res) => {
                     slot_end_time: reservation.slot_end_time,
                     has_pre_order: hasPreOrder,
                     reservation_type: hasPreOrder ? 'pre_order' : 'table_booking',
+                        status: reservation.status, // Thêm dòng này để truyền status sang frontend
                 };
             }
             return {
@@ -329,7 +330,12 @@ const confirmArrived = async (req, res) => {
                 reservation.status = 'seated';
                 reservation.updated_at = new Date();
                 await reservation.save();
-                return res.status(200).json({ success: true, message: 'Đã xác nhận khách đã đến bàn', data: reservation });
+                // Update assignment: assign to this employee, set status to completed, set completed_at
+                assignment.assigned_to = employeeId;
+                assignment.status = 'completed';
+                assignment.completed_at = new Date();
+                await assignment.save();
+                return res.status(200).json({ success: true, message: 'Đã xác nhận khách đã đến bàn', data: { reservation, assignment } });
             }
         }
         return res.status(400).json({ success: false, message: 'Không thể xác nhận khách đã đến cho loại đơn này' });

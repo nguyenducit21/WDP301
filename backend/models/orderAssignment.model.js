@@ -20,7 +20,7 @@ const OrderAssignmentSchema = new Schema({
     status: {
         type: String,
         enum: ['waiting', 'processing', 'completed', 'cancelled'],
-        default: 'waiting'
+        default: 'processing'
     },
     rejected_by: [{
         employee_id: { type: Schema.Types.ObjectId, ref: 'User' },

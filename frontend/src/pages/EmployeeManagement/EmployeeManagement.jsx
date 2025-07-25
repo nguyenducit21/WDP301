@@ -92,6 +92,7 @@ const EmployeeManagement = () => {
         setShowConfirmModal(true);
     };
 
+
     const confirmToggleStatus = async () => {
         try {
             await axios.patch(`/employees/${employeeToDelete._id}/toggle-status`);
@@ -216,6 +217,102 @@ const EmployeeManagement = () => {
         return `${day}/${month}/${year}`;
     }
 
+
+
+    // Lấy lịch làm việc của nhân viên theo tháng
+    const fetchEmployeeSchedules = async (employeeId, monthDate) => {
+        setScheduleLoading(true);
+        try {
+            const year = monthDate.getFullYear();
+            const month = monthDate.getMonth();
+            const startDate = new Date(year, month, 1).toISOString().split('T')[0];
+            const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
+            const res = await axios.get(`/schedules/employee/${employeeId}?startDate=${startDate}&endDate=${endDate}`);
+            if (res.data.success) {
+                setEmployeeSchedules(res.data.data.schedules || []);
+            }
+        } catch (err) {
+            setEmployeeSchedules([]);
+        } finally {
+            setScheduleLoading(false);
+        }
+    };
+
+    // Khi click vào nhân viên
+    const handleShowSchedule = (employee) => {
+        setScheduleEmployee(employee);
+        setScheduleMonth(new Date());
+        setShowScheduleModal(true);
+        setSelectedSchedule(null);
+        fetchEmployeeSchedules(employee._id, new Date());
+    };
+
+    // Điều hướng tháng
+    const handleScheduleMonthChange = (delta) => {
+        setScheduleMonth(prev => {
+            const y = prev.getFullYear();
+            const m = prev.getMonth() + delta;
+            const newMonth = new Date(y, m, 1);
+            if (scheduleEmployee) fetchEmployeeSchedules(scheduleEmployee._id, newMonth);
+            return newMonth;
+        });
+    };
+
+    // Click ngày trên calendar
+    const handleScheduleDayClick = (date, hasSchedule) => {
+        if (!scheduleEmployee) return;
+        const dateStr = date.toISOString().split('T')[0];
+        const sch = employeeSchedules.find(s => s.date === dateStr);
+        if (sch) {
+            setSelectedSchedule(sch);
+            setScheduleModalType('edit');
+            setScheduleForm({
+                employee_id: scheduleEmployee._id,
+                date: sch.date,
+                shift_type: sch.shiftType || 'morning',
+                start_time: sch.startTime || '08:00',
+                end_time: sch.endTime || '16:00',
+                notes: sch.notes || ''
+            });
+        } else {
+            setSelectedSchedule(null);
+            setScheduleModalType('add');
+            setScheduleForm({
+                employee_id: scheduleEmployee._id,
+                date: dateStr,
+                shift_type: 'morning',
+                start_time: '08:00',
+                end_time: '16:00',
+                notes: ''
+            });
+        }
+        setShowScheduleCrudModal(true);
+    };
+
+    // CRUD schedule
+    const handleAddSchedule = async () => {
+        try {
+            await axios.post('/schedules', scheduleForm);
+            setShowScheduleCrudModal(false);
+            fetchEmployeeSchedules(scheduleEmployee._id, scheduleMonth);
+        } catch (err) { }
+    };
+    const handleEditSchedule = async () => {
+        try {
+            await axios.put(`/schedules/${selectedSchedule.id}`, scheduleForm);
+            setShowScheduleCrudModal(false);
+            fetchEmployeeSchedules(scheduleEmployee._id, scheduleMonth);
+        } catch (err) { }
+    };
+    const handleDeleteSchedule = async () => {
+        try {
+            await axios.delete(`/schedules/${selectedSchedule.id}`);
+            setShowScheduleCrudModal(false);
+            fetchEmployeeSchedules(scheduleEmployee._id, scheduleMonth);
+        } catch (err) { }
+    };
+
+
     return (
         <div className="employee-management-container">
             <div className="employee-management" style={{
@@ -292,7 +389,7 @@ const EmployeeManagement = () => {
                                         const isAdminRow = (employee.role_id?.name || employee.role?.name || employee.role) === 'admin';
                                         return (
                                             <tr key={employee._id}>
-                                                <td>{employee.full_name || '-'}</td>
+                                                <td style={{ cursor: 'pointer', color: '#2563eb', textDecoration: 'underline' }} onClick={() => handleShowSchedule(employee)}>{employee.full_name || '-'}</td>
                                                 <td>{employee.username}</td>
                                                 <td>{employee.email}</td>
                                                 <td>{employee.phone || '-'}</td>
@@ -393,8 +490,8 @@ const EmployeeManagement = () => {
                             currentMonth={scheduleMonth}
                             onMonthChange={handleScheduleMonthChange}
                         />
-                        <div style={{ textAlign: 'right', marginTop: 12 }}>
-                            <button onClick={() => setShowScheduleModal(false)}>Đóng</button>
+                        <div style={{ textAlign: 'right', marginTop: 12, marginBottom: 12 }}>
+                            <button className='btn btn-primary' onClick={() => setShowScheduleModal(false)}>Đóng</button>
                         </div>
                     </div>
                     {/* CRUD modal */}
