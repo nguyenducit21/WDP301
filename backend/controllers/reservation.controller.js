@@ -9,6 +9,11 @@ const User = require('../models/user.model');
 const { createOrderAssignment, updateOrderAssignment } = require('./orderAssignment.controller');
 const { send: sendMail } = require('../helper/sendmail.helper');
 const Promotion = require('../models/promotion.model');
+const {
+    consumeIngredients,
+    restoreIngredients,
+    updateIngredientConsumption
+} = require('./menuItemRecipe.controller');
 
 // Lấy tất cả đặt bàn
 const getReservations = async (req, res) => {
@@ -465,6 +470,34 @@ const createReservation = async (req, res) => {
         const reservation = new Reservation(reservationData);
         await reservation.save();
 
+        // ✅ TRỪ NGUYÊN LIỆU CHO PRE-ORDER ITEMS
+        let inventoryWarningDetails = [];
+        if (processedPreOrderItems.length > 0) {
+            try {
+                const consumeResult = await consumeIngredients(
+                    processedPreOrderItems,
+                    'reservation',
+                    reservation._id
+                );
+
+                if (consumeResult.success) {
+                    console.log(`✅ Consumed ingredients for ${processedPreOrderItems.length} pre-order items`);
+
+                    if (consumeResult.hasInsufficient) {
+                        inventoryWarningDetails = consumeResult.insufficientItems;
+                        inventoryWarning = true;
+                        console.log('⚠️ Some ingredients were insufficient for pre-order');
+                    }
+                } else {
+                    console.error('❌ Failed to consume ingredients:', consumeResult.error);
+                    // Không throw lỗi để tiếp tục tạo reservation
+                }
+            } catch (error) {
+                console.error('❌ Error consuming ingredients for pre-order:', error);
+                // Không throw lỗi để tiếp tục tạo reservation
+            }
+        }
+
         // Xử lý mã giảm giá ngay khi tạo reservation với pre-order
         const getPromotionCode = (promotion) => {
             if (!promotion) return null;
@@ -561,7 +594,8 @@ const createReservation = async (req, res) => {
                 ? 'Đặt bàn thành công. Lưu ý: Một số món có thể thiếu nguyên liệu, nhà hàng sẽ ưu tiên chuẩn bị cho đơn đặt trước.'
                 : 'Đặt bàn thành công',
             data: reservation,
-            inventoryWarning
+            inventoryWarning,
+            inventoryWarningDetails
         });
     } catch (error) {
         console.error('Error in createReservation:', error);
@@ -819,8 +853,31 @@ const updateReservation = async (req, res) => {
             { path: 'pre_order_items.menu_item_id', select: 'name price image' }
         ]);
 
-        // Nếu pre_order_items thay đổi, cập nhật assignment và gửi socket update cho nhân viên
+        // ✅ CẬP NHẬT NGUYÊN LIỆU KHI PRE_ORDER_ITEMS THAY ĐỔI
+        let ingredientUpdateResult = null;
         if (oldPreOrderItems !== newPreOrderItems && pre_order_items !== undefined) {
+            try {
+                const oldItems = reservation.pre_order_items || [];
+                const newItems = pre_order_items || [];
+
+                // Cập nhật nguyên liệu dựa trên sự thay đổi
+                ingredientUpdateResult = await updateIngredientConsumption(
+                    oldItems,
+                    newItems,
+                    'reservation',
+                    updatedReservation._id
+                );
+
+                if (ingredientUpdateResult.success) {
+                    console.log(`✅ Updated ingredient consumption for reservation ${updatedReservation._id}`);
+                } else {
+                    console.error('❌ Failed to update ingredient consumption:', ingredientUpdateResult.error);
+                }
+            } catch (error) {
+                console.error('❌ Error updating ingredient consumption:', error);
+            }
+
+            // Cập nhật order assignment
             try {
                 await updateOrderAssignment(updatedReservation._id, 'reservation', pre_order_items);
             } catch (err) {
@@ -931,6 +988,28 @@ const cancelReservation = async (req, res) => {
 
         const oldStatus = reservation.status;
 
+        // ✅ HOÀN TRẢ NGUYÊN LIỆU KHI HỦY RESERVATION
+        let restorationResult = null;
+        const hasPreOrderItems = reservation.pre_order_items && reservation.pre_order_items.length > 0;
+
+        if (hasPreOrderItems) {
+            try {
+                restorationResult = await restoreIngredients(
+                    reservation.pre_order_items,
+                    'reservation',
+                    reservation._id
+                );
+
+                if (restorationResult.success) {
+                    console.log(`✅ Restored ingredients for cancelled reservation ${reservation._id}`);
+                } else {
+                    console.error('❌ Failed to restore ingredients:', restorationResult.error);
+                }
+            } catch (error) {
+                console.error('❌ Error restoring ingredients for cancelled reservation:', error);
+            }
+        }
+
         // Cập nhật trạng thái reservation
         reservation.status = 'cancelled';
         reservation.updated_at = new Date();
@@ -938,7 +1017,6 @@ const cancelReservation = async (req, res) => {
 
         // Xử lý mã giảm giá khi cancel reservation
         // Giảm usedCount nếu reservation có mã giảm giá và có pre-order items
-        const hasPreOrderItems = reservation.pre_order_items && reservation.pre_order_items.length > 0;
         const getPromotionCode = (promotion) => {
             if (!promotion) return null;
             return typeof promotion === 'string' ? promotion : promotion.code;
@@ -1778,7 +1856,7 @@ const updateReservationStatus = async (req, res) => {
         const { id } = req.params;
 
         // Kiểm tra status hợp lệ
-        const validStatuses = ['pending', 'confirmed', 'cancelled', 'no_show', 'completed'];
+        const validStatuses = ['pending', 'confirmed', 'cancelled', 'no_show', 'completed', 'cooked']; // Thêm 'cooked'
         if (!validStatuses.includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -1833,6 +1911,28 @@ const updateReservationStatus = async (req, res) => {
                 { path: 'pre_order_items.menu_item_id', select: 'name image' }
             ]);
             global.io.to('staff-room').emit('reservation_completed', {
+                id: reservation._id,
+                tables: reservation.table_id?.name || '',
+                customer: reservation.customer_id?.full_name || reservation.contact_name || '',
+                guest_count: reservation.guest_count,
+                time: reservation.updated_at,
+                note: reservation.notes || '',
+                items: (reservation.pre_order_items || []).map(item => ({
+                    name: item.menu_item_id?.name || '',
+                    image: item.menu_item_id?.image || '',
+                    quantity: item.quantity
+                }))
+            });
+        }
+        // Notify waiters if reservation is cooked
+        if (status === 'cooked' && global.io) {
+            await reservation.populate([
+                { path: 'table_id', select: 'name capacity area_id' },
+                { path: 'customer_id', select: 'username full_name email phone' },
+                { path: 'created_by_staff', select: 'username full_name' },
+                { path: 'pre_order_items.menu_item_id', select: 'name image' }
+            ]);
+            global.io.to('staff-room').emit('reservation_cooked', {
                 id: reservation._id,
                 tables: reservation.table_id?.name || '',
                 customer: reservation.customer_id?.full_name || reservation.contact_name || '',
@@ -1909,6 +2009,27 @@ const updateReservationItems = async (req, res) => {
                     quantity: item.quantity
                 });
             }
+        }
+
+        // ✅ CẬP NHẬT NGUYÊN LIỆU CHO PRE-ORDER ITEMS THAY ĐỔI
+        const oldPreOrderItems = reservation.pre_order_items || [];
+        let ingredientUpdateResult = null;
+
+        try {
+            ingredientUpdateResult = await updateIngredientConsumption(
+                oldPreOrderItems,
+                processedPreOrderItems,
+                'reservation',
+                reservation._id
+            );
+
+            if (ingredientUpdateResult.success) {
+                console.log(`✅ Updated ingredient consumption for reservation items update ${reservation._id}`);
+            } else {
+                console.error('❌ Failed to update ingredient consumption:', ingredientUpdateResult.error);
+            }
+        } catch (error) {
+            console.error('❌ Error updating ingredient consumption for reservation items:', error);
         }
 
         // Cập nhật reservation

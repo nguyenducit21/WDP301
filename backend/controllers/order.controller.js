@@ -2,6 +2,11 @@ const Order = require('../models/order.model');
 const Table = require('../models/table.model');
 const MenuItem = require('../models/menuItems.model');
 const Reservation = require('../models/reservation.model');
+const {
+    consumeIngredients,
+    restoreIngredients,
+    updateIngredientConsumption
+} = require('./menuItemRecipe.controller');
 
 // Lấy tất cả đơn hàng
 const getOrders = async (req, res) => {
@@ -203,6 +208,36 @@ const createOrder = async (req, res) => {
         const order = new Order(orderData);
         await order.save();
 
+        // ✅ TRỪ NGUYÊN LIỆU CHO ORDER ITEMS
+        let inventoryWarning = false;
+        let inventoryWarningDetails = [];
+
+        if (processedOrderItems.length > 0) {
+            try {
+                const consumeResult = await consumeIngredients(
+                    processedOrderItems,
+                    'order',
+                    order._id
+                );
+
+                if (consumeResult.success) {
+                    console.log(`✅ Consumed ingredients for ${processedOrderItems.length} order items`);
+
+                    if (consumeResult.hasInsufficient) {
+                        inventoryWarningDetails = consumeResult.insufficientItems;
+                        inventoryWarning = true;
+                        console.log('⚠️ Some ingredients were insufficient for order');
+                    }
+                } else {
+                    console.error('❌ Failed to consume ingredients:', consumeResult.error);
+                    // Không throw lỗi để tiếp tục tạo order
+                }
+            } catch (error) {
+                console.error('❌ Error consuming ingredients for order:', error);
+                // Không throw lỗi để tiếp tục tạo order
+            }
+        }
+
         // Bỏ phần cập nhật trạng thái bàn, vì trạng thái bàn đã được quản lý bởi reservation
 
         await order.populate([
@@ -215,8 +250,12 @@ const createOrder = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Tạo đơn hàng thành công',
-            data: order
+            message: inventoryWarning
+                ? 'Tạo đơn hàng thành công. Lưu ý: Một số món có thể thiếu nguyên liệu.'
+                : 'Tạo đơn hàng thành công',
+            data: order,
+            inventoryWarning,
+            inventoryWarningDetails
         });
     } catch (error) {
         res.status(500).json({
@@ -247,7 +286,8 @@ const updateOrder = async (req, res) => {
             });
         }
 
-        // Nếu cập nhật order_items, validate lại
+        // ✅ CẬP NHẬT NGUYÊN LIỆU KHI ORDER_ITEMS THAY ĐỔI
+        let ingredientUpdateResult = null;
         if (order_items && order_items.length > 0) {
             let processedOrderItems = [];
 
@@ -265,6 +305,26 @@ const updateOrder = async (req, res) => {
                     quantity: item.quantity,
                     price: item.price || menuItem.price
                 });
+            }
+
+            // Cập nhật nguyên liệu dựa trên sự thay đổi
+            try {
+                const oldOrderItems = order.order_items || [];
+
+                ingredientUpdateResult = await updateIngredientConsumption(
+                    oldOrderItems,
+                    processedOrderItems,
+                    'order',
+                    order._id
+                );
+
+                if (ingredientUpdateResult.success) {
+                    console.log(`✅ Updated ingredient consumption for order ${order._id}`);
+                } else {
+                    console.error('❌ Failed to update ingredient consumption:', ingredientUpdateResult.error);
+                }
+            } catch (error) {
+                console.error('❌ Error updating ingredient consumption for order:', error);
             }
 
             order.order_items = processedOrderItems;
@@ -448,6 +508,26 @@ const cancelOrder = async (req, res) => {
                 success: false,
                 message: 'Không thể hủy đơn hàng đã hoàn thành'
             });
+        }
+
+        // ✅ HOÀN TRẢ NGUYÊN LIỆU KHI HỦY ORDER
+        let restorationResult = null;
+        if (order.order_items && order.order_items.length > 0) {
+            try {
+                restorationResult = await restoreIngredients(
+                    order.order_items,
+                    'order',
+                    order._id
+                );
+
+                if (restorationResult.success) {
+                    console.log(`✅ Restored ingredients for cancelled order ${order._id}`);
+                } else {
+                    console.error('❌ Failed to restore ingredients:', restorationResult.error);
+                }
+            } catch (error) {
+                console.error('❌ Error restoring ingredients for cancelled order:', error);
+            }
         }
 
         order.status = 'cancelled';

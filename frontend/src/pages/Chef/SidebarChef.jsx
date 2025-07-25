@@ -9,7 +9,8 @@ import {
   FaReceipt,
   FaFileInvoice,
   FaChartLine,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaCheckCircle
 } from "react-icons/fa";
 import "./SidebarChef.css";
 import logo from "../../assets/logo.png";
@@ -29,6 +30,7 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
     if (location.pathname.includes("products")) return "products";
     if (location.pathname.includes("deleted-menu-items")) return "trash";
     if (location.pathname.includes("inventory/analytics")) return "inventory-analytics";
+    if (location.pathname.includes("available-menu-items")) return "available-menu-items";
     if (location.pathname.includes("inventory-list")) return "inventory-list";
     if (location.pathname.includes("inventory")) return "inventory";
     if (location.pathname.includes("recipes")) return "recipes";
@@ -155,6 +157,13 @@ const ChefSidebar = ({ collapsed, setCollapsed }) => {
             >
               <FaBoxes className="sidebar-icon" />
               <span>Kho Nguyên Liệu</span>
+            </li>
+            <li
+              className={currentTab === "available-menu-items" ? "active" : ""}
+              onClick={() => navigate("/chef/available-menu-items")}
+            >
+              <FaCheckCircle className="sidebar-icon" />
+              <span>Món Có Thể Nấu</span>
             </li>
             <li
               className={currentTab === "recipes" ? "active" : ""}

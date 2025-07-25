@@ -626,23 +626,23 @@ const getDailyIngredientConsumption = async (req, res) => {
 
 const restoreInventory = async (req, res) => {
     try {
-      const { id } = req.params;
-      if (!mongoose.isValidObjectId(id)) {
-        return res.status(400).json({ success: false, message: 'ID nguyên liệu không hợp lệ' });
-      }
-      const inventory = await Inventory.findByIdAndUpdate(
-        id,
-        { isactive: true, updatedat: new Date() },
-        { new: true }
-      );
-      if (!inventory) {
-        return res.status(404).json({ success: false, message: 'Không tìm thấy nguyên liệu' });
-      }
-      res.json({ success: true, data: inventory, message: 'Đã khôi phục nguyên liệu!' });
+        const { id } = req.params;
+        if (!mongoose.isValidObjectId(id)) {
+            return res.status(400).json({ success: false, message: 'ID nguyên liệu không hợp lệ' });
+        }
+        const inventory = await Inventory.findByIdAndUpdate(
+            id,
+            { isactive: true, updatedat: new Date() },
+            { new: true }
+        );
+        if (!inventory) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy nguyên liệu' });
+        }
+        res.json({ success: true, data: inventory, message: 'Đã khôi phục nguyên liệu!' });
     } catch (error) {
-      res.status(400).json({ success: false, message: error.message });
+        res.status(400).json({ success: false, message: error.message });
     }
-  };
+};
 module.exports = {
     getAllInventory,
     getInventoryById,

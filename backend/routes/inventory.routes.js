@@ -29,7 +29,7 @@ router.get('/consumption', getDailyIngredientConsumption);
 // ---- CÁC ROUTE CÓ ID, LUÔN ĐẶT SAU ----
 router.get('/', getAllInventory);
 router.get('/:id/history', getInventoryHistory);
-router.get('/:id', getInventoryById);           
+router.get('/:id', getInventoryById);
 router.post('/', createInventory);
 router.put('/:id', updateInventory);
 router.patch('/:id/stock-check', stockCheck);

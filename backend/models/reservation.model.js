@@ -34,7 +34,8 @@ const ReservationSchema = new Schema({
       "cancelled",
       "no_show",
       "completed",
-      "seated"
+      "seated",
+      "cooked" // Thêm trạng thái này
     ],
     default: "pending",
   },

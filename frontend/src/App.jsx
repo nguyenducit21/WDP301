@@ -25,6 +25,7 @@ import ImportReceiptDetail from "./pages/Chef/ImportReceipt/ImportReceiptDetail"
 import InventoryList from "./pages/Chef/Inventory/InventoryList";
 import StockCheck from './pages/Chef/Inventory/StockCheck';
 import InventoryDetail from './pages/Chef/Inventory/InventoryDetail';
+import AvailableMenuItems from './pages/Chef/Inventory/AvailableMenuItems';
 import MenuDashboard from "./pages/Chef/Menu-Dashboard/MenuDashboard";
 import ChefDashboard from "./pages/Chef/Dashboard/ChefDashboard";
 import EmployeeManagement from './pages/EmployeeManagement/EmployeeManagement';
@@ -114,6 +115,7 @@ const App = () => {
             <Route path="import-receipts/create" element={<ImportReceiptCreate />} />
             <Route path="import-receipts/:id" element={<ImportReceiptDetail />} />
             <Route path="inventory-list" element={<InventoryList />} />
+            <Route path="available-menu-items" element={<AvailableMenuItems />} />
             <Route path="stock-check" element={<StockCheck />} />
             <Route path="inventory/:id" element={<InventoryDetail />} />
           </Route>

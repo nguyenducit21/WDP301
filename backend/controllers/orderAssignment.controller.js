@@ -51,7 +51,7 @@ const getPendingOrders = async (req, res) => {
                     slot_end_time: reservation.slot_end_time,
                     has_pre_order: hasPreOrder,
                     reservation_type: hasPreOrder ? 'pre_order' : 'table_booking',
-                        status: reservation.status, // Thêm dòng này để truyền status sang frontend
+                    status: reservation.status, // Thêm dòng này để truyền status sang frontend
                 };
             }
             return {

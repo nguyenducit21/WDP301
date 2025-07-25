@@ -280,6 +280,7 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
         o.data?.order_details?.status !== 'completed'
     );
     const myOrders = filteredAssignments.filter(o => o.is_mine && o.status === 'processing');
+    const cookedOrders = filteredAssignments.filter(o => o.data?.order_details?.status === 'cooked');
     const totalPending = waitingOrders.length + myOrders.length;
 
     // Thêm hàm xóa tất cả thông báo
@@ -478,6 +479,45 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
                                         ))}
                                     </div>
                                 )}
+                                {/* Đơn đã nấu xong */}
+                                {/* {cookedOrders.length > 0 && (
+                                    <div className="orders-section-modern">
+                                        <div className="my-orders-title">👨‍🍳 Đơn đã nấu xong ({cookedOrders.length})</div>
+                                        {cookedOrders.map(assignment => (
+                                            <div
+                                                key={assignment.id}
+                                                className="order-card-modern cooked-order"
+                                                tabIndex={0}
+                                                title="Xem chi tiết đơn"
+                                                onClick={() => handleShowArrived(assignment)}
+                                            >
+                                                <div className="order-card-header">
+                                                    <span className="order-card-avatar">👨‍🍳</span>
+                                                    <div className="order-card-info">
+                                                        <span className="order-card-title">{assignment.title}</span>
+                                                        <span className="order-card-time">{formatDateTime(assignment.timestamp)}</span>
+                                                    </div>
+                                                    <span className={`order-card-priority priority-${assignment.priority}`}>{getPriorityText(assignment.priority)}</span>
+                                                </div>
+                                                <div className="order-card-body">
+                                                    <div className="order-card-message">{assignment.message}</div>
+                                                    {assignment.data?.order_details && (
+                                                        <div className="order-card-details">
+                                                            <span>👤 {assignment.data.order_details.customer_name}</span>
+                                                            <span>📞 {assignment.data.order_details.customer_phone}</span>
+                                                            <span>👥 {assignment.data.order_details.guest_count} khách</span>
+                                                            {assignment.data.order_details.has_pre_order && assignment.data.order_details.items?.length > 0 && (
+                                                                <div className="order-card-preorder">
+                                                                    <span>🍽️ {assignment.data.order_details.items.length} món đặt trước</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )} */}
                                 {/* Đơn hàng của tôi */}
                                 {myOrders.length > 0 && (
                                     <div className="orders-section-modern">
@@ -535,7 +575,7 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
                                         ))}
                                     </div>
                                 )}
-                                {totalPending === 0 && !loading && (
+                                {totalPending === 0 && cookedOrders.length === 0 && !loading && (
                                     <div className="no-orders-modern">
                                         <span>📭 Không có đơn hàng nào</span>
                                     </div>
@@ -617,7 +657,7 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
                                         <div className="order-card-preorder">
                                             <span>
                                                 🍽️ Món khách đặt trước:
-                                                {selectedAssignment.data.order_details.status === 'completed' && (
+                                                {selectedAssignment.data.order_details.status === 'cooked' && (
                                                     <span className="cooked-status"> (Đã nấu xong)</span>
                                                 )}
                                             </span>

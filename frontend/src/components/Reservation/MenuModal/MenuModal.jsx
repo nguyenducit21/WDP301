@@ -66,39 +66,40 @@ const MenuModal = ({
                             <div className="loading">Đang tải menu...</div>
                         ) : (
                             <div className="menu-items-grid">
-                                {getFilteredMenuItems(selectedCategory).map((item) => {
-                                    const quantity = getItemQuantity(item._id);
-
-                                    return (
-                                        <div key={item._id} className="menu-item-card">
-                                            <div className="menu-item-image">
-                                                {item.image && (
-                                                    <img src={item.image} alt={item.name} />
-                                                )}
-                                            </div>
-                                            <div className="menu-item-info">
-                                                <h4>{item.name}</h4>
-                                                <p>{item.description}</p>
-                                                <div className="menu-item-price">{item.price ? item.price.toLocaleString() : 0}đ</div>
-                                            </div>
-                                            <div className="menu-item-actions">
-                                                <div className="quantity-controls">
-                                                    <button
-                                                        type="button"
-                                                        className="quantity-btn"
-                                                        onClick={() => onMenuItemChange(item._id, Math.max(0, quantity - 1))}
-                                                    >-</button>
-                                                    <span className="quantity-display">{quantity}</span>
-                                                    <button
-                                                        type="button"
-                                                        className="quantity-btn"
-                                                        onClick={() => onMenuItemChange(item._id, quantity + 1)}
-                                                    >+</button>
+                                {getFilteredMenuItems(selectedCategory)
+                                    .filter(item => item.is_available !== false)
+                                    .map((item) => {
+                                        const quantity = getItemQuantity(item._id);
+                                        return (
+                                            <div key={item._id} className="menu-item-card">
+                                                <div className="menu-item-image">
+                                                    {item.image && (
+                                                        <img src={item.image} alt={item.name} />
+                                                    )}
+                                                </div>
+                                                <div className="menu-item-info">
+                                                    <h4>{item.name}</h4>
+                                                    <p>{item.description}</p>
+                                                    <div className="menu-item-price">{item.price ? item.price.toLocaleString() : 0}đ</div>
+                                                </div>
+                                                <div className="menu-item-actions">
+                                                    <div className="quantity-controls">
+                                                        <button
+                                                            type="button"
+                                                            className="quantity-btn"
+                                                            onClick={() => onMenuItemChange(item._id, Math.max(0, quantity - 1))}
+                                                        >-</button>
+                                                        <span className="quantity-display">{quantity}</span>
+                                                        <button
+                                                            type="button"
+                                                            className="quantity-btn"
+                                                            onClick={() => onMenuItemChange(item._id, quantity + 1)}
+                                                        >+</button>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    );
-                                })}
+                                        );
+                                    })}
                             </div>
                         )}
                     </div>
