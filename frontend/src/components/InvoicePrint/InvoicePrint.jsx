@@ -128,19 +128,39 @@ const InvoicePrint = ({ invoiceData, onClose }) => {
                         <div className="payment-left">
                             <h4>Thông tin hóa đơn</h4>
                             <div className="payment-row">
+                                <span>Món đặt trước:</span>
+                                <span>{formatCurrency(totals?.preOrderTotal)} VNĐ</span>
+                            </div>
+                            <div className="payment-row">
+                                <span>Món gọi thêm:</span>
+                                <span>{formatCurrency(totals?.orderTotal)} VNĐ</span>
+                            </div>
+                            <div className="payment-row">
                                 <span>Tạm tính:</span>
                                 <span>{formatCurrency(totals?.subtotal)} VNĐ</span>
                             </div>
-                            <div className="payment-row">
-                                <span>Giảm giá:</span>
-                                <span>{formatCurrency(totals?.discount || 0)} VNĐ</span>
-                            </div>
-                            <div className="payment-row">
-                                <span>Thuế 10%:</span>
-                                <span>{formatCurrency(totals?.tax)} VNĐ</span>
-                            </div>
+
+                            {/* ✅ HIỂN THỊ GIẢM GIÁ CHỈ CHO PHẦN ĐẶT TRƯỚC */}
+                            {totals?.discount > 0 && totals?.promotionInfo && (
+                                <>
+                                    <div className="payment-row promotion-info">
+                                        <span>Mã giảm giá ({totals.promotionInfo.code}) - chỉ áp dụng món đặt trước:</span>
+                                        <span>
+                                            {totals.promotionInfo.type === 'percent' || totals.promotionInfo.type === 'first_order'
+                                                ? `-${totals.promotionInfo.value}%`
+                                                : `-${formatCurrency(totals.promotionInfo.value)} VNĐ`
+                                            }
+                                        </span>
+                                    </div>
+                                    <div className="payment-row">
+                                        <span>Số tiền được giảm:</span>
+                                        <span className="discount-amount">-{formatCurrency(totals.discount)} VNĐ</span>
+                                    </div>
+                                </>
+                            )}
+
                             <div className="payment-row total-row">
-                                <span><strong>Tổng:</strong></span>
+                                <span><strong>Tổng cộng:</strong></span>
                                 <span><strong>{formatCurrency(totals?.total)} VNĐ</strong></span>
                             </div>
                         </div>
@@ -148,16 +168,21 @@ const InvoicePrint = ({ invoiceData, onClose }) => {
                         <div className="payment-right">
                             <h4>Thông tin thanh toán</h4>
                             <div className="payment-row">
-                                <span>Tiền cọc:</span>
-                                <span>{formatCurrency(totals?.preOrderTotal)} VNĐ</span>
+                                <span>Đã thanh toán (đặt trước sau giảm giá):</span>
+                                <span>{formatCurrency(totals?.preOrderAfterDiscount)} VNĐ</span>
                             </div>
                             <div className="payment-row">
-                                <span>Còn lại:</span>
+                                <span>Còn lại cần thanh toán (món gọi thêm):</span>
                                 <span>{formatCurrency(totals?.remaining)} VNĐ</span>
                             </div>
                             <div className="payment-row">
                                 <span>Trạng thái:</span>
-                                <span>{order?.status === 'completed' ? 'Đã thanh toán' : 'Chưa thanh toán'}</span>
+                                <span>
+                                    {reservation?.payment_status === 'paid'
+                                        ? 'Đã thanh toán đầy đủ'
+                                        : 'Chưa thanh toán phần gọi thêm'
+                                    }
+                                </span>
                             </div>
                         </div>
                     </div>

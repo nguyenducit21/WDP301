@@ -1228,17 +1228,61 @@ const getInvoiceData = async (req, res) => {
         const subtotal = preOrderTotal + orderTotal;
         // const tax = Math.round(subtotal * 0.1);
         // const total = subtotal + tax;
-        const total = subtotal;
-        const remaining = orderTotal; // Số tiền còn lại phải thanh toán
+        // const total = subtotal;
+        // const remaining = orderTotal; // Số tiền còn lại phải thanh toán
+
+        let discount = 0;
+        let promotionInfo = null;
+
+        if (reservation.promotion && preOrderTotal > 0) {
+            try {
+                // Lấy thông tin promotion
+                const promotionCode = typeof reservation.promotion === 'string'
+                    ? reservation.promotion
+                    : reservation.promotion.code;
+
+                const promotion = await Promotion.findOne({ code: promotionCode });
+
+                if (promotion) {
+                    promotionInfo = {
+                        code: promotion.code,
+                        type: promotion.type,
+                        value: promotion.value,
+                        maxDiscount: promotion.maxDiscount
+                    };
+
+                    // Tính discount dựa trên loại promotion
+                    if (promotion.type === 'percent' || promotion.type === 'first_order') {
+                        discount = preOrderTotal * (promotion.value / 100);
+                        if (promotion.maxDiscount && discount > promotion.maxDiscount) {
+                            discount = promotion.maxDiscount;
+                        }
+                    } else if (promotion.type === 'fixed') {
+                        discount = Math.min(promotion.value, preOrderTotal); // Không vượt quá tiền đặt trước
+                    }
+                }
+            } catch (error) {
+                console.error('Error calculating promotion discount:', error);
+            }
+        }
+
+        const preOrderAfterDiscount = preOrderTotal - discount; // Tiền đặt trước sau giảm giá
+        const total = preOrderAfterDiscount + orderTotal; // Tổng sau giảm giá
+        const remaining = orderTotal; // Chỉ phải trả tiền order thêm
+
+        // const total = subtotal - discount;
+        // const remaining = Math.max(0, total - preOrderTotal); // Số tiền còn lại phải thanh toán
 
         const totals = {
             preOrderTotal,
+            preOrderAfterDiscount,
             orderTotal,
             subtotal,
-            discount: 0,
+            discount,
             // tax,
             total,
-            remaining
+            remaining,
+            promotionInfo
         };
 
         // Thông tin nhà hàng
