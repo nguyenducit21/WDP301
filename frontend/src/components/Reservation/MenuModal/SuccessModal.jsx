@@ -184,22 +184,31 @@ const SuccessModal = ({
         }
     };
 
+    // Add a function to handle canceling the promotion code
+    const handleCancelPromotion = () => {
+        setPromotionResult(null);
+        setPromotionCode('');
+        setPromotionError('');
+    };
+
     // Generate order info for payment
     const getOrderInfo = () => {
         const itemCount = getSelectedItemsCount();
-        return `Đặt bàn + Đặt trước ${itemCount} món ăn (Giảm 15%)`;
+        if (promotionResult && promotionResult.success) {
+            return `Đặt bàn + Đặt trước ${itemCount} món ăn (Mã: ${promotionResult.promotion.code})`;
+        }
+        return `Đặt bàn + Đặt trước ${itemCount} món ăn`;
     };
 
     // Tính toán tổng tiền và giảm giá
     let discount = 0;
-    let finalTotal = calculatePreOrderTotal();
-    let discountLabel = 'Giảm 15%';
+    let finalTotal = calculateOriginalTotal(); // Use original total as base
+    let discountLabel = '';
+
     if (promotionResult && promotionResult.success) {
         discount = promotionResult.discount;
         finalTotal = calculateOriginalTotal() - discount;
         discountLabel = `Mã: ${promotionResult.promotion.code}`;
-    } else {
-        discount = calculateOriginalTotal() - calculatePreOrderTotal();
     }
 
     return (
@@ -207,7 +216,7 @@ const SuccessModal = ({
             <div className="success-modal">
                 <div className="success-modal-header">
                     <h3>🎉 Đặt bàn thành công!</h3>
-                    <p>Bàn của bạn đã được đặt thành công. Bạn có muốn đặt món trước để nhận ưu đãi 15% hoặc nhập mã khuyến mại?</p>
+                    <p>Bàn của bạn đã được đặt thành công. Bạn có muốn đặt món trước và áp dụng mã khuyến mại?</p>
                 </div>
 
                 <div className="success-modal-content">
@@ -472,10 +481,28 @@ const SuccessModal = ({
                                 border: '1px solid #bbf7d0',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '8px'
+                                justifyContent: 'space-between'
                             }}>
-                                <span style={{ fontSize: '16px' }}>✅</span>
-                                <span>Đã áp dụng mã <b>{promotionResult.promotion.code}</b> - Giảm {promotionResult.discount.toLocaleString()}đ</span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <span style={{ fontSize: '16px' }}>✅</span>
+                                    <span>Đã áp dụng mã <b>{promotionResult.promotion.code}</b> - Giảm {promotionResult.discount.toLocaleString()}đ</span>
+                                </div>
+                                <button 
+                                    onClick={handleCancelPromotion}
+                                    style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        color: '#166534',
+                                        cursor: 'pointer',
+                                        fontSize: '20px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '0 8px'
+                                    }}
+                                    title="Hủy mã giảm giá"
+                                >
+                                    ×
+                                </button>
                             </div>
                         )}
                     </div>
@@ -502,32 +529,37 @@ const SuccessModal = ({
                                     flexDirection: 'column',
                                     gap: '8px'
                                 }}>
-                                    <div className="original-price" style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        color: '#64748b',
-                                        fontSize: '14px'
-                                    }}>
-                                        <span>Tổng gốc:</span>
-                                        <span className="strikethrough" style={{
-                                            textDecoration: 'line-through'
-                                        }}>{calculateOriginalTotal().toLocaleString()}đ</span>
-                                    </div>
-                                    <div className="discount-amount" style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        color: '#10b981',
-                                        fontSize: '14px'
-                                    }}>
-                                        <span>{discountLabel}:</span>
-                                        <span className="discount">-{discount.toLocaleString()}đ</span>
-                                    </div>
+                                    {/* Only show original price and discount when a promotion is applied */}
+                                    {promotionResult && promotionResult.success ? (
+                                        <>
+                                            <div className="original-price" style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                color: '#64748b',
+                                                fontSize: '14px'
+                                            }}>
+                                                <span>Tổng gốc:</span>
+                                                <span>{calculateOriginalTotal().toLocaleString()}đ</span>
+                                            </div>
+                                            <div className="discount-amount" style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                color: '#10b981',
+                                                fontSize: '14px'
+                                            }}>
+                                                <span>{discountLabel}:</span>
+                                                <span className="discount">-{discount.toLocaleString()}đ</span>
+                                            </div>
+                                        </>
+                                    ) : null}
+                                    
+                                    {/* Always show final price */}
                                     <div className="final-price" style={{
                                         display: 'flex',
                                         justifyContent: 'space-between',
-                                        borderTop: '1px dashed #e2e8f0',
-                                        paddingTop: '8px',
-                                        marginTop: '4px',
+                                        borderTop: promotionResult && promotionResult.success ? '1px dashed #e2e8f0' : 'none',
+                                        paddingTop: promotionResult && promotionResult.success ? '8px' : '0',
+                                        marginTop: promotionResult && promotionResult.success ? '4px' : '0',
                                         fontWeight: 'bold',
                                         fontSize: '16px'
                                     }}>

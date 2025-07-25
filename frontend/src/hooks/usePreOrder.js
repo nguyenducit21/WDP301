@@ -66,17 +66,16 @@ export const usePreOrder = () => {
         }, 0);
     }, [preOrderItems, menuItems]);
 
-    // Calculate pre-order total with 15% discount
+    // Calculate pre-order total without the default 15% discount
     const calculatePreOrderTotal = useCallback(() => {
-        const originalTotal = calculateOriginalTotal();
-        // Apply 15% discount for pre-order
-        return Math.ceil(originalTotal * 0.85);
+        // Return original total without applying default 15% discount
+        return calculateOriginalTotal();
     }, [calculateOriginalTotal]);
 
-    // Calculate discount amount
+    // Calculate discount amount - will be zero since we're not applying default discount
     const calculateDiscountAmount = useCallback(() => {
-        return calculateOriginalTotal() - calculatePreOrderTotal();
-    }, [calculateOriginalTotal, calculatePreOrderTotal]);
+        return 0;
+    }, []);
 
     // Get total number of selected items
     const getSelectedItemsCount = useCallback(() => {

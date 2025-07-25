@@ -1,10 +1,43 @@
 const Promotion = require('../models/promotion.model');
 
 /**
+ * Kiểm tra và cập nhật trạng thái các mã giảm giá dựa trên ngày hết hạn
+ * Được gọi trước khi thực hiện các thao tác liên quan đến promotion
+ */
+const checkAndUpdatePromotionStatus = async () => {
+    try {
+        const now = new Date();
+        
+        // Vô hiệu hóa các mã đã hết hạn nhưng vẫn đang active
+        const deactivateResult = await Promotion.updateMany(
+            {
+                isActive: true,
+                endDate: { $lt: now }
+            },
+            {
+                isActive: false
+            }
+        );
+        
+        if (deactivateResult.modifiedCount > 0) {
+            console.log(`Đã tự động vô hiệu hóa ${deactivateResult.modifiedCount} mã giảm giá hết hạn.`);
+        }
+        
+        return deactivateResult;
+    } catch (error) {
+        console.error('Lỗi khi cập nhật trạng thái mã giảm giá:', error);
+        return { modifiedCount: 0 };
+    }
+};
+
+/**
  * Lấy tất cả khuyến mại, mới nhất trước
  */
 const getAllPromotions = async (req, res) => {
     try {
+        // Kiểm tra và cập nhật trạng thái các mã giảm giá
+        await checkAndUpdatePromotionStatus();
+        
         const { isClient, includeAll } = req.query;
         const now = new Date();
         
@@ -53,6 +86,9 @@ const getAllPromotions = async (req, res) => {
  */
 const getPromotionById = async (req, res) => {
     try {
+        // Kiểm tra và cập nhật trạng thái các mã giảm giá
+        await checkAndUpdatePromotionStatus();
+        
         const promotion = await Promotion.findById(req.params.id);
         if (!promotion) {
             return res.status(404).json({ success: false, message: 'Không tìm thấy khuyến mại' });
@@ -126,16 +162,47 @@ const updatePromotion = async (req, res) => {
             if (!allowedFields.includes(key)) delete updateData[key];
         });
 
+        // Lấy thông tin promotion hiện tại
+        const currentPromotion = await Promotion.findById(req.params.id);
+        if (!currentPromotion) {
+            return res.status(404).json({ success: false, message: 'Không tìm thấy khuyến mại' });
+        }
+
+        const now = new Date();
+        
+        // Nếu cập nhật endDate
+        if (updateData.endDate) {
+            const newEndDate = new Date(updateData.endDate);
+            
+            // Nếu endDate mới > thời điểm hiện tại và promotion đang không active, tự động kích hoạt lại
+            if (newEndDate > now && !currentPromotion.isActive) {
+                updateData.isActive = true;
+                console.log(`Tự động kích hoạt lại mã khuyến mãi ${currentPromotion.code} do cập nhật ngày hết hạn mới.`);
+            } 
+            // Nếu endDate mới < thời điểm hiện tại và promotion đang active, tự động vô hiệu hóa
+            else if (newEndDate < now && currentPromotion.isActive) {
+                updateData.isActive = false;
+                console.log(`Tự động vô hiệu hóa mã khuyến mãi ${currentPromotion.code} do ngày hết hạn mới đã qua.`);
+            }
+        } 
+        // Nếu không cập nhật endDate nhưng endDate hiện tại đã qua và promotion đang active
+        else if (currentPromotion.endDate < now && currentPromotion.isActive) {
+            updateData.isActive = false;
+            console.log(`Tự động vô hiệu hóa mã khuyến mãi ${currentPromotion.code} do đã hết hạn.`);
+        }
+
         const updatedPromo = await Promotion.findByIdAndUpdate(req.params.id, updateData, {
             new: true,
             runValidators: true
         });
 
-        if (!updatedPromo) {
-            return res.status(404).json({ success: false, message: 'Không tìm thấy khuyến mại' });
-        }
-
-        return res.status(200).json({ success: true, data: updatedPromo });
+        return res.status(200).json({ 
+            success: true, 
+            data: updatedPromo,
+            message: updateData.isActive !== undefined ? 
+                (updateData.isActive ? 'Đã kích hoạt mã khuyến mãi.' : 'Đã vô hiệu hóa mã khuyến mãi.') : 
+                'Cập nhật thành công.'
+        });
     } catch (error) {
         return res.status(400).json({ success: false, message: error.message });
     }
@@ -158,10 +225,12 @@ const deletePromotion = async (req, res) => {
 
 /**
  * Kiểm tra và áp dụng mã khuyến mại
- * Chỉ kiểm tra điều kiện, KHÔNG tăng usedCount ở đây
  */
 const validateAndApplyPromotion = async (req, res) => {
     try {
+        // Kiểm tra và cập nhật trạng thái các mã giảm giá
+        await checkAndUpdatePromotionStatus();
+        
         const { code, orderTotal, userId, isFirstOrder } = req.body;
         const now = new Date();
 
@@ -218,5 +287,6 @@ module.exports = {
     createPromotion,
     updatePromotion,
     deletePromotion,
-    validateAndApplyPromotion
+    validateAndApplyPromotion,
+    checkAndUpdatePromotionStatus
 };
