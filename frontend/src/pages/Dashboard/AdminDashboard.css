@@ -12,22 +12,35 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    background-color: white;
+    padding: 16px 24px;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .dashboard-header h1 {
     font-size: 24px;
     font-weight: 600;
+    margin: 0;
+    color: #1a1a1a;
+}
+
+.filter-buttons {
+    display: flex;
+    gap: 8px;
 }
 
 .filter-buttons button {
-    margin-left: 8px;
-    padding: 6px 16px;
+    padding: 8px 16px;
     border: 1px solid #d9d9d9;
     background-color: white;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     transition: all 0.3s;
     font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .filter-buttons button:hover {
@@ -41,6 +54,71 @@
     border-color: #1890ff;
 }
 
+/* Reservation Stats */
+.reservation-stats {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.reservation-stats .stat-card {
+    flex: 1;
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.reservation-stats .stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.reservation-stats .stat-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 16px;
+}
+
+.reservation-stats .stat-value {
+    font-size: 28px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 8px;
+}
+
+.reservation-stats .stat-title {
+    font-size: 16px;
+    color: #6c757d;
+}
+
+.reservation-stats .stat-detail {
+    font-size: 13px;
+    color: #8c8c8c;
+    margin-top: 4px;
+}
+
+.reservation-stats .stat-icon.success {
+    background-color: #e6f7ff;
+    color: #1890ff;
+}
+
+.reservation-stats .stat-icon.primary {
+    background-color: #f6ffed;
+    color: #52c41a;
+}
+
+.reservation-stats .stat-icon.danger {
+    background-color: #fff2e8;
+    color: #fa541c;
+}
+
 .kpi-cards {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -51,43 +129,86 @@
 .kpi-cards .card {
     background-color: white;
     padding: 20px 24px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
     gap: 20px;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.kpi-cards .card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .card-icon {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 22px;
 }
+
 .card-icon.blue { background-color: #e6f7ff; color: #1890ff; }
 .card-icon.green { background-color: #f6ffed; color: #52c41a; }
 .card-icon.orange { background-color: #fff7e6; color: #fa8c16; }
+.card-icon.red { background-color: #fff1f0; color: #f5222d; }
+.card-icon.purple { background-color: #f9f0ff; color: #722ed1; }
+.card-icon.teal { background-color: #e6fffb; color: #13c2c2; }
 
-.card-content { display: flex; flex-direction: column; }
-.card-title { font-size: 14px; color: #8c8c8c; margin-bottom: 4px; }
-.card-value { font-size: 24px; font-weight: 600; }
-.card-change { font-size: 12px; margin-top: 4px; }
-.card-change.neutral { color: #8c8c8c; }
+.card-content { 
+    display: flex; 
+    flex-direction: column; 
+    flex: 1;
+}
+
+.card-title { 
+    font-size: 14px; 
+    color: #8c8c8c; 
+    margin-bottom: 4px; 
+}
+
+.card-value { 
+    font-size: 24px; 
+    font-weight: 600; 
+    color: #1a1a1a;
+}
+
+.card-detail { 
+    font-size: 13px; 
+    color: #8c8c8c; 
+    margin-top: 4px; 
+}
 
 .main-chart-container, .section-container {
     background-color: white;
     padding: 24px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     margin-bottom: 24px;
 }
+
 .main-chart-container h3, .section-container h3 {
     margin: 0 0 24px 0;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
+    color: #1a1a1a;
+    position: relative;
+    padding-bottom: 12px;
+}
+
+.main-chart-container h3::after, .section-container h3::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    height: 3px;
+    background-color: #1890ff;
+    border-radius: 3px;
 }
 
 .section-container {
@@ -99,10 +220,12 @@
 .custom-table {
     width: 100%;
     border-collapse: collapse;
+    border-radius: 8px;
+    overflow: hidden;
 }
 
 .custom-table th, .custom-table td {
-    padding: 12px 16px;
+    padding: 14px 16px;
     text-align: left;
     font-size: 14px;
     border-bottom: 1px solid #f0f0f0;
@@ -114,28 +237,262 @@
     color: #595959;
 }
 
-.product-info, .employee-info {
+.custom-table tr:last-child td {
+    border-bottom: none;
+}
+
+.custom-table tr:hover td {
+    background-color: #f5f5f5;
+}
+
+/* Order Completion Stats */
+.order-completion-stats {
+    background-color: white;
+    padding: 24px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+}
+
+.order-completion-stats h3 {
+    margin: 0 0 24px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+    position: relative;
+    padding-bottom: 12px;
+}
+
+.order-completion-stats h3::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    height: 3px;
+    background-color: #1890ff;
+    border-radius: 3px;
+}
+
+.completion-stats-simple {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.completion-stats-simple .stat-card {
+    flex: 1;
+    min-width: 250px;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #f8f9fa;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.completion-stats-simple .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: center;
+    font-size: 20px;
 }
 
-.product-info img, .employee-info img {
+.stat-icon.success {
+    background-color: #d4edda;
+    color: #28a745;
+}
+
+.stat-icon.danger {
+    background-color: #f8d7da;
+    color: #dc3545;
+}
+
+.stat-icon.primary {
+    background-color: #cce5ff;
+    color: #007bff;
+}
+
+.stat-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.stat-title {
+    font-size: 14px;
+    color: #6c757d;
+    margin-bottom: 4px;
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.stat-detail {
+    font-size: 13px;
+    color: #6c757d;
+    margin-top: 4px;
+}
+
+/* Top Customers */
+.top-customers {
+    background-color: white;
+    padding: 24px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+}
+
+.top-customers h3 {
+    margin: 0 0 24px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+    position: relative;
+    padding-bottom: 12px;
+}
+
+.top-customers h3::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
     width: 40px;
-    height: 40px;
-    border-radius: 50%; /* Bo tròn ảnh nhân viên */
-    object-fit: cover;
+    height: 3px;
+    background-color: #1890ff;
+    border-radius: 3px;
 }
-.employee-info div { display: flex; flex-direction: column; }
-.employee-name { font-weight: 500; }
-.employee-role { font-size: 12px; color: #8c8c8c; }
-.rating-info { display: flex; align-items: center; gap: 4px; }
 
-.recharts-legend-item-text { color: #595959 !important; }
+.customer-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
 
+.customer-rank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background-color: #f0f0f0;
+    border-radius: 50%;
+    font-weight: 600;
+    font-size: 12px;
+}
+
+.customer-name {
+    font-weight: 500;
+    color: #1a1a1a;
+}
+
+.crown-icon {
+    color: #faad14;
+    margin-left: 4px;
+}
+
+.phone-number {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #6c757d;
+}
+
+.customer-rank.rank-1 {
+    background-color: #ffd700;
+    color: #fff;
+}
+
+.customer-rank.rank-2 {
+    background-color: #c0c0c0;
+    color: #fff;
+}
+
+.customer-rank.rank-3 {
+    background-color: #cd7f32;
+    color: #fff;
+}
+
+tr.rank-1 {
+    background-color: rgba(255, 215, 0, 0.05);
+}
+
+tr.rank-2 {
+    background-color: rgba(192, 192, 192, 0.05);
+}
+
+tr.rank-3 {
+    background-color: rgba(205, 127, 50, 0.05);
+}
+
+.total-spent {
+    font-weight: 600;
+    color: #1890ff;
+}
+
+.no-data {
+    text-align: center;
+    padding: 24px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.loading-indicator {
+    text-align: center;
+    padding: 24px;
+    color: #1890ff;
+    font-style: italic;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.admin-dashboard-loading {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #1890ff;
+    z-index: 1000;
+}
+
+/* Responsive adjustments */
 @media (max-width: 1200px) {
     .section-container {
         grid-template-columns: 1fr;
+    }
+    
+    .kpi-cards {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+}
+
+@media (max-width: 992px) {
+    .completion-stats-simple {
+        flex-direction: column;
+    }
+    
+    .reservation-stats {
+        flex-wrap: wrap;
+    }
+    
+    .reservation-stats .stat-card {
+        min-width: 250px;
     }
 }
 
@@ -145,13 +502,18 @@
         align-items: flex-start;
         gap: 16px;
     }
+    
     .filter-buttons {
         width: 100%;
-        display: flex;
-        justify-content: space-between;
+        overflow-x: auto;
+        padding-bottom: 8px;
     }
+    
     .filter-buttons button {
-        flex: 1; margin: 0;
+        white-space: nowrap;
     }
-    .filter-buttons button:not(:last-child) { margin-right: 8px; }
+    
+    .reservation-stats {
+        flex-direction: column;
+    }
 }

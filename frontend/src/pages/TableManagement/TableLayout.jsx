@@ -65,9 +65,10 @@ const TableLayout = () => {
     const getTableStatusLabel = (status) => {
         const statusMap = {
             'available': 'Bàn trống',
+            'reserved': 'Đã đặt',
             'occupied': 'Đang phục vụ',
-            'cleaning': 'Đang dọn',
-            'maintenance': 'Bảo trì'
+            // 'cleaning': 'Đang dọn',
+            // 'maintenance': 'Bảo trì'
         };
         return statusMap[status] || status;
     };
@@ -235,8 +236,20 @@ const TableLayout = () => {
                     return resDate === selectedDate;
                 });
 
+                // Helper function để kiểm tra table có trong reservation không
+                const isTableInReservation = (reservation, tableId) => {
+                    // Kiểm tra table_ids (multiple tables)
+                    if (reservation.table_ids && Array.isArray(reservation.table_ids)) {
+                        return reservation.table_ids.some(t =>
+                            (typeof t === 'object' ? t._id : t) === tableId
+                        );
+                    }
+                    // Kiểm tra table_id đơn
+                    return (safeGet(reservation, 'table_id._id') || reservation.table_id) === tableId;
+                };
+
                 const reservationIds = reservationsForSelectedDate
-                    .filter(res => (safeGet(res, 'table_id._id') || res.table_id) === table._id)
+                    .filter(res => isTableInReservation(res, table._id))
                     .map(res => res._id);
 
                 const hasActiveOrder = orders.some(order =>
@@ -246,15 +259,27 @@ const TableLayout = () => {
                         reservationIds.includes(safeGet(order, 'reservation_id._id')))
                 );
 
-                const hasConfirmedOrSeatedReservation = reservationsForSelectedDate.some(res =>
-                    (safeGet(res, 'table_id._id') || res.table_id) === table._id &&
-                    ['confirmed', 'seated'].includes(res.status)
+                // Kiểm tra trạng thái reservation cho bàn này
+                const tableReservations = reservationsForSelectedDate.filter(res =>
+                    isTableInReservation(res, table._id)
                 );
 
                 let status = table.status;
-                if (hasConfirmedOrSeatedReservation || hasActiveOrder) {
+
+                // Ưu tiên theo thứ tự: seated > pending/confirmed > completed/cancelled
+                const hasSeatedReservation = tableReservations.some(res => res.status === 'seated');
+                const hasPendingOrConfirmedReservation = tableReservations.some(res =>
+                    ['pending', 'confirmed'].includes(res.status)
+                );
+
+                if (hasSeatedReservation || hasActiveOrder) {
+                    // Khi có reservation seated hoặc có order đang hoạt động -> đang phục vụ
                     status = 'occupied';
-                } else if (table.status !== 'cleaning' && table.status !== 'maintenance') {
+                } else if (hasPendingOrConfirmedReservation) {
+                    // Khi có reservation pending/confirmed -> đã đặt
+                    status = 'reserved';
+                } else if (table.status !== 'maintenance') {
+                    // Khi không có reservation hoặc reservation đã completed/cancelled -> trống
                     status = 'available';
                 }
 
@@ -277,21 +302,32 @@ const TableLayout = () => {
 
     // Helper functions
     const hasActiveReservations = useCallback((tableId) => {
-        return reservations.some(res =>
-            (safeGet(res, 'table_id._id') || res.table_id) === tableId &&
-            ['confirmed', 'pending', 'seated'].includes(res.status) &&
-            new Date(res.date).toISOString().split('T')[0] === selectedDate
-        );
+        return reservations.some(res => {
+            // Kiểm tra multiple tables
+            const isTableInRes = res.table_ids && Array.isArray(res.table_ids)
+                ? res.table_ids.some(t => (typeof t === 'object' ? t._id : t) === tableId)
+                : (safeGet(res, 'table_id._id') || res.table_id) === tableId;
+
+            return isTableInRes &&
+                ['confirmed', 'pending', 'seated'].includes(res.status) &&
+                new Date(res.date).toISOString().split('T')[0] === selectedDate;
+        });
     }, [reservations, selectedDate]);
 
     const getTableReservations = (tableId) => {
         if (!tableId || !Array.isArray(reservations)) return [];
-        return reservations.filter(res =>
-            res &&
-            (safeGet(res, 'table_id._id') || res.table_id) === tableId &&
-            ['confirmed', 'pending', 'seated'].includes(res.status) &&
-            new Date(res.date).toISOString().split('T')[0] === selectedDate
-        );
+        return reservations.filter(res => {
+            if (!res) return false;
+
+            // Kiểm tra multiple tables
+            const isTableInRes = res.table_ids && Array.isArray(res.table_ids)
+                ? res.table_ids.some(t => (typeof t === 'object' ? t._id : t) === tableId)
+                : (safeGet(res, 'table_id._id') || res.table_id) === tableId;
+
+            return isTableInRes &&
+                ['confirmed', 'pending', 'seated'].includes(res.status) &&
+                new Date(res.date).toISOString().split('T')[0] === selectedDate;
+        });
     };
 
     const getTableOrders = useCallback((tableId) => {
@@ -708,7 +744,7 @@ const TableLayout = () => {
                         </div>
 
                         {/* Show reservations for selected table */}
-                        {selectedTable.status === 'occupied' && (
+                        {/* {selectedTable.status === 'occupied' && (
                             <div className="table-reservations">
                                 <h4>Thông tin đặt bàn (Ngày {new Date(selectedDate).toLocaleDateString()})</h4>
                                 {getTableReservations(selectedTable._id).map(res => (
@@ -727,7 +763,7 @@ const TableLayout = () => {
                                     </div>
                                 ))}
                             </div>
-                        )}
+                        )} */}
                     </div>
                 )}
             </div>

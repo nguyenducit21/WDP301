@@ -21,7 +21,8 @@ router.get('/admin-top-products', authMiddleware, roleMiddleware(['admin']), das
 router.get('/admin-promotion-stats', authMiddleware, roleMiddleware(['admin']), dashboardController.getPromotionStats);
 router.get('/admin-busiest-slot', authMiddleware, roleMiddleware(['admin']), dashboardController.getBusiestBookingSlot);
 
-  
-
+// Thêm routes mới
+router.get('/order-completion-stats', authMiddleware, roleMiddleware(['admin', 'manager']), dashboardController.getOrderCompletionStats);
+router.get('/top-customers', authMiddleware, roleMiddleware(['admin', 'manager']), dashboardController.getTopCustomers);
 
 module.exports = router;

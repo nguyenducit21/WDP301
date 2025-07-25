@@ -360,13 +360,14 @@
     border-color: #52c41a;
 }
 
+.table-card.reserved {
+    border-color: #faad14;
+    background: #fffbe6;
+}
+
 .table-card.occupied {
     border-color: #fa8c16;
     background: #fff7e6;
-}
-
-.table-card.cleaning {
-    border-color: #1890ff;
 }
 
 .table-number {
@@ -498,14 +499,14 @@
     color: #52c41a;
 }
 
+.status-badge.reserved {
+    background-color: #fffbe6;
+    color: #faad14;
+}
+
 .status-badge.occupied {
     background-color: #fff1f0;
     color: #f5222d;
-}
-
-.status-badge.cleaning {
-    background-color: #e6f7ff;
-    color: #1890ff;
 }
 
 .status-badge.pending {

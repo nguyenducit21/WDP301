@@ -7,7 +7,12 @@ const TableCombinations = ({
     isTableSelected,
     isCombinationSelected
 }) => {
-    if (!combinations || combinations.length === 0) return null;
+    console.log('TableCombinations received combinations:', combinations); // Debug log
+
+    if (!combinations || combinations.length === 0) {
+        console.log('TableCombinations: No combinations to display'); // Debug log
+        return null;
+    }
 
     return (
         <div className="table-combinations">

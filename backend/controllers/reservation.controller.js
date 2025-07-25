@@ -464,6 +464,28 @@ const createReservation = async (req, res) => {
 
         const reservation = new Reservation(reservationData);
         await reservation.save();
+
+        // Xử lý mã giảm giá ngay khi tạo reservation với pre-order
+        const getPromotionCode = (promotion) => {
+            if (!promotion) return null;
+            return typeof promotion === 'string' ? promotion : promotion.code;
+        };
+        const promotionCode = getPromotionCode(reservationData.promotion);
+
+        if (processedPreOrderItems.length > 0 && promotionCode) {
+            try {
+                const promotion = await Promotion.findOne({ code: promotionCode });
+                if (promotion) {
+                    promotion.usedCount = Math.max(0, (promotion.usedCount || 0) + 1);
+                    await promotion.save();
+                    console.log(`✅ Đã tăng lượt sử dụng mã ${promotionCode} lên ${promotion.usedCount} khi tạo reservation với pre-order`);
+                }
+            } catch (err) {
+                console.error('❌ Lỗi khi cập nhật lượt sử dụng mã giảm giá:', err);
+                // Không throw lỗi để tiếp tục xử lý API
+            }
+        }
+
         try {
             // Tính priority: nếu có pre_order_items thì priority cao hơn
             const priority = processedPreOrderItems.length > 0 ? 2 : 1;
@@ -806,6 +828,63 @@ const updateReservation = async (req, res) => {
             }
         }
 
+        // Xử lý mã giảm giá khi update reservation với pre-order items và promotion
+        const hasPreOrderItems = updatedReservation.pre_order_items && updatedReservation.pre_order_items.length > 0;
+
+        // Xử lý promotion code (có thể là string hoặc object)
+        const getPromotionCode = (promotion) => {
+            if (!promotion) return null;
+            return typeof promotion === 'string' ? promotion : promotion.code;
+        };
+
+        const oldPromotion = getPromotionCode(reservation.promotion);
+        const newPromotion = getPromotionCode(updatedReservation.promotion);
+
+        // Xử lý mã giảm giá khi có pre-order items
+        if (hasPreOrderItems) {
+            try {
+                // Trường hợp 1: Thêm mã giảm giá lần đầu (oldPromotion = null, newPromotion có giá trị)
+                if (!oldPromotion && newPromotion) {
+                    const newPromotionDoc = await Promotion.findOne({ code: newPromotion });
+                    if (newPromotionDoc) {
+                        newPromotionDoc.usedCount = Math.max(0, (newPromotionDoc.usedCount || 0) + 1);
+                        await newPromotionDoc.save();
+                        console.log(`✅ Đã tăng lượt sử dụng mã mới ${newPromotion} lên ${newPromotionDoc.usedCount} (thêm lần đầu)`);
+                    }
+                }
+                // Trường hợp 2: Thay đổi mã giảm giá (oldPromotion khác newPromotion)
+                else if (oldPromotion && newPromotion && oldPromotion !== newPromotion) {
+                    // Giảm usedCount của mã cũ
+                    const oldPromotionDoc = await Promotion.findOne({ code: oldPromotion });
+                    if (oldPromotionDoc) {
+                        oldPromotionDoc.usedCount = Math.max(0, (oldPromotionDoc.usedCount || 0) - 1);
+                        await oldPromotionDoc.save();
+                        console.log(`✅ Đã giảm lượt sử dụng mã cũ ${oldPromotion} xuống ${oldPromotionDoc.usedCount}`);
+                    }
+
+                    // Tăng usedCount của mã mới
+                    const newPromotionDoc = await Promotion.findOne({ code: newPromotion });
+                    if (newPromotionDoc) {
+                        newPromotionDoc.usedCount = Math.max(0, (newPromotionDoc.usedCount || 0) + 1);
+                        await newPromotionDoc.save();
+                        console.log(`✅ Đã tăng lượt sử dụng mã mới ${newPromotion} lên ${newPromotionDoc.usedCount} (thay đổi mã)`);
+                    }
+                }
+                // Trường hợp 3: Xóa mã giảm giá (oldPromotion có giá trị, newPromotion = null)
+                else if (oldPromotion && !newPromotion) {
+                    const oldPromotionDoc = await Promotion.findOne({ code: oldPromotion });
+                    if (oldPromotionDoc) {
+                        oldPromotionDoc.usedCount = Math.max(0, (oldPromotionDoc.usedCount || 0) - 1);
+                        await oldPromotionDoc.save();
+                        console.log(`✅ Đã giảm lượt sử dụng mã ${oldPromotion} xuống ${oldPromotionDoc.usedCount} (xóa mã)`);
+                    }
+                }
+            } catch (err) {
+                console.error('❌ Lỗi khi cập nhật lượt sử dụng mã giảm giá:', err);
+                // Không throw lỗi để tiếp tục xử lý API
+            }
+        }
+
         res.status(200).json({
             success: true,
             message: ['admin', 'manager', 'waiter'].includes(userRole)
@@ -850,10 +929,35 @@ const cancelReservation = async (req, res) => {
             });
         }
 
+        const oldStatus = reservation.status;
+
         // Cập nhật trạng thái reservation
         reservation.status = 'cancelled';
         reservation.updated_at = new Date();
         await reservation.save();
+
+        // Xử lý mã giảm giá khi cancel reservation
+        // Giảm usedCount nếu reservation có mã giảm giá và có pre-order items
+        const hasPreOrderItems = reservation.pre_order_items && reservation.pre_order_items.length > 0;
+        const getPromotionCode = (promotion) => {
+            if (!promotion) return null;
+            return typeof promotion === 'string' ? promotion : promotion.code;
+        };
+        const promotionCode = getPromotionCode(reservation.promotion);
+
+        if (hasPreOrderItems && promotionCode) {
+            try {
+                const promotion = await Promotion.findOne({ code: promotionCode });
+                if (promotion) {
+                    promotion.usedCount = Math.max(0, (promotion.usedCount || 0) - 1);
+                    await promotion.save();
+                    console.log(`✅ Đã giảm lượt sử dụng mã ${promotionCode} xuống ${promotion.usedCount} khi hủy reservation có pre-order`);
+                }
+            } catch (err) {
+                console.error('❌ Lỗi khi cập nhật lượt sử dụng mã giảm giá:', err);
+                // Không throw lỗi để tiếp tục xử lý API
+            }
+        }
 
         // Cập nhật trạng thái bàn về available (chỉ khi bàn còn tồn tại)
         if (reservation.table_id) {
@@ -1133,6 +1237,9 @@ const confirmReservation = async (req, res) => {
             { path: 'assigned_staff', select: 'username full_name' }
         ]);
 
+        // Logic xử lý mã giảm giá đã được chuyển sang createReservation và updateReservation
+        // Không cần xử lý thêm ở đây vì usedCount đã được tăng khi tạo/update reservation với pre-order
+
         res.json({
             success: true,
             data: updatedReservation,
@@ -1228,9 +1335,9 @@ const completeReservation = async (req, res) => {
         reservation.updated_at = new Date();
         await reservation.save();
 
-        // Cập nhật trạng thái bàn từ occupied → cleaning (hoặc available)
+        // Cập nhật trạng thái bàn về available khi hoàn thành
         await Table.findByIdAndUpdate(reservation.table_id, {
-            status: 'cleaning', // Hoặc 'available' nếu không cần dọn
+            status: 'available',
             updated_at: new Date()
         });
 
@@ -1687,10 +1794,35 @@ const updateReservationStatus = async (req, res) => {
             });
         }
 
+        const oldStatus = reservation.status;
+
         // Cập nhật status
         reservation.status = status;
         reservation.updated_at = new Date();
         await reservation.save();
+
+        // Xử lý mã giảm giá khi status thay đổi - chỉ cho trường hợp cancel
+        const hasPreOrderItems = reservation.pre_order_items && reservation.pre_order_items.length > 0;
+        const getPromotionCode = (promotion) => {
+            if (!promotion) return null;
+            return typeof promotion === 'string' ? promotion : promotion.code;
+        };
+        const promotionCode = getPromotionCode(reservation.promotion);
+
+        if (hasPreOrderItems && promotionCode && status === 'cancelled') {
+            const Promotion = require('../models/promotion.model');
+            try {
+                const promotion = await Promotion.findOne({ code: promotionCode });
+                if (promotion) {
+                    promotion.usedCount = Math.max(0, (promotion.usedCount || 0) - 1);
+                    await promotion.save();
+                    console.log(`✅ Đã giảm lượt sử dụng mã ${promotionCode} xuống ${promotion.usedCount} khi cancel qua updateReservationStatus`);
+                }
+            } catch (err) {
+                console.error('❌ Lỗi khi cập nhật lượt sử dụng mã giảm giá:', err);
+                // Không throw lỗi để tiếp tục xử lý API
+            }
+        }
 
         // Notify waiters if reservation is completed
         if (status === 'completed' && global.io) {

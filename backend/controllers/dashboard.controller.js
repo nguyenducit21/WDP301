@@ -7,6 +7,7 @@ const Reservation = require('../models/reservation.model');
 const User = require('../models/user.model');
 const Table = require('../models/table.model');
 const Role = require('../models/role.model');
+const Promotion = require('../models/promotion.model');
 
 const chefDashboard = async (req, res) => {
     try {
@@ -120,7 +121,7 @@ const adminStats = async (req, res) => {
             console.warn(`Missing collections: orders=${hasOrders}, reservations=${hasReservations}`);
         }
 
-        // Doanh thu từ Orders
+        // Doanh thu từ Orders - chỉ tính các đơn trong khoảng thời gian đã chọn
         const [ordersRevenue] = await Order.aggregate([
             {
                 $match: {
@@ -148,7 +149,8 @@ const adminStats = async (req, res) => {
             return [{ totalRevenue: 0, totalOrders: 0 }];
         });
 
-        // Doanh thu từ Reservations
+        // Doanh thu từ Reservations - chỉ tính các đơn trong khoảng thời gian đã chọn
+        // Tính từ pre_order_items
         const [reservationsRevenue] = await Reservation.aggregate([
             {
                 $match: {
@@ -170,12 +172,12 @@ const adminStats = async (req, res) => {
             {
                 $group: {
                     _id: null,
-                    totalRevenue: {
-                        $sum: {
+                    totalRevenue: { 
+                        $sum: { 
                             $multiply: [
                                 '$pre_order_items.quantity',
                                 { $ifNull: ['$menuItem.price', 0] }
-                            ]
+                            ] 
                         }
                     },
                     reservationIds: { $addToSet: '$_id' }
@@ -192,11 +194,67 @@ const adminStats = async (req, res) => {
             return [{ totalRevenue: 0, totalReservations: 0 }];
         });
 
+        // Doanh thu từ tổng số tiền của reservation (nếu có)
+        // Chỉ tính các đơn có total_amount nhưng không có pre_order_items
+        const [reservationsTotalAmountRevenue] = await Reservation.aggregate([
+            {
+                $match: {
+                    date: { $gte: dateRange.start, $lt: dateRange.end },
+                    payment_status: 'paid',
+                    total_amount: { $exists: true, $gt: 0 },
+                    $or: [
+                        { pre_order_items: { $exists: false } },
+                        { pre_order_items: { $size: 0 } }
+                    ]
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalRevenue: { $sum: '$total_amount' },
+                    reservationIds: { $addToSet: '$_id' }
+                }
+            },
+            {
+                $project: {
+                    totalRevenue: 1,
+                    totalReservations: { $size: '$reservationIds' }
+                }
+            }
+        ]).catch(err => {
+            console.error('Error in reservationsTotalAmountRevenue aggregation:', err);
+            return [{ totalRevenue: 0, totalReservations: 0 }];
+        });
+
+        // Đếm tổng số reservation trong khoảng thời gian
+        const totalReservationsCount = await Reservation.countDocuments({
+            date: { $gte: dateRange.start, $lt: dateRange.end }
+        }).catch(err => {
+            console.error('Error counting total reservations:', err);
+            return 0;
+        });
+
         const orderRev = ordersRevenue || { totalRevenue: 0, totalOrders: 0 };
         const reservationRev = reservationsRevenue || { totalRevenue: 0, totalReservations: 0 };
+        const reservationTotalAmountRev = reservationsTotalAmountRevenue || { totalRevenue: 0, totalReservations: 0 };
 
-        const totalRevenue = (orderRev.totalRevenue || 0) + (reservationRev.totalRevenue || 0);
-        const totalInvoices = (orderRev.totalOrders || 0) + (reservationRev.totalReservations || 0);
+        const totalRevenue = (orderRev.totalRevenue || 0) + (reservationRev.totalRevenue || 0) + (reservationTotalAmountRev.totalRevenue || 0);
+        const totalInvoices = (orderRev.totalOrders || 0) + (reservationRev.totalReservations || 0) + (reservationTotalAmountRev.totalReservations || 0);
+
+        console.log(`Total revenue calculation:
+            Orders revenue: ${orderRev.totalRevenue}
+            Reservations pre_order revenue: ${reservationRev.totalRevenue}
+            Reservations total_amount revenue: ${reservationTotalAmountRev.totalRevenue}
+            Total: ${totalRevenue}
+            Total invoices: ${totalInvoices}
+            Total reservations count: ${totalReservationsCount}
+        `);
+
+        // Tính chi phí nguyên liệu (giả định 30% doanh thu)
+        const totalIngredientCost = totalRevenue * 0.3;
+        
+        // Tính lợi nhuận = doanh thu - chi phí nguyên liệu
+        const totalProfit = totalRevenue - totalIngredientCost;
 
         // Khách hàng mới
         const orderCustomerIds = await Order.find({
@@ -225,51 +283,160 @@ const adminStats = async (req, res) => {
             return 0;
         });
 
+        // Đếm số lượng đơn đặt bàn trong khoảng thời gian
+        const reservationCount = await Reservation.countDocuments({
+            date: { $gte: dateRange.start, $lt: dateRange.end }
+        }).catch(err => {
+            console.error('Error counting reservations:', err);
+            return 0;
+        });
+
+        // Đếm số lượng đơn đặt bàn đã hoàn thành
+        const completedReservations = await Reservation.countDocuments({
+            date: { $gte: dateRange.start, $lt: dateRange.end },
+            status: 'completed'
+        }).catch(err => {
+            console.error('Error counting completed reservations:', err);
+            return 0;
+        });
+
+        // Đếm số lượng đơn đặt bàn đã hủy
+        const cancelledReservations = await Reservation.countDocuments({
+            date: { $gte: dateRange.start, $lt: dateRange.end },
+            status: 'cancelled'
+        }).catch(err => {
+            console.error('Error counting cancelled reservations:', err);
+            return 0;
+        });
+
         // Chart data
         const chartMap = {};
 
-        const orders = await Order.find({
-            created_at: { $gte: dateRange.start, $lt: dateRange.end },
-            status: { $in: ['completed', 'served'] },
-            order_items: { $exists: true, $ne: [] }
-        }).catch(err => {
-            console.error('Error fetching orders:', err);
+        // Doanh thu từ orders theo ngày
+        const ordersByDay = await Order.aggregate([
+            {
+                $match: {
+                    created_at: { $gte: dateRange.start, $lt: dateRange.end },
+                    status: { $in: ['completed', 'served'] },
+                    order_items: { $exists: true, $ne: [] }
+                }
+            },
+            { $unwind: '$order_items' },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$created_at" } },
+                    revenue: { $sum: { $multiply: ['$order_items.quantity', '$order_items.price'] } }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]).catch(err => {
+            console.error('Error in ordersByDay aggregation:', err);
             return [];
         });
 
-        orders.forEach(order => {
-            const dateStr = new Date(order.created_at).toISOString().slice(0, 10);
-            const revenue = order.order_items.reduce((sum, item) => sum + (item.quantity * (item.price || 0)), 0);
-            chartMap[dateStr] = (chartMap[dateStr] || 0) + revenue;
-        });
-
-        const reservations = await Reservation.find({
-            date: { $gte: dateRange.start, $lt: dateRange.end },
-            payment_status: 'paid',
-            pre_order_items: { $exists: true, $ne: [] }
-        }).populate('pre_order_items.menu_item_id').catch(err => {
-            console.error('Error fetching reservations:', err);
+        // Doanh thu từ pre_order_items của reservations theo ngày
+        const reservationsByDay = await Reservation.aggregate([
+            {
+                $match: {
+                    date: { $gte: dateRange.start, $lt: dateRange.end },
+                    payment_status: 'paid',
+                    pre_order_items: { $exists: true, $ne: [] }
+                }
+            },
+            { $unwind: '$pre_order_items' },
+            {
+                $lookup: {
+                    from: 'menuitems',
+                    localField: 'pre_order_items.menu_item_id',
+                    foreignField: '_id',
+                    as: 'menuItem'
+                }
+            },
+            { $unwind: { path: '$menuItem', preserveNullAndEmptyArrays: true } },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+                    revenue: { 
+                        $sum: { 
+                            $multiply: [
+                                '$pre_order_items.quantity',
+                                { $ifNull: ['$menuItem.price', 0] }
+                            ] 
+                        }
+                    }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]).catch(err => {
+            console.error('Error in reservationsByDay aggregation:', err);
             return [];
         });
 
-        reservations.forEach(rsv => {
-            const dateStr = new Date(rsv.date).toISOString().slice(0, 10);
-            const revenue = rsv.pre_order_items.reduce((sum, item) => {
-                return sum + item.quantity * (item.menu_item_id?.price || 0);
-            }, 0);
-            chartMap[dateStr] = (chartMap[dateStr] || 0) + revenue;
+        // Doanh thu từ total_amount của reservations theo ngày
+        const reservationsTotalAmountByDay = await Reservation.aggregate([
+            {
+                $match: {
+                    date: { $gte: dateRange.start, $lt: dateRange.end },
+                    payment_status: 'paid',
+                    total_amount: { $exists: true, $gt: 0 },
+                    $or: [
+                        { pre_order_items: { $exists: false } },
+                        { pre_order_items: { $size: 0 } }
+                    ]
+                }
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
+                    revenue: { $sum: '$total_amount' }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]).catch(err => {
+            console.error('Error in reservationsTotalAmountByDay aggregation:', err);
+            return [];
         });
 
-        const chartData = Object.entries(chartMap).map(([date, revenue]) => ({ date, revenue }))
-            .sort((a, b) => new Date(a.date) - new Date(b.date));
+        // Gộp dữ liệu từ cả ba nguồn
+        ordersByDay.forEach(item => {
+            const dateStr = item._id;
+            chartMap[dateStr] = (chartMap[dateStr] || 0) + item.revenue;
+        });
+
+        reservationsByDay.forEach(item => {
+            const dateStr = item._id;
+            chartMap[dateStr] = (chartMap[dateStr] || 0) + item.revenue;
+        });
+
+        reservationsTotalAmountByDay.forEach(item => {
+            const dateStr = item._id;
+            chartMap[dateStr] = (chartMap[dateStr] || 0) + item.revenue;
+        });
+
+        const chartData = Object.entries(chartMap).map(([date, revenue]) => {
+            const ingredientCost = revenue * 0.3; // Giả định chi phí nguyên liệu là 30% doanh thu
+            const profit = revenue - ingredientCost;
+            
+            return {
+                date,
+                revenue,
+                ingredientCost,
+                profit
+            };
+        }).sort((a, b) => new Date(a.date) - new Date(b.date));
 
         res.json({
             success: true,
             data: {
                 totalInvoices,
                 totalRevenue,
+                totalIngredientCost,
+                totalProfit,
                 newCustomers,
-                chartData
+                chartData,
+                reservationCount,
+                completedReservations,
+                cancelledReservations
             },
             period: { from: dateRange.start, to: dateRange.end, days: Math.ceil((dateRange.end - dateRange.start) / (24 * 60 * 60 * 1000)) }
         });
@@ -563,6 +730,8 @@ const getBusiestBookingSlot = async (req, res) => {
         });
 
         const busiestSlot = slotStats[0] || null;
+        
+        console.log('Busiest slot found:', busiestSlot);
 
         res.json({
             success: true,
@@ -593,43 +762,28 @@ const getPromotionStats = async (req, res) => {
             });
         }
 
-        // Kiểm tra dữ liệu promotions
-        const validPromotions = await Promotion.find({
+        // Lấy tất cả các mã khuyến mãi trong khoảng thời gian
+        const promotions = await Promotion.find({
             createdAt: { $gte: start, $lt: end }
-        }).limit(1).catch(err => {
-            console.error('Error checking promotions:', err);
-            return [];
-        });
+        }).lean();
 
-        if (!validPromotions.length) {
-            console.warn('No promotions found for the given period');
-            return res.json({
-                success: true,
-                data: { total: 0, used: 0 },
-                message: 'No promotions found for the given period'
-            });
-        }
+        // Tính tổng số mã và tổng số lượt sử dụng
+        const totalPromotions = promotions.length;
+        const totalUsedCount = promotions.reduce((sum, promo) => sum + (promo.usedCount || 0), 0);
 
-        const totalPromotions = await Promotion.countDocuments({
-            createdAt: { $gte: start, $lt: end }
-        }).catch(err => {
-            console.error('Error counting total promotions:', err);
-            return 0;
-        });
+        console.log(`Found ${totalPromotions} promotions with ${totalUsedCount} total usages`);
 
-        const usedPromotions = await Promotion.countDocuments({
-            createdAt: { $gte: start, $lt: end },
-            usedCount: { $gt: 0 }
-        }).catch(err => {
-            console.error('Error counting used promotions:', err);
-            return 0;
+        // Log chi tiết từng mã để debug
+        promotions.forEach(promo => {
+            console.log(`Promotion ${promo.code}: usedCount = ${promo.usedCount || 0}`);
         });
 
         res.json({
             success: true,
             data: {
                 total: totalPromotions,
-                used: usedPromotions
+                used: totalUsedCount,
+                period: { from: start, to: end }
             }
         });
     } catch (error) {
@@ -642,7 +796,7 @@ const managerDashboard = async (req, res) => {
     try {
         const { period = 'today', startDate, endDate } = req.query;
         const dateRange = calculateDateRange(period, startDate, endDate);
-        
+
         console.log('Dashboard query:', { period, dateRange });
 
         // 1. Tính doanh thu từ Orders
@@ -698,12 +852,12 @@ const managerDashboard = async (req, res) => {
             {
                 $group: {
                     _id: null,
-                    totalRevenue: { 
-                        $sum: { 
+                    totalRevenue: {
+                        $sum: {
                             $multiply: [
-                                '$pre_order_items.quantity', 
+                                '$pre_order_items.quantity',
                                 { $ifNull: ['$menuItem.price', 0] }
-                            ] 
+                            ]
                         }
                     },
                     reservationIds: { $addToSet: '$_id' }
@@ -738,7 +892,7 @@ const managerDashboard = async (req, res) => {
 
         // 5. Đếm nhân viên đang hoạt động
         const waiterRole = await Role.findOne({ name: 'waiter' });
-        const activeStaff = waiterRole ? 
+        const activeStaff = waiterRole ?
             await User.countDocuments({ role_id: waiterRole._id, status: 'active' }) : 0;
 
         // 6. Tính tỷ lệ lấp đầy bàn
@@ -750,7 +904,7 @@ const managerDashboard = async (req, res) => {
             })
         ]);
 
-        const tableOccupancy = totalTables > 0 ? 
+        const tableOccupancy = totalTables > 0 ?
             Math.round((occupiedTables / totalTables) * 100) : 0;
 
         // 7. Đánh giá khách hàng (mặc định hoặc từ review model)
@@ -812,9 +966,9 @@ const managerDashboard = async (req, res) => {
 const getRecentReservations = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 5;
-        
+
         console.log('Getting recent reservations with limit:', limit);
-        
+
         // Populate theo schema thực tế
         const reservations = await Reservation.find({})
             .populate('customer_id', 'full_name username')
@@ -830,7 +984,7 @@ const getRecentReservations = async (req, res) => {
         const formattedReservations = reservations.map(reservation => {
             // Tính total amount từ pre_order_items hoặc sử dụng total_amount
             let totalAmount = 0;
-            
+
             if (reservation.total_amount) {
                 totalAmount = reservation.total_amount;
             } else if (reservation.pre_order_items && reservation.pre_order_items.length > 0) {
@@ -879,8 +1033,8 @@ const getRecentReservations = async (req, res) => {
                 guestCount: reservation.guest_count,
                 phone: reservation.contact_phone,
                 paymentStatus: reservation.payment_status,
-                createdBy: reservation.created_by_staff ? 
-                    (reservation.created_by_staff.full_name || reservation.created_by_staff.username) : 
+                createdBy: reservation.created_by_staff ?
+                    (reservation.created_by_staff.full_name || reservation.created_by_staff.username) :
                     'Khách tự đặt'
             };
         });
@@ -909,7 +1063,7 @@ const getRecentReservations = async (req, res) => {
 const getStaffStatus = async (req, res) => {
     try {
         const { limit = 10, period = 'week', startDate, endDate } = req.query;
-        
+
         const waiterRole = await Role.findOne({ name: 'waiter' });
         if (!waiterRole) {
             return res.status(404).json({
@@ -949,11 +1103,11 @@ const getStaffStatus = async (req, res) => {
                 // ĐẾM ĐỖN HÔM NAY - từ created_by_staff
                 const ordersToday = await Reservation.countDocuments({
                     $or: [
-                      { created_by_staff: employee._id },
-                      { assigned_staff: employee._id }
+                        { created_by_staff: employee._id },
+                        { assigned_staff: employee._id }
                     ],
                     date: { $gte: todayStart, $lt: todayEnd }
-                  }).catch(() => 0);
+                }).catch(() => 0);
 
                 return {
                     id: employee._id,
@@ -1193,7 +1347,7 @@ const waiterDashboard = async (req, res) => {
         const completedOrders = await Reservation.countDocuments({
             assigned_staff: userId,
             status: 'completed',
-            updated_at: { $gte: dateRange.current.start, $lt: dateRange.current.end } 
+            updated_at: { $gte: dateRange.current.start, $lt: dateRange.current.end }
         });
 
         // 2. Tính doanh thu cá nhân (theo bộ lọc thời gian)
@@ -1288,7 +1442,7 @@ const getWaiterOrders = async (req, res) => {
                     $or: [
                         { status: 'pending' },
                         { status: 'confirmed' },
-                        { 
+                        {
                             status: 'seated',
                             assigned_staff: new mongoose.Types.ObjectId(userId)
                         }
@@ -1296,18 +1450,18 @@ const getWaiterOrders = async (req, res) => {
                 }
             ]
         })
-        .populate('table_id table_ids', 'name')
-        .populate('customer_id', 'full_name username phone')
-        .sort({ created_at: -1 })
-        .limit(20);
+            .populate('table_id table_ids', 'name')
+            .populate('customer_id', 'full_name username phone')
+            .sort({ created_at: -1 })
+            .limit(20);
 
         const formattedReservations = reservationsNeedProcessing.map(reservation => {
             const table = reservation.table_id || (reservation.table_ids && reservation.table_ids[0]);
-            
+
             // Format ngày giờ chi tiết
             const bookingDateTime = new Date(reservation.created_at).toLocaleString('vi-VN', {
                 day: '2-digit',
-                month: '2-digit', 
+                month: '2-digit',
                 year: 'numeric',
                 hour: '2-digit',
                 minute: '2-digit'
@@ -1319,7 +1473,7 @@ const getWaiterOrders = async (req, res) => {
                 month: '2-digit',
                 year: 'numeric'
             });
-            
+
             return {
                 id: `#${reservation._id.toString().slice(-6)}`,
                 reservationId: reservation._id,
@@ -1352,7 +1506,7 @@ const getWaiterOrders = async (req, res) => {
 };
 
 const getPriorityByStatus = (status) => {
-    switch(status) {
+    switch (status) {
         case 'pending': return 'urgent';    // Chờ xác nhận = khẩn cấp
         case 'confirmed': return 'high';    // Đã xác nhận, chờ khách đến = cao
         case 'seated': return 'normal';     // Khách đã vào bàn = bình thường
@@ -1360,6 +1514,110 @@ const getPriorityByStatus = (status) => {
     }
 };
 
+// Thống kê tỷ lệ hoàn thành đơn và hủy đơn
+const getOrderCompletionStats = async (req, res) => {
+    try {
+        const { period = 'month', startDate, endDate } = req.query;
+        const dateRange = calculateDateRange(period, startDate, endDate);
+
+        // Đếm số lượng đơn theo từng trạng thái
+        const statusCounts = await Reservation.aggregate([
+            {
+                $match: {
+                    created_at: { $gte: dateRange.start, $lt: dateRange.end }
+                }
+            },
+            {
+                $group: {
+                    _id: "$status",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        // Tính tổng số đơn hàng
+        const totalOrders = statusCounts.reduce((sum, item) => sum + item.count, 0);
+        
+        // Tạo object chứa số lượng từng trạng thái
+        const statusData = {};
+        statusCounts.forEach(item => {
+            statusData[item._id] = {
+                count: item.count,
+                percentage: Math.round((item.count / totalOrders) * 100)
+            };
+        });
+
+        // Tính tỷ lệ hoàn thành và hủy
+        const completionRate = statusData.completed ? statusData.completed.percentage : 0;
+        const cancellationRate = statusData.cancelled ? statusData.cancelled.percentage : 0;
+
+        // Lấy thống kê theo ngày
+        const dailyStats = await Reservation.aggregate([
+            {
+                $match: {
+                    created_at: { $gte: dateRange.start, $lt: dateRange.end }
+                }
+            },
+            {
+                $group: {
+                    _id: {
+                        date: { $dateToString: { format: "%Y-%m-%d", date: "$created_at" } },
+                        status: "$status"
+                    },
+                    count: { $sum: 1 }
+                }
+            },
+            {
+                $group: {
+                    _id: "$_id.date",
+                    statuses: {
+                        $push: {
+                            status: "$_id.status",
+                            count: "$count"
+                        }
+                    },
+                    totalForDay: { $sum: "$count" }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        // Format dữ liệu cho biểu đồ
+        const chartData = dailyStats.map(day => {
+            const result = {
+                date: day._id,
+                total: day.totalForDay
+            };
+            
+            // Thêm từng trạng thái vào kết quả
+            day.statuses.forEach(statusItem => {
+                result[statusItem.status] = statusItem.count;
+                // Tính phần trăm cho mỗi trạng thái
+                result[`${statusItem.status}Percentage`] = Math.round((statusItem.count / day.totalForDay) * 100);
+            });
+            
+            return result;
+        });
+
+        res.json({
+            success: true,
+            data: {
+                totalOrders,
+                statusData,
+                completionRate,
+                cancellationRate,
+                chartData
+            }
+        });
+    } catch (error) {
+        console.error('Error in getOrderCompletionStats:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy thống kê hoàn thành đơn',
+            error: error.message
+        });
+    }
+};
 
 
 const getWaiterNotifications = async (req, res) => {
@@ -1397,6 +1655,178 @@ const getWaiterNotifications = async (req, res) => {
     }
 };
 
+// Thống kê khách hàng đặt nhiều đơn nhất
+const getTopCustomers = async (req, res) => {
+    try {
+        const { period = 'month', startDate, endDate, limit = 10 } = req.query;
+        const dateRange = calculateDateRange(period, startDate, endDate);
+        
+        console.log(`getTopCustomers: period=${period}, start=${dateRange.start}, end=${dateRange.end}`);
+        
+        // Thống kê theo số điện thoại từ reservations
+        const reservationCustomers = await Reservation.aggregate([
+            {
+                $match: {
+                    date: { $gte: dateRange.start, $lt: dateRange.end },
+                    contact_phone: { $exists: true, $ne: "" }
+                }
+            },
+            {
+                $lookup: {
+                    from: "menuitems",
+                    localField: "pre_order_items.menu_item_id",
+                    foreignField: "_id",
+                    as: "menuItems"
+                }
+            },
+            {
+                $project: {
+                    contact_phone: 1,
+                    contact_name: 1,
+                    total_amount: 1,
+                    pre_order_items: 1,
+                    menuItems: 1,
+                    calculatedTotal: {
+                        $reduce: {
+                            input: "$pre_order_items",
+                            initialValue: 0,
+                            in: {
+                                $sum: [
+                                    "$$value",
+                                    {
+                                        $multiply: [
+                                            "$$this.quantity",
+                                            {
+                                                $ifNull: [
+                                                    {
+                                                        $arrayElemAt: [
+                                                            "$menuItems.price",
+                                                            {
+                                                                $indexOfArray: [
+                                                                    "$menuItems._id",
+                                                                    "$$this.menu_item_id"
+                                                                ]
+                                                            }
+                                                        ]
+                                                    },
+                                                    0
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: "$contact_phone",
+                    name: { $first: "$contact_name" },
+                    orderCount: { $sum: 1 },
+                    totalSpent: {
+                        $sum: {
+                            $cond: {
+                                if: { $gt: ["$total_amount", 0] },
+                                then: "$total_amount",
+                                else: "$calculatedTotal"
+                            }
+                        }
+                    }
+                }
+            }
+        ]);
+        
+        console.log("Reservation customers:", JSON.stringify(reservationCustomers, null, 2));
+        
+        // Thống kê theo số điện thoại từ orders
+        const orderCustomers = await Order.aggregate([
+            {
+                $match: {
+                    created_at: { $gte: dateRange.start, $lt: dateRange.end },
+                    contact_phone: { $exists: true, $ne: "" },
+                    status: { $in: ['completed', 'served'] }
+                }
+            },
+            {
+                $unwind: "$order_items"
+            },
+            {
+                $group: {
+                    _id: "$contact_phone",
+                    name: { $first: "$contact_name" },
+                    orderCount: { $sum: 1 },
+                    totalSpent: { $sum: { $multiply: ["$order_items.quantity", "$order_items.price"] } }
+                }
+            }
+        ]);
+        
+        console.log("Order customers:", JSON.stringify(orderCustomers, null, 2));
+        
+        // Gộp dữ liệu từ cả hai nguồn
+        const phoneMap = new Map();
+        
+        // Thêm dữ liệu từ reservations
+        reservationCustomers.forEach(customer => {
+            phoneMap.set(customer._id, {
+                phone: customer._id,
+                name: customer.name || 'Khách hàng',
+                orderCount: customer.orderCount,
+                totalSpent: customer.totalSpent || 0
+            });
+        });
+        
+        // Thêm hoặc cập nhật dữ liệu từ orders
+        orderCustomers.forEach(customer => {
+            if (phoneMap.has(customer._id)) {
+                // Cập nhật nếu số điện thoại đã tồn tại
+                const existing = phoneMap.get(customer._id);
+                phoneMap.set(customer._id, {
+                    ...existing,
+                    orderCount: existing.orderCount + customer.orderCount,
+                    totalSpent: existing.totalSpent + (customer.totalSpent || 0)
+                });
+            } else {
+                // Thêm mới nếu chưa có
+                phoneMap.set(customer._id, {
+                    phone: customer._id,
+                    name: customer.name || 'Khách hàng',
+                    orderCount: customer.orderCount,
+                    totalSpent: customer.totalSpent || 0
+                });
+            }
+        });
+        
+        // Chuyển Map thành mảng và sắp xếp
+        const combinedCustomers = Array.from(phoneMap.values())
+            .sort((a, b) => b.totalSpent - a.totalSpent)
+            .slice(0, parseInt(limit));
+
+        // Log chi tiết từng khách hàng
+        combinedCustomers.forEach((customer, index) => {
+            console.log(`Customer ${index + 1}: ${customer.name} (${customer.phone}) - ${customer.orderCount} orders - ${customer.totalSpent} VND`);
+        });
+
+        // Tính tổng doanh thu để so sánh
+        const totalRevenue = combinedCustomers.reduce((sum, customer) => sum + customer.totalSpent, 0);
+        console.log(`Total customer spending: ${totalRevenue} VND`);
+
+        res.json({
+            success: true,
+            data: combinedCustomers,
+            period: { from: dateRange.start, to: dateRange.end }
+        });
+    } catch (error) {
+        console.error('Error in getTopCustomers:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Lỗi khi lấy thống kê khách hàng',
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
     chefDashboard,
     managerDashboard,
@@ -1413,5 +1843,7 @@ module.exports = {
     adminEmployeePerformance,
     adminTopProducts,
     getBusiestBookingSlot,
-    getPromotionStats
+    getPromotionStats,
+    getOrderCompletionStats,
+    getTopCustomers
 }

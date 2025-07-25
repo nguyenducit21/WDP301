@@ -6,6 +6,7 @@ import { AuthContext } from '../../context/AuthContext';
 import InvoicePrint from '../../components/InvoicePrint/InvoicePrint';
 import TableCombinations from '../../components/ReservationManagement/TableCombinations';
 import SelectedTablesSummary from '../../components/ReservationManagement/SelectedTablesSummary';
+import '../../components/Reservation/Reservation.css';
 import './ReservationManagement.css';
 import axios from '../../utils/axios.customize';
 
@@ -42,11 +43,11 @@ const ReservationManagement = () => {
     // States cho tính năng ghép bàn
     const [tableCombinations, setTableCombinations] = useState({});
     const [selectedTables, setSelectedTables] = useState([]);
-    const [showTableCombinations, setShowTableCombinations] = useState(false);
 
     // States lọc & phân trang
     const [statusFilter, setStatusFilter] = useState('all');
     const [filterByDate, setFilterByDate] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
     const [reservationPage, setReservationPage] = useState(1);
     const [reservationsPerPage] = useState(10);
 
@@ -67,6 +68,19 @@ const ReservationManagement = () => {
         } catch {
             return defaultValue;
         }
+    };
+
+    // Helper function để hiển thị multiple tables
+    const getTableNames = (reservation) => {
+        // Kiểm tra nếu có table_ids (multiple tables)
+        if (reservation.table_ids && Array.isArray(reservation.table_ids)) {
+            return reservation.table_ids.map(table =>
+                typeof table === 'object' ? table.name : table
+            ).join(', ');
+        }
+
+        // Fallback về table_id đơn
+        return safeGet(reservation, 'table_id.name') || 'N/A';
     };
 
     const getReservationStatusLabel = (status) => {
@@ -155,16 +169,32 @@ const ReservationManagement = () => {
     };
 
     const getSuggestedCombinations = (guestCount) => {
-        console.log('getSuggestedCombinations called with:', { tableCombinations, guestCount }); // Debug log
-        if (!tableCombinations || !guestCount) return [];
+        console.log('getSuggestedCombinations called with:', { tableCombinations, guestCount, availableTables: formData.availableTables }); // Debug log
+        if (!guestCount) return [];
 
         const combinations = [];
 
-        // Single tables
+        // Single tables - ưu tiên từ tableCombinations, fallback về availableTables
+        let singleTables = [];
         if (tableCombinations.single && tableCombinations.single.length > 0) {
+            singleTables = tableCombinations.single;
+        } else if (formData.availableTables && formData.availableTables.length > 0) {
+            // Fallback: sử dụng availableTables khi không có combinations.single
+            // Lọc bàn phù hợp với số khách (capacity >= guestCount)
+            singleTables = formData.availableTables.filter(table =>
+                table.capacity >= guestCount
+            );
+
+            // Nếu không có bàn phù hợp, hiển thị tất cả bàn available
+            if (singleTables.length === 0) {
+                singleTables = formData.availableTables;
+            }
+        }
+
+        if (singleTables.length > 0) {
             combinations.push({
                 description: `Bàn đơn (phù hợp cho ${guestCount} người)`,
-                tables: tableCombinations.single
+                tables: singleTables
             });
         }
 
@@ -304,8 +334,33 @@ const ReservationManagement = () => {
 
     // ==================== PHÂN TRANG & SẮP XẾP ====================
     const getSortedReservations = () => {
+        let filteredReservations = [...reservations];
+
+        // Filter by status
+        if (statusFilter !== 'all') {
+            filteredReservations = filteredReservations.filter(res => res.status === statusFilter);
+        }
+
+        // Filter by date
+        if (filterByDate) {
+            filteredReservations = filteredReservations.filter(res => {
+                const resDate = new Date(res.date).toISOString().split('T')[0];
+                return resDate === selectedDate;
+            });
+        }
+
+        // Filter by search query (name or phone)
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            filteredReservations = filteredReservations.filter(res =>
+                res.contact_name?.toLowerCase().includes(query) ||
+                res.contact_phone?.includes(query)
+            );
+        }
+
+        // Sort by priority
         const statusPriority = { 'pending': 1, 'confirmed': 2, 'seated': 3, 'completed': 4, 'cancelled': 5, 'no_show': 6 };
-        return [...reservations].sort((a, b) => {
+        return filteredReservations.sort((a, b) => {
             const statusDiff = (statusPriority[a.status] || 99) - (statusPriority[b.status] || 99);
             if (statusDiff !== 0) return statusDiff;
             return new Date(b.date) - new Date(a.date);
@@ -634,7 +689,6 @@ const ReservationManagement = () => {
         // Reset states ghép bàn
         setSelectedTables([]);
         setTableCombinations({});
-        setShowTableCombinations(false);
 
         if (type === 'add') {
             setFormData({
@@ -645,6 +699,7 @@ const ReservationManagement = () => {
                 contact_phone: '',
                 contact_email: '',
                 guest_count: 2,
+                status: 'confirmed', // Mặc định đã xác nhận khi nhân viên tạo
                 notes: '',
                 pre_order_items: [],
                 availableTables: []
@@ -788,10 +843,9 @@ const ReservationManagement = () => {
                             selectedSlotInfo: selectedSlot // Lưu thông tin slot đã chọn
                         });
 
-                        // Lưu table combinations và hiển thị gợi ý ghép bàn
+                        // Lưu table combinations
                         console.log('Table combinations from API:', response.data.combinations); // Debug log
                         setTableCombinations(response.data.combinations || {});
-                        setShowTableCombinations(true);
                         setSelectedTables([]); // Reset selected tables
                     } else {
                         setError('Không thể lấy danh sách bàn trống');
@@ -816,7 +870,6 @@ const ReservationManagement = () => {
                 });
                 setSelectedTables([]);
                 setTableCombinations({});
-                setShowTableCombinations(false);
                 return;
             }
 
@@ -888,6 +941,7 @@ const ReservationManagement = () => {
                         date: formData.date,
                         slot_id: formData.slot_id,
                         guest_count: parseInt(formData.guest_count),
+                        status: formData.status || 'confirmed', // Mặc định confirmed cho nhân viên
                         notes: formData.notes,
                         payment_status: 'pending'
                     };
@@ -1042,31 +1096,6 @@ const ReservationManagement = () => {
                         }
 
                         if (response?.data?.success) {
-                            // Cập nhật trạng thái thanh toán cho reservation nếu cần
-                            if (formData.reservation_id) {
-                                try {
-                                    const currentReservation = reservations.find(r => r._id === formData.reservation_id);
-                                    // Cập nhật trạng thái thanh toán nếu đã thanh toán hoặc đã cọc
-                                    if (currentReservation && ['paid', 'partial'].includes(currentReservation.payment_status)) {
-                                        await axios.patch(`/reservations/${formData.reservation_id}/payment-status`, {
-                                            payment_status: 'partial',
-                                            payment_method: currentReservation.payment_method || 'bank_transfer',
-                                            payment_note: 'Tự động cập nhật: Đã thêm món mới cần thanh toán thêm'
-                                        });
-                                    }
-                                    // Nếu chưa cọc (pending), cập nhật thành partial để báo hiệu có món cần thanh toán
-                                    else if (currentReservation && currentReservation.payment_status === 'pending') {
-                                        await axios.patch(`/reservations/${formData.reservation_id}/payment-status`, {
-                                            payment_status: 'partial',
-                                            payment_method: 'cash',
-                                            payment_note: 'Đã thêm món - cần thanh toán'
-                                        });
-                                    }
-                                } catch (paymentUpdateError) {
-                                    console.error('Error updating payment status:', paymentUpdateError);
-                                    // Không throw error để không ảnh hưởng đến việc thêm món thành công
-                                }
-                            }
 
                             // Cập nhật dữ liệu ngay lập tức
                             await Promise.all([
@@ -1126,6 +1155,11 @@ const ReservationManagement = () => {
             setStatusFilter(location.state.statusFilter);
         }
     }, [location.state]);
+
+    // Reset page when filters change
+    useEffect(() => {
+        setReservationPage(1);
+    }, [statusFilter, filterByDate, selectedDate, searchQuery]);
 
     // ==================== RENDER COMPONENT ====================
     return (
@@ -1191,51 +1225,75 @@ const ReservationManagement = () => {
             {/* Nội dung chính */}
             <div className="reservations-view">
                 <div className="reservations-header">
-                    <h3>Danh sách đặt bàn</h3>
-                    <div className="reservations-actions">
-                        <div className="date-filter">
-                            <div className="filter-by-date-toggle">
+                    <h2>🍽️ Quản lý đặt bàn</h2>
+                    <div className="header-stats">
+                        <span className="stat-item">
+                            <strong>{getSortedReservations().length}</strong> đặt bàn
+                        </span>
+                    </div>
+                </div>
+
+                <div className="filters-section">
+                    <div className="filters-row">
+                        <div className="filter-group date-filter-group">
+                            <label>📅 Lọc theo ngày</label>
+                            <div className="date-filter-controls">
+                                <div className="checkbox-wrapper">
+                                    <input
+                                        type="checkbox"
+                                        id="filterByDate"
+                                        checked={filterByDate}
+                                        onChange={(e) => setFilterByDate(e.target.checked)}
+                                    />
+                                    <label htmlFor="filterByDate">Áp dụng</label>
+                                </div>
                                 <input
-                                    type="checkbox"
-                                    id="filter-by-date"
-                                    checked={filterByDate}
-                                    onChange={(e) => setFilterByDate(e.target.checked)}
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => setSelectedDate(e.target.value)}
+                                    disabled={!filterByDate}
+                                    className="date-input"
                                 />
-                                <label htmlFor="filter-by-date">Lọc theo ngày:</label>
                             </div>
+                        </div>
+
+                        <div className="filter-group">
+                            <label>🔍 Tìm kiếm</label>
                             <input
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                                className="date-input"
-                                disabled={!filterByDate}
+                                type="text"
+                                placeholder="Tên khách hàng hoặc SĐT..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="search-input"
                             />
                         </div>
 
-                        <div className="status-filter">
-                            <label>Trạng thái:</label>
+                        <div className="filter-group">
+                            <label>📊 Trạng thái</label>
                             <select
                                 value={statusFilter}
                                 onChange={(e) => setStatusFilter(e.target.value)}
-                                className="status-filter-select"
                             >
                                 <option value="all">Tất cả trạng thái</option>
-                                <option value="pending">Chờ xác nhận</option>
-                                <option value="confirmed">Đã xác nhận</option>
-                                <option value="seated">Đã vào bàn</option>
-                                <option value="completed">Đã hoàn thành</option>
-                                <option value="cancelled">Đã hủy</option>
-                                <option value="no_show">Không đến</option>
+                                <option value="pending">⏳ Chờ xác nhận</option>
+                                <option value="confirmed">✅ Đã xác nhận</option>
+                                <option value="seated">🪑 Đã vào bàn</option>
+                                <option value="completed">✨ Đã hoàn thành</option>
+                                <option value="cancelled">❌ Đã hủy</option>
+                                <option value="no_show">👻 Không đến</option>
                             </select>
                         </div>
 
-                        <button
-                            className="action-button add-reservation"
-                            onClick={() => openModal('add')}
-                            disabled={loading}
-                        >
-                            Đặt bàn mới
-                        </button>
+                        <div className="filter-group">
+                            <label>&nbsp;</label>
+                            <button
+                                className="action-button add-reservation"
+                                onClick={() => openModal('add')}
+                                disabled={loading}
+                            >
+                                ➕ Đặt bàn mới
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1268,8 +1326,10 @@ const ReservationManagement = () => {
                             ) : getSortedReservations().length === 0 ? (
                                 <tr>
                                     <td colSpan="12" className="empty-cell">
-                                        Không có đặt bàn nào {statusFilter !== 'all' ? `với trạng thái "${getReservationStatusLabel(statusFilter)}"` : ''}
+                                        Không có đặt bàn nào
+                                        {statusFilter !== 'all' ? ` với trạng thái "${getReservationStatusLabel(statusFilter)}"` : ''}
                                         {filterByDate ? ` vào ngày ${new Date(selectedDate).toLocaleDateString()}` : ''}
+                                        {searchQuery.trim() ? ` phù hợp với từ khóa "${searchQuery}"` : ''}
                                     </td>
                                 </tr>
                             ) : (
@@ -1280,7 +1340,7 @@ const ReservationManagement = () => {
                                         onClick={() => handleReservationClick(res)}
                                     >
                                         <td>#{res._id.slice(-6)}</td>
-                                        <td>{safeGet(res, 'table_id.name') || 'N/A'}</td>
+                                        <td>{getTableNames(res)}</td>
                                         <td>{res.contact_name}</td>
                                         <td>{res.contact_phone}</td>
                                         <td>{formatDate(res.date)}</td>
@@ -1516,7 +1576,7 @@ const ReservationManagement = () => {
                         <p><strong>Khách hàng:</strong> {selectedReservation.contact_name}</p>
                         <p><strong>Số điện thoại:</strong> {selectedReservation.contact_phone}</p>
                         <p><strong>Email:</strong> {selectedReservation.contact_email || 'N/A'}</p>
-                        <p><strong>Bàn:</strong> {safeGet(selectedReservation, 'table_id.name') || 'N/A'}</p>
+                        <p><strong>Bàn:</strong> {getTableNames(selectedReservation)}</p>
                         <p><strong>Ngày:</strong> {formatDate(selectedReservation.date)}</p>
                         <p><strong>Thời gian:</strong> {getSlotDisplayText(safeGet(selectedReservation, 'slot_id._id') || selectedReservation.slot_id)}</p>
                         <p><strong>Số khách:</strong> {selectedReservation.guest_count}</p>
@@ -1661,28 +1721,54 @@ const ReservationManagement = () => {
                                         </div>
                                     )}
 
-                                    {/* Hiển thị tính năng ghép bàn */}
-                                    {showTableCombinations && formData.slot_id && formData.guest_count && (
+                                    {/* Hiển thị table selection giống giao diện khách hàng */}
+                                    {formData.slot_id && formData.guest_count && (
                                         <div className="table-selection-section">
-                                            <SelectedTablesSummary
-                                                selectedTables={selectedTables}
-                                                guestCount={parseInt(formData.guest_count)}
-                                                getTotalCapacity={getTotalCapacity}
-                                                onRemoveTable={handleTableSelect}
-                                            />
+                                            {formData.availableTables && formData.availableTables.length === 0 ? (
+                                                <div className="no-tables-message">
+                                                    <p>Không có bàn trống trong khung giờ này, vui lòng chọn khung giờ khác.</p>
+                                                </div>
+                                            ) : (
+                                                <div className="tables-section">
+                                                    <SelectedTablesSummary
+                                                        selectedTables={selectedTables}
+                                                        guestCount={parseInt(formData.guest_count)}
+                                                        getTotalCapacity={getTotalCapacity}
+                                                        onRemoveTable={handleTableSelect}
+                                                    />
 
-                                            <TableCombinations
-                                                combinations={getSuggestedCombinations(parseInt(formData.guest_count))}
-                                                onTableSelect={handleTableSelect}
-                                                onCombinationSelect={handleCombinationSelect}
-                                                isTableSelected={isTableSelected}
-                                                isCombinationSelected={isCombinationSelected}
-                                            />
+                                                    {(() => {
+                                                        const combinations = getSuggestedCombinations(parseInt(formData.guest_count));
+                                                        if (combinations.length === 0) {
+                                                            return (
+                                                                <div className="no-combinations-message">
+                                                                    <p>Không có bàn phù hợp cho {formData.guest_count} khách trong khung giờ này.</p>
+                                                                    <p>Vui lòng thử:</p>
+                                                                    <ul>
+                                                                        <li>Chọn khung giờ khác</li>
+                                                                        <li>Giảm số lượng khách</li>
+                                                                        <li>Liên hệ nhà hàng để được hỗ trợ</li>
+                                                                    </ul>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        return (
+                                                            <TableCombinations
+                                                                combinations={combinations}
+                                                                onTableSelect={handleTableSelect}
+                                                                onCombinationSelect={handleCombinationSelect}
+                                                                isTableSelected={isTableSelected}
+                                                                isCombinationSelected={isCombinationSelected}
+                                                            />
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
-                                    {/* Fallback: Chọn bàn đơn truyền thống (ẩn khi có table combinations) */}
-                                    {!showTableCombinations && (
+                                    {/* Fallback cũ - giữ lại cho trường hợp không có slot_id */}
+                                    {!formData.slot_id && (
                                         <div className="form-group">
                                             <label>Bàn</label>
                                             <select
@@ -2048,31 +2134,6 @@ const ReservationManagement = () => {
                                         }
 
                                         if (response?.data?.success) {
-                                            // Cập nhật trạng thái thanh toán nếu cần
-                                            if (formData.reservation_id) {
-                                                try {
-                                                    const currentReservation = reservations.find(r => r._id === formData.reservation_id);
-                                                    // Cập nhật trạng thái thanh toán nếu đã thanh toán hoặc đã cọc
-                                                    if (currentReservation && ['paid', 'partial'].includes(currentReservation.payment_status)) {
-                                                        await axios.patch(`/reservations/${formData.reservation_id}/payment-status`, {
-                                                            payment_status: 'partial',
-                                                            payment_method: currentReservation.payment_method || 'bank_transfer',
-                                                            payment_note: 'Tự động cập nhật: Đã thêm món mới cần thanh toán thêm'
-                                                        });
-                                                    }
-                                                    // Nếu chưa cọc (pending), cập nhật thành partial để báo hiệu có món cần thanh toán
-                                                    else if (currentReservation && currentReservation.payment_status === 'pending') {
-                                                        await axios.patch(`/reservations/${formData.reservation_id}/payment-status`, {
-                                                            payment_status: 'partial',
-                                                            payment_method: 'cash',
-                                                            payment_note: 'Đã thêm món - cần thanh toán'
-                                                        });
-                                                    }
-                                                } catch (paymentUpdateError) {
-                                                    console.error('Error updating payment status:', paymentUpdateError);
-                                                    // Không throw error để không ảnh hưởng đến việc thêm món thành công
-                                                }
-                                            }
 
                                             // Cập nhật tất cả dữ liệu
                                             await Promise.all([
