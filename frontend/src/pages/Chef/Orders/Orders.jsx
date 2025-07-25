@@ -78,10 +78,10 @@ const Orders = () => {
 
     const getAvailableStatuses = (currentStatus, orderType = 'active') => {
         const allStatuses = [
-            { value: 'confirmed', label: 'Xác nhận' },
+            { value: 'confirmed', label: 'Nấu lại' },
             { value: 'cooked', label: 'Đã nấu xong' }, // Thêm trạng thái này
             // { value: 'completed', label: 'Hoàn thành' },
-            { value: 'cancelled', label: 'Hủy đơn' }
+            // { value: 'cancelled', label: 'Hủy đơn' }
         ];
 
         // Luôn trả về tất cả status trừ status hiện tại
@@ -103,8 +103,8 @@ const Orders = () => {
         switch (status) {
             case 'confirmed':
                 return '#ff9800';
-            case 'pending':
-                return '#2196f3';
+            // case 'pending':
+            //     return '#2196f3';
             case 'cooked':
                 return '#00bcd4'; // Màu riêng cho cooked
             // case 'completed':
@@ -284,16 +284,7 @@ const Orders = () => {
                     value={filterTable}
                     onChange={e => setFilterTable(e.target.value)}
                 />
-                <select
-                    value={filterStatus}
-                    onChange={e => setFilterStatus(e.target.value)}
-                >
-                    <option value="">Tất cả trạng thái</option>
-                    <option value="confirmed">Chờ xử lý</option>
-                    <option value="pending">Đang chế biến</option>
-                    <option value="cooked">Đã nấu xong</option>
-                    <option value="cancelled">Đã hủy</option>
-                </select>
+              
                 <input
                     type="date"
                     value={filterDate}
@@ -324,7 +315,7 @@ const Orders = () => {
                     className={`tab-btn ${activeTab === 'completed' ? 'active' : ''}`}
                     onClick={() => setActiveTab('completed')}
                 >
-                    Đã hoàn thành ({orders.all_orders.filter(order => order.status === 'completed').length})
+                    Đã hoàn thành ({orders.all_orders.filter(order => order.status === 'cooked').length})
                 </button>
                 <button
                     className={`tab-btn ${activeTab === 'cancelled' ? 'active' : ''}`}
@@ -342,7 +333,7 @@ const Orders = () => {
                 ) : (
                     getFilteredOrders().map((order, index) => (
                         <div key={`${order.id}-${order.type}-${index}`} className="order-card modern">
-                            <div className="order-header modern">
+                            <div className="order-header modern" style={{ paddingBottom: '20px' }}>
                                 <div className="order-type modern">{order.type === 'pre_order' ? 'Đặt trước' : 'Nhân viên đặt'}</div>
                                 <div className="status-container modern">
                                     <div

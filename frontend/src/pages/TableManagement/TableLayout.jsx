@@ -578,17 +578,6 @@ const TableLayout = () => {
 
                         {/* Notification Bell */}
                         <div className="notification-section">
-                            <div className="notification-bell" onClick={() => setShowNotificationPanel(!showNotificationPanel)}>
-                                <div className="bell-icon">
-                                    🔔
-                                    {unreadCount > 0 && (
-                                        <span className="notification-badge">{unreadCount}</span>
-                                    )}
-                                </div>
-                                <div className={`connection-status ${isConnected ? 'connected' : 'disconnected'}`}>
-                                    {isConnected ? '🟢' : '🔴'}
-                                </div>
-                            </div>
 
                             {/* Notification Panel */}
                             {showNotificationPanel && notifications.length > 0 && (

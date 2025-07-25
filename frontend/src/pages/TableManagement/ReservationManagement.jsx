@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useContext, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import Sidebar from '../../components/SidebarManager/SidebarManager';
@@ -45,7 +45,7 @@ const ReservationManagement = () => {
     const [selectedTables, setSelectedTables] = useState([]);
 
     // States lọc & phân trang
-    const [statusFilter, setStatusFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState('seated');
     const [filterByDate, setFilterByDate] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [reservationPage, setReservationPage] = useState(1);
@@ -60,6 +60,24 @@ const ReservationManagement = () => {
     const [socket, setSocket] = useState(null);
     const [isConnected, setIsConnected] = useState(false);
     const [showNotificationPanel, setShowNotificationPanel] = useState(false);
+
+    // Highlight reservationId nếu có
+    const [highlightedReservationId, setHighlightedReservationId] = useState(null);
+    const highlightRowRef = useRef(null);
+
+    useEffect(() => {
+        if (location.state && location.state.reservationId) {
+            setHighlightedReservationId(location.state.reservationId);
+            // Scroll đến dòng highlight nếu có
+            setTimeout(() => {
+                if (highlightRowRef.current) {
+                    highlightRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 300);
+            // Tự động bỏ highlight sau 4 giây
+            setTimeout(() => setHighlightedReservationId(null), 4000);
+        }
+    }, [location.state]);
 
     // ==================== HÀM TIỆN ÍCH ====================
     const safeGet = (obj, path, defaultValue = null) => {
@@ -1336,7 +1354,8 @@ const ReservationManagement = () => {
                                 getPaginatedReservations().map(res => (
                                     <tr
                                         key={res._id}
-                                        className={`${selectedReservation?._id === res._id ? 'selected' : ''} status-${res.status}`}
+                                        ref={highlightedReservationId === res._id ? highlightRowRef : null}
+                                        className={`${selectedReservation?._id === res._id ? 'selected' : ''} status-${res.status} ${highlightedReservationId === res._id ? 'highlight' : ''}`}
                                         onClick={() => handleReservationClick(res)}
                                     >
                                         <td>#{res._id.slice(-6)}</td>

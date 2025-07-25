@@ -93,6 +93,29 @@ const AvailableMenuItems = () => {
         }).format(price);
     };
 
+    // List các từ khóa loại nước giải khát
+    const drinkKeywords = [
+        'nước', 'mirinda', 'pepsi', 'coca', '7up', 'cam', 'trà', 'bò húc', 'sting', 'sữa', 'fanta', 'sprite',
+        'revive', 'aquafina', 'lavie', 'bò cụng', 'bia', 'rượu', 'vodka', 'soda', 'beer', 'wine', 'cocktail', 'mocktail', 'juice', 'drink', 'soft drink', 'beverage'
+    ];
+    // Hàm kiểm tra tên món có phải nước giải khát không
+    const isDrink = (item) => {
+        const name = (item.menu_item_name || '').toLowerCase();
+        return drinkKeywords.some(keyword => name.includes(keyword));
+    };
+
+    // Filtered menu items (không phải đồ uống)
+    const filteredMenuItems = menuItems.filter(item => !isDrink(item));
+
+    // Tính lại summary dựa trên filteredMenuItems
+    const summaryFiltered = {
+        available_items: filteredMenuItems.filter(i => i.status === 'available').length,
+        unavailable_items: filteredMenuItems.filter(i => i.status === 'unavailable').length,
+        inactive_menu_items: filteredMenuItems.filter(i => i.menu_item_active === false).length,
+        total_menu_items: filteredMenuItems.length,
+        availability_rate: filteredMenuItems.length > 0 ? Math.round(filteredMenuItems.filter(i => i.status === 'available').length / filteredMenuItems.length * 100) : 0
+    };
+
     if (loading) {
         return (
             <div className="available-menu-items-container">
@@ -135,32 +158,32 @@ const AvailableMenuItems = () => {
             {/* Summary Statistics */}
             <div className="summary-stats">
                 <div className="stat-card available">
-                    <h3>{summary.available_items || 0}</h3>
+                    <h3>{summaryFiltered.available_items}</h3>
                     <p>Món có thể nấu</p>
                 </div>
                 <div className="stat-card unavailable">
-                    <h3>{summary.unavailable_items || 0}</h3>
+                    <h3>{summaryFiltered.unavailable_items}</h3>
                     <p>Món thiếu nguyên liệu</p>
                 </div>
-                {summary.inactive_menu_items > 0 && (
+                {summaryFiltered.inactive_menu_items > 0 && (
                     <div className="stat-card inactive">
-                        <h3>{summary.inactive_menu_items || 0}</h3>
+                        <h3>{summaryFiltered.inactive_menu_items}</h3>
                         <p>Món tạm ngưng</p>
                     </div>
                 )}
                 <div className="stat-card total">
-                    <h3>{summary.total_menu_items || 0}</h3>
+                    <h3>{summaryFiltered.total_menu_items}</h3>
                     <p>Tổng số món</p>
                 </div>
                 <div className="stat-card rate">
-                    <h3>{summary.availability_rate || 0}%</h3>
+                    <h3>{summaryFiltered.availability_rate}%</h3>
                     <p>Tỷ lệ sẵn sàng</p>
                 </div>
             </div>
 
             {/* Menu Items List */}
             <div className="menu-items-grid">
-                {menuItems.map((item) => (
+                {menuItems.filter(item => !isDrink(item)).map((item) => (
                     <div
                         key={item.menu_item_id}
                         className={`menu-item-card ${item.status}${!item.menu_item_active ? ' inactive' : ''}`}
@@ -213,7 +236,9 @@ const AvailableMenuItems = () => {
                                                 </div>
                                                 <div className="ingredient-quantities">
                                                     <span>Cần: {ingredient.needed_quantity} {ingredient.unit}</span>
-                                                    <span>Có: {ingredient.available_quantity} {ingredient.unit}</span>
+                                                    <span>
+                                                        Có: {parseFloat(Number(ingredient.available_quantity).toFixed(3))} {ingredient.unit}
+                                                    </span>
                                                     <span>Có thể làm: {ingredient.possible_servings} suất</span>
                                                 </div>
                                             </div>

@@ -359,7 +359,12 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
                 const res = await axios.post(`/order-assignments/${assignmentId}/confirm-arrived`);
                 if (res.data.success) {
                     showToast(`Đã xác nhận khách đã đến bàn ${selectedAssignment.data?.order_details?.tables || ''}`, 'success');
-                    navigate('/waiter/reservation-management', { state: { statusFilter: 'seated' } });
+                    navigate('/waiter/reservation-management', {
+                        state: {
+                            statusFilter: 'seated',
+                            reservationId: selectedAssignment.data?.order_details?.reservation_id
+                        }
+                    });
                 } else {
                     showToast(res.data.message || 'Có lỗi khi xác nhận khách đã đến', 'error');
                 }
