@@ -65,6 +65,20 @@ const ReservationManagement = () => {
     const [highlightedReservationId, setHighlightedReservationId] = useState(null);
     const highlightRowRef = useRef(null);
 
+    // Dropdown state cho từng reservation
+    const [openActionDropdownId, setOpenActionDropdownId] = useState(null);
+
+    // Đóng dropdown khi click ra ngoài
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (!e.target.closest('.action-dropdown-wrapper')) {
+                setOpenActionDropdownId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
     useEffect(() => {
         if (location.state && location.state.reservationId) {
             setHighlightedReservationId(location.state.reservationId);
@@ -1394,20 +1408,88 @@ const ReservationManagement = () => {
                                             })()}
                                         </td>
                                         <td>
-                                            <div className="action-buttons">
-                                                {['pending', 'confirmed', 'seated'].includes(res.status) && (
-                                                    <button
-                                                        className="action-button edit"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            openModal('edit', res);
-                                                        }}
-                                                        disabled={loading}
-                                                    >
-                                                        Sửa
-                                                    </button>
+                                            <div className="action-buttons action-buttons-reservation">
+
+                                                  {/* Nút thanh toán - hiển thị khi có món và chưa thanh toán đầy đủ */}
+                                                  {(() => {
+                                                    const hasItems = (res.pre_order_items && res.pre_order_items.length > 0) ||
+                                                        hasRelatedOrders(res) ||
+                                                        getTotalOrderedItems(res) > 0;
+                                                    const needsPayment = ['pending', 'partial'].includes(res.payment_status);
+                                                    const validStatus = ['pending', 'confirmed', 'seated'].includes(res.status);
+
+                                                    return validStatus && hasItems && needsPayment;
+                                                })() && (
+                                                        <button style={{marginBottom: '0px'}}
+                                                            className="action-button payment-status"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                openModal('updatePayment', res);
+                                                            }}
+                                                            disabled={loading}
+                                                            title={`Cập nhật thanh toán - Tổng: ${getReservationTotal(res).toLocaleString()}đ`}
+                                                        >
+                                                            💰 Thanh toán <br /> ({getReservationTotal(res).toLocaleString()}đ)
+                                                        </button>
+                                                    )}
+
+                                                {/* Dropdown cho Sửa, Hoàn thành, Chuyển */}
+                                                {(['pending', 'confirmed', 'seated'].includes(res.status)) && (
+                                                    <div className={`action-dropdown-wrapper${openActionDropdownId === res._id ? ' open' : ''}`} style={{ display: 'inline-block', position: 'relative' }}>
+                                                        <button
+                                                            className="action-button dropdown-toggle"
+                                                            onClick={e => {
+                                                                e.stopPropagation();
+                                                                setOpenActionDropdownId(openActionDropdownId === res._id ? null : res._id);
+                                                            }}
+                                                        >
+                                                            Thao tác ▾
+                                                        </button>
+                                                        {openActionDropdownId === res._id && (
+                                                            <div className="action-dropdown-menu">
+                                                                <button
+                                                                    className="action-button edit"
+                                                                    onClick={e => {
+                                                                        e.stopPropagation();
+                                                                        openModal('edit', res);
+                                                                        setOpenActionDropdownId(null);
+                                                                    }}
+                                                                    disabled={loading}
+                                                                >
+                                                                    Sửa
+                                                                </button>
+                                                                {res.status === 'seated' && (
+                                                                    <button
+                                                                        className="action-button complete"
+                                                                        onClick={e => {
+                                                                            e.stopPropagation();
+                                                                            handleCompleteReservation(res._id);
+                                                                            setOpenActionDropdownId(null);
+                                                                        }}
+                                                                        disabled={loading}
+                                                                    >
+                                                                        Hoàn thành
+                                                                    </button>
+                                                                )}
+                                                                {(['confirmed', 'seated'].includes(res.status)) && (
+                                                                    <button
+                                                                        className="action-button move"
+                                                                        onClick={e => {
+                                                                            e.stopPropagation();
+                                                                            openModal('move', res);
+                                                                            setOpenActionDropdownId(null);
+                                                                        }}
+                                                                        disabled={loading}
+                                                                    >
+                                                                        Chuyển
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 )}
 
+                                                {/* Các nút còn lại giữ ngoài */}
                                                 {res.status === 'pending' && (
                                                     <button
                                                         className="action-button confirm"
@@ -1418,59 +1500,6 @@ const ReservationManagement = () => {
                                                         disabled={loading}
                                                     >
                                                         Xác nhận
-                                                    </button>
-                                                )}
-
-                                                {res.status === 'confirmed' && (
-                                                    <button
-                                                        className="action-button seat"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleSeatCustomer(res._id);
-                                                        }}
-                                                        disabled={loading}
-                                                    >
-                                                        Vào bàn
-                                                    </button>
-                                                )}
-
-                                                {res.status === 'seated' && (
-                                                    <button
-                                                        className="action-button complete"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleCompleteReservation(res._id);
-                                                        }}
-                                                        disabled={loading}
-                                                    >
-                                                        Hoàn thành
-                                                    </button>
-                                                )}
-
-                                                {['seated', 'completed'].includes(res.status) && (
-                                                    <button
-                                                        className="action-button invoice"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            openInvoice(res);
-                                                        }}
-                                                        disabled={loading}
-                                                        title="In hóa đơn"
-                                                    >
-                                                        🖨️ In
-                                                    </button>
-                                                )}
-
-                                                {['confirmed', 'seated'].includes(res.status) && (
-                                                    <button
-                                                        className="action-button move"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            openModal('move', res);
-                                                        }}
-                                                        disabled={loading}
-                                                    >
-                                                        Chuyển
                                                     </button>
                                                 )}
 
@@ -1487,29 +1516,7 @@ const ReservationManagement = () => {
                                                     </button>
                                                 )}
 
-                                                {/* Nút thanh toán - hiển thị khi có món và chưa thanh toán đầy đủ */}
-                                                {(() => {
-                                                    const hasItems = (res.pre_order_items && res.pre_order_items.length > 0) ||
-                                                        hasRelatedOrders(res) ||
-                                                        getTotalOrderedItems(res) > 0;
-                                                    const needsPayment = ['pending', 'partial'].includes(res.payment_status);
-                                                    const validStatus = ['pending', 'confirmed', 'seated'].includes(res.status);
-
-                                                    return validStatus && hasItems && needsPayment;
-                                                })() && (
-                                                        <button
-                                                            className="action-button payment-status"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                openModal('updatePayment', res);
-                                                            }}
-                                                            disabled={loading}
-                                                            title={`Cập nhật thanh toán - Tổng: ${getReservationTotal(res).toLocaleString()}đ`}
-                                                        >
-                                                            💰 Thanh toán ({getReservationTotal(res).toLocaleString()}đ)
-                                                        </button>
-                                                    )}
-
+                                              
                                                 {res.status === 'seated' && (
                                                     <button
                                                         className="action-button add-menu"
@@ -1526,6 +1533,20 @@ const ReservationManagement = () => {
                                                         title="Thêm món"
                                                     >
                                                         🍽️ Thêm món
+                                                    </button>
+                                                )}
+
+                                                {['seated', 'completed'].includes(res.status) && (
+                                                    <button
+                                                        className="action-button invoice"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            openInvoice(res);
+                                                        }}
+                                                        disabled={loading}
+                                                        title="In hóa đơn"
+                                                    >
+                                                        🖨️ In
                                                     </button>
                                                 )}
                                             </div>

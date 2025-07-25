@@ -571,6 +571,12 @@ tr.highlight {
     color: #065f46;
 }
 
+.reservations-table .action-button.action-buttons-reservation {
+    background: #ffe5e5;
+    color: #c54848;
+}
+
+
 /* Modern Action Buttons */
 .action-buttons {
     display: flex;
