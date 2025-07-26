@@ -1463,32 +1463,37 @@ const ReservationManagement = () => {
                                                                 )}
 
                                                                 {/* 8. Thêm món */}
-                                                                {res.status === 'seated' && (
-                                                                    <button
-                                                                        className="action-button add-menu"
-                                                                        onClick={e => {
-                                                                            e.stopPropagation();
-                                                                            console.log('Debug - Clicking add menu for reservation:', res._id, 'Status:', res.status, 'Payment:', res.payment_status);
+                                                                {(res.status === 'seated' || res.status === 'cooked') && (
+                                                                    // Chỉ hiển thị nút thêm món khi chưa thanh toán đầy đủ hoặc chưa có món nào
+                                                                    (res.payment_status !== 'paid' ||
+                                                                        (!res.pre_order_items || res.pre_order_items.length === 0) ||
+                                                                        hasRelatedOrders(res)) && (
+                                                                        <button
+                                                                            className="action-button add-menu"
+                                                                            onClick={e => {
+                                                                                e.stopPropagation();
+                                                                                console.log('Debug - Clicking add menu for reservation:', res._id, 'Status:', res.status, 'Payment:', res.payment_status);
 
-                                                                            const tableInfo = allTables.find(t =>
-                                                                                t._id === (safeGet(res, 'table_id._id') || res.table_id)
-                                                                            );
+                                                                                const tableInfo = allTables.find(t =>
+                                                                                    t._id === (safeGet(res, 'table_id._id') || res.table_id)
+                                                                                );
 
-                                                                            console.log('Debug - Table info found:', tableInfo);
+                                                                                console.log('Debug - Table info found:', tableInfo);
 
-                                                                            if (tableInfo) {
-                                                                                openMenuModal(tableInfo, res);
-                                                                            } else {
-                                                                                alert('Không tìm thấy thông tin bàn. Vui lòng thử lại.');
-                                                                                console.error('Table not found for reservation:', res);
-                                                                            }
-                                                                            setOpenActionDropdownId(null);
-                                                                        }}
-                                                                        disabled={loading}
-                                                                        title="Thêm món cho bàn này"
-                                                                    >
-                                                                        🍽️ Thêm món
-                                                                    </button>
+                                                                                if (tableInfo) {
+                                                                                    openMenuModal(tableInfo, res);
+                                                                                } else {
+                                                                                    alert('Không tìm thấy thông tin bàn. Vui lòng thử lại.');
+                                                                                    console.error('Table not found for reservation:', res);
+                                                                                }
+                                                                                setOpenActionDropdownId(null);
+                                                                            }}
+                                                                            disabled={loading}
+                                                                            title="Thêm món cho bàn này"
+                                                                        >
+                                                                            🍽️ Thêm món
+                                                                        </button>
+                                                                    )
                                                                 )}
 
                                                                 {/* 9. In hóa đơn */}
