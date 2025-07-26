@@ -175,7 +175,7 @@ const InvoicePrint = ({ invoiceData, onClose }) => {
                                 <span>Còn lại cần thanh toán (món gọi thêm):</span>
                                 <span>{formatCurrency(totals?.remaining)} VNĐ</span>
                             </div>
-                            <div className="payment-row">
+                            {/* <div className="payment-row">
                                 <span>Trạng thái:</span>
                                 <span>
                                     {reservation?.payment_status === 'paid'
@@ -183,7 +183,7 @@ const InvoicePrint = ({ invoiceData, onClose }) => {
                                         : 'Chưa thanh toán phần gọi thêm'
                                     }
                                 </span>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 
