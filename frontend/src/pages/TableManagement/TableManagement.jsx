@@ -1611,6 +1611,19 @@ const TableManagement = () => {
         }
     };
 
+    const getTimeDisplayText = (reservation) => {
+        // Nếu là khách vãng lai (có current_time), hiển thị giờ hiện tại
+        if (reservation.current_time && reservation.contact_name === 'Khách vãng lai') {
+            return reservation.current_time;
+        }
+        // Nếu có slot_id, hiển thị slot thời gian
+        if (reservation.slot_id) {
+            return getSlotDisplayText(safeGet(reservation, 'slot_id._id') || reservation.slot_id);
+        }
+        // Fallback
+        return 'N/A';
+    };
+
     return (
         <div className="table-management">
             <div className="table-management-content">
@@ -1871,12 +1884,7 @@ const TableManagement = () => {
                                                 <p><strong>SĐT:</strong> {res.contact_phone}</p>
                                                 <p><strong>Thời gian:</strong> {new Date(res.date).toLocaleDateString()}
                                                     <span className="time-slot-display">
-                                                        {res.slot_id && safeGet(res, 'slot_id.name')
-                                                            ? `${safeGet(res, 'slot_id.name')} (${safeGet(res, 'slot_id.start_time')}-${safeGet(res, 'slot_id.end_time')})`
-                                                            : (res.slot_start_time && res.slot_end_time)
-                                                                ? `${res.slot_start_time}-${res.slot_end_time}`
-                                                                : getSlotDisplayText(safeGet(res, 'slot_id._id') || res.slot_id)
-                                                        }
+                                                        {getTimeDisplayText(res)}
                                                     </span>
                                                 </p>
                                                 <p><strong>Số khách:</strong> {res.guest_count}</p>
@@ -2226,20 +2234,9 @@ const TableManagement = () => {
                                                 <td>{res.contact_phone}</td>
                                                 <td>{formatDate(res.date)}</td>
                                                 <td>
-                                                    {res.slot_id ? (
-                                                        <span className="time-slot-display">
-                                                            {safeGet(res, 'slot_id.name')
-                                                                ? `${safeGet(res, 'slot_id.name')} (${safeGet(res, 'slot_id.start_time')}-${safeGet(res, 'slot_id.end_time')})`
-                                                                : (res.slot_start_time && res.slot_end_time)
-                                                                    ? `${res.slot_start_time}-${res.slot_end_time}`
-                                                                    : getSlotDisplayText(safeGet(res, 'slot_id._id') || res.slot_id)
-                                                            }
-                                                        </span>
-                                                    ) : (
-                                                        res.slot_start_time && res.slot_end_time
-                                                            ? `${res.slot_start_time}-${res.slot_end_time}`
-                                                            : 'N/A'
-                                                    )}
+                                                    <span className="time-slot-display">
+                                                        {getTimeDisplayText(res)}
+                                                    </span>
                                                 </td>
                                                 <td>{res.guest_count}</td>
                                                 <td>

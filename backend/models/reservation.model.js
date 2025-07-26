@@ -8,12 +8,13 @@ const ReservationSchema = new Schema({
   table_ids: [{ type: Schema.Types.ObjectId, ref: "Table" }], // New field for multiple tables
   date: { type: Date, required: true },
   // time: { type: String, required: true },
-  slot_id: { type: Schema.Types.ObjectId, ref: "BookingSlot", required: true }, // mới
-  slot_start_time: { type: String, required: true }, // "07:00", chốt theo slot lúc đặt
-  slot_end_time: { type: String, required: true }, // "09:00", chốt theo slot lúc đặt
+  slot_id: { type: Schema.Types.ObjectId, ref: "BookingSlot" }, // không required
+  slot_start_time: { type: String }, // không required
+  slot_end_time: { type: String }, // không required
+  current_time: { type: String }, // Giờ hiện tại khi tạo reservation (format: HH:MM)
   guest_count: { type: Number },
-  contact_name: { type: String, required: true },
-  contact_phone: { type: String, required: true },
+  contact_name: { type: String }, // không required
+  contact_phone: { type: String }, // không required
   contact_email: { type: String, default: "" },
   created_by_staff: {
     //phân biệt khách đặt hay nhân viên đặt hộ

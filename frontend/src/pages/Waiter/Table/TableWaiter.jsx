@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import { AuthContext } from '../../../context/AuthContext';
 import '../../../pages/TableManagement/TableLayout.css';
 import axios from '../../../utils/axios.customize';
+import MenuModal from '../../../components/Reservation/MenuModal/MenuModal';
 
 const TableWaiter = () => {
     const navigate = useNavigate();
@@ -25,6 +26,13 @@ const TableWaiter = () => {
     const [error, setError] = useState('');
     const [orders, setOrders] = useState([]);
     const [bookingSlots, setBookingSlots] = useState([]);
+    const [showMenuModal, setShowMenuModal] = useState(false);
+    const [menuModalTable, setMenuModalTable] = useState(null);
+    const [menuItems, setMenuItems] = useState([]);
+    const [categories, setCategories] = useState([]);
+    const [orderItems, setOrderItems] = useState([]);
+    const [loadingMenu, setLoadingMenu] = useState(false);
+    const [preOrderItems, setPreOrderItems] = useState([]);
 
     // Notification states
     const [notifications, setNotifications] = useState([]);
@@ -360,6 +368,19 @@ const TableWaiter = () => {
             `${slot.start_time}-${slot.end_time}`;
     };
 
+    const getTimeDisplayText = (reservation) => {
+        // Nếu là khách vãng lai (có current_time), hiển thị giờ hiện tại
+        if (reservation.current_time && reservation.contact_name === 'Khách vãng lai') {
+            return reservation.current_time;
+        }
+        // Nếu có slot_id, hiển thị slot thời gian
+        if (reservation.slot_id) {
+            return getSlotDisplayText(safeGet(reservation, 'slot_id._id') || reservation.slot_id);
+        }
+        // Fallback
+        return 'N/A';
+    };
+
     // Event handlers
     const handleAreaChange = (areaId) => {
         setSelectedArea(areaId);
@@ -378,6 +399,44 @@ const TableWaiter = () => {
     const handleTableClick = async (table) => {
         if (!table || !table._id) return;
         setSelectedTable(table);
+        // Nếu bàn trống thì mở modal chọn món
+        if (table.status === 'available') {
+            setMenuModalTable(table);
+            setShowMenuModal(true);
+            setPreOrderItems([]);
+        }
+    };
+
+    // Hàm xử lý chọn món (cập nhật preOrderItems)
+    const handleMenuItemChange = (menuItemId, quantity) => {
+        setPreOrderItems(prev => {
+            const updated = prev.filter(item => item.menu_item_id !== menuItemId);
+            if (quantity > 0) {
+                updated.push({ menu_item_id: menuItemId, quantity });
+            }
+            return updated;
+        });
+    };
+    const calculatePreOrderTotal = () => {
+        return preOrderItems.reduce((total, item) => {
+            const menuItem = menuItems.find(m => m._id === item.menu_item_id);
+            return total + ((menuItem?.price || 0) * item.quantity);
+        }, 0);
+    };
+    const getSelectedItemsCount = () => preOrderItems.reduce((sum, item) => sum + item.quantity, 0);
+    const getFilteredMenuItems = (cat) => {
+        if (!cat || cat === 'All') return menuItems;
+        return menuItems.filter(item => item.category_id === cat || item.category_id?._id === cat);
+    };
+    const getItemQuantity = (menuItemId) => {
+        const found = preOrderItems.find(i => i.menu_item_id === menuItemId);
+        return found ? found.quantity : 0;
+    };
+    // Đóng modal
+    const handleCloseMenuModal = () => {
+        setShowMenuModal(false);
+        setMenuModalTable(null);
+        setPreOrderItems([]);
     };
 
     const handlePageChange = (pageNumber) => {
@@ -535,6 +594,72 @@ const TableWaiter = () => {
 
     const unreadCount = notifications.filter(n => !n.read).length;
 
+    // Load menu items & categories khi mở modal chọn món
+    useEffect(() => {
+        if (showMenuModal) {
+            setLoadingMenu(true);
+            Promise.all([
+                axios.get('/menu-items'),
+                axios.get('/categories')
+            ]).then(([menuRes, catRes]) => {
+                if (menuRes?.data?.success) setMenuItems(menuRes.data.data);
+                if (catRes?.data?.success) setCategories(catRes.data.data);
+                // Debug log
+                console.log('MenuModal categories:', catRes?.data?.data);
+            }).finally(() => setLoadingMenu(false));
+        }
+    }, [showMenuModal]);
+
+    // Xử lý xác nhận đặt bàn mới cho khách vãng lai
+    const handleConfirmMenu = async () => {
+        if (!menuModalTable || preOrderItems.length === 0) {
+            handleCloseMenuModal();
+            return;
+        }
+        setLoading(true);
+        try {
+            // Tạo đơn đặt bàn mới
+            const now = new Date();
+            let dateObj = new Date(now);
+            let dateStr = [
+                dateObj.getFullYear(),
+                String(dateObj.getMonth() + 1).padStart(2, '0'),
+                String(dateObj.getDate()).padStart(2, '0')
+            ].join('-');
+            // Tạo giờ hiện tại cho khách vãng lai
+            const currentTime = now.toLocaleTimeString('vi-VN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+            });
+            const reservationData = {
+                table_id: menuModalTable._id,
+                date: dateStr,
+                current_time: currentTime,
+                guest_count: menuModalTable.capacity || 2,
+                status: 'seated',
+                contact_name: 'Khách vãng lai',
+                contact_phone: '',
+                pre_order_items: preOrderItems.map(item => ({
+                    menu_item_id: item.menu_item_id,
+                    quantity: item.quantity
+                })),
+                payment_status: 'pending'
+            };
+            await axios.post('/reservations', reservationData);
+            // Làm mới dữ liệu
+            await Promise.all([
+                loadAllTables(),
+                loadReservations()
+            ]);
+        } catch (e) {
+            alert('Có lỗi khi tạo đơn đặt bàn mới!');
+        } finally {
+            setLoading(false);
+            handleCloseMenuModal();
+        }
+    };
+
     if (loading && areas.length === 0) {
         return (
             <div className="table-management">
@@ -685,6 +810,23 @@ const TableWaiter = () => {
             </div>
 
             {/* XÓA modal thêm/sửa/xóa bàn (isModalOpen && ...) */}
+            {/* Modal chọn món cho bàn trống */}
+            {showMenuModal && menuModalTable && (
+                <MenuModal
+                    isOpen={showMenuModal}
+                    onClose={handleCloseMenuModal}
+                    preOrderItems={preOrderItems}
+                    onMenuItemChange={(id, qty) => handleMenuItemChange(id, qty)}
+                    calculatePreOrderTotal={calculatePreOrderTotal}
+                    getSelectedItemsCount={getSelectedItemsCount}
+                    menuItems={menuItems}
+                    categories={Array.isArray(categories) ? categories : []}
+                    loadingMenu={loadingMenu}
+                    getFilteredMenuItems={getFilteredMenuItems}
+                    getItemQuantity={getItemQuantity}
+                    onConfirm={handleConfirmMenu}
+                />
+            )}
         </div>
     );
 };

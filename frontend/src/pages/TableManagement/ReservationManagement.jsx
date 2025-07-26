@@ -152,6 +152,19 @@ const ReservationManagement = () => {
         return slot.name ? `${slot.name} (${slot.start_time}-${slot.end_time})` : `${slot.start_time}-${slot.end_time}`;
     };
 
+    const getTimeDisplayText = (reservation) => {
+        // Nếu là khách vãng lai (có current_time), hiển thị giờ hiện tại
+        if (reservation.current_time && reservation.contact_name === 'Khách vãng lai') {
+            return reservation.current_time;
+        }
+        // Nếu có slot_id, hiển thị slot thời gian
+        if (reservation.slot_id) {
+            return getSlotDisplayText(safeGet(reservation, 'slot_id._id') || reservation.slot_id);
+        }
+        // Fallback
+        return 'N/A';
+    };
+
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('vi-VN');
     };
@@ -1377,7 +1390,7 @@ const ReservationManagement = () => {
                                         <td>{res.contact_name}</td>
                                         <td>{res.contact_phone}</td>
                                         <td>{formatDate(res.date)}</td>
-                                        <td>{getSlotDisplayText(safeGet(res, 'slot_id._id') || res.slot_id)}</td>
+                                        <td>{getTimeDisplayText(res)}</td>
                                         <td>{res.guest_count}</td>
                                         <td>
                                             <span className={`status-badge ${res.status}`}>
@@ -1410,8 +1423,8 @@ const ReservationManagement = () => {
                                         <td>
                                             <div className="action-buttons action-buttons-reservation">
 
-                                                  {/* Nút thanh toán - hiển thị khi có món và chưa thanh toán đầy đủ */}
-                                                  {(() => {
+                                                {/* Nút thanh toán - hiển thị khi có món và chưa thanh toán đầy đủ */}
+                                                {(() => {
                                                     const hasItems = (res.pre_order_items && res.pre_order_items.length > 0) ||
                                                         hasRelatedOrders(res) ||
                                                         getTotalOrderedItems(res) > 0;
@@ -1420,7 +1433,7 @@ const ReservationManagement = () => {
 
                                                     return validStatus && hasItems && needsPayment;
                                                 })() && (
-                                                        <button style={{marginBottom: '0px'}}
+                                                        <button style={{ marginBottom: '0px' }}
                                                             className="action-button payment-status"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
@@ -1516,7 +1529,7 @@ const ReservationManagement = () => {
                                                     </button>
                                                 )}
 
-                                              
+
                                                 {res.status === 'seated' && (
                                                     <button
                                                         className="action-button add-menu"
@@ -1618,7 +1631,7 @@ const ReservationManagement = () => {
                         <p><strong>Email:</strong> {selectedReservation.contact_email || 'N/A'}</p>
                         <p><strong>Bàn:</strong> {getTableNames(selectedReservation)}</p>
                         <p><strong>Ngày:</strong> {formatDate(selectedReservation.date)}</p>
-                        <p><strong>Thời gian:</strong> {getSlotDisplayText(safeGet(selectedReservation, 'slot_id._id') || selectedReservation.slot_id)}</p>
+                        <p><strong>Thời gian:</strong> {getTimeDisplayText(selectedReservation)}</p>
                         <p><strong>Số khách:</strong> {selectedReservation.guest_count}</p>
                         <p><strong>Trạng thái:</strong>
                             <span className={`status-badge ${selectedReservation.status}`}>

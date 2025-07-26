@@ -138,7 +138,7 @@ const Orders = () => {
             <div key={`${order.id}-${order.type}-${index}`} className="order-card">
                 <div className="order-header">
                     <div className="order-type">
-                        {order.type === 'pre_order' ? '🕐 Đặt trước' : '👨‍💼 Nhân viên đặt'}
+                        {order.type === 'pre_order' ? '🕐 Đặt trước' : '🏃 Đơn tại quán'}
                     </div>
                     <div className="status-container">
                         <div
@@ -175,7 +175,9 @@ const Orders = () => {
                     <div className="customer-info">
                         <h4>👤 Khách hàng: {order.customer_name}</h4>
                         <h4>🪑 Bàn: {order.tables}</h4>
-                        <h4>📅 Thời gian: {formatDateTime(order.created_at)}</h4>
+                        <h4>📅 Thời gian: {order.type === 'pre_order' ?
+                            `Đặt trước: ${order.slot_time || formatDateTime(order.created_at)}` :
+                            `Tại quán: ${order.order_time || formatDateTime(order.created_at)}`}</h4>
                         {order.staff_name && <p>👨‍💼 Nhân viên: {order.staff_name}</p>}
                     </div>
 
@@ -214,11 +216,11 @@ const Orders = () => {
         const filtered = (() => {
             switch (activeTab) {
                 case 'pre_orders':
-                    return orders.pre_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled');
+                    return orders.pre_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'cooked');
                 case 'staff_orders':
-                    return orders.staff_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled');
+                    return orders.staff_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'cooked');
                 case 'completed':
-                    return orders.all_orders.filter(order => order.status === 'completed');
+                    return orders.all_orders.filter(order => order.status === 'cooked');
                 case 'cancelled':
                     return orders.all_orders.filter(order => order.status === 'cancelled');
                 default:
@@ -284,7 +286,7 @@ const Orders = () => {
                     value={filterTable}
                     onChange={e => setFilterTable(e.target.value)}
                 />
-              
+
                 <input
                     type="date"
                     value={filterDate}
@@ -303,13 +305,13 @@ const Orders = () => {
                     className={`tab-btn ${activeTab === 'pre_orders' ? 'active' : ''}`}
                     onClick={() => setActiveTab('pre_orders')}
                 >
-                    Đặt trước ({orders.pre_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled').length})
+                    Đặt trước ({orders.pre_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'cooked').length})
                 </button>
                 <button
                     className={`tab-btn ${activeTab === 'staff_orders' ? 'active' : ''}`}
                     onClick={() => setActiveTab('staff_orders')}
                 >
-                    Nhân viên đặt ({orders.staff_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled').length})
+                    Đơn tại quán ({orders.staff_orders.filter(order => order.status !== 'completed' && order.status !== 'cancelled' && order.status !== 'cooked').length})
                 </button>
                 <button
                     className={`tab-btn ${activeTab === 'completed' ? 'active' : ''}`}
@@ -334,7 +336,7 @@ const Orders = () => {
                     getFilteredOrders().map((order, index) => (
                         <div key={`${order.id}-${order.type}-${index}`} className="order-card modern">
                             <div className="order-header modern" style={{ paddingBottom: '20px' }}>
-                                <div className="order-type modern">{order.type === 'pre_order' ? 'Đặt trước' : 'Nhân viên đặt'}</div>
+                                <div className="order-type modern">{order.type === 'pre_order' ? 'Đặt trước' : 'Đơn tại quán'}</div>
                                 <div className="status-container modern">
                                     <div
                                         className={`order-status modern badge badge-${order.status}`}
@@ -374,7 +376,9 @@ const Orders = () => {
                                 </div>
                                 <div className="order-info-row">
                                     <span className="order-label">Thời gian:</span>
-                                    <span className="order-value">{formatDateTime(order.created_at)}</span>
+                                    <span className="order-value">{order.type === 'pre_order' ?
+                                        `Đặt trước: ${order.slot_time || formatDateTime(order.created_at)}` :
+                                        `Tại quán: ${order.order_time || formatDateTime(order.created_at)}`}</span>
                                 </div>
                                 {order.staff_name && (
                                     <div className="order-info-row">

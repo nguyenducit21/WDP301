@@ -328,7 +328,10 @@ const createReservation = async (req, res) => {
             });
         }
 
-        if (!date || !slot_id || !contact_name || !contact_phone) {
+        // Nếu là khách vãng lai (tạo nhanh cho bàn trống), cho phép thiếu slot_id, contact_name, contact_phone
+        const isWalkIn = req.body.status === 'seated' && req.body.contact_name === 'Khách vãng lai';
+
+        if (!date || (!isWalkIn && (!slot_id || !contact_name || !contact_phone)) || (isWalkIn && !contact_name)) {
             return res.status(400).json({
                 success: false,
                 message: 'Thiếu thông tin bắt buộc'
@@ -351,7 +354,9 @@ const createReservation = async (req, res) => {
         }
 
         try {
-            await validateBookingTime(date, slot_id);
+            if (!isWalkIn) {
+                await validateBookingTime(date, slot_id);
+            }
         } catch (validationError) {
             return res.status(400).json({
                 success: false,
@@ -359,13 +364,16 @@ const createReservation = async (req, res) => {
             });
         }
 
-        const BookingSlot = require('../models/BookingSlot');
-        const bookingSlot = await BookingSlot.findById(slot_id);
-        if (!bookingSlot) {
-            return res.status(404).json({
-                success: false,
-                message: 'Không tìm thấy slot thời gian'
-            });
+        let bookingSlot = null;
+        if (!isWalkIn && slot_id) {
+            const BookingSlot = require('../models/BookingSlot');
+            bookingSlot = await BookingSlot.findById(slot_id);
+            if (!bookingSlot) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy slot thời gian'
+                });
+            }
         }
 
         const tables = await Table.find({ _id: { $in: tablesToReserve } });
@@ -433,20 +441,32 @@ const createReservation = async (req, res) => {
         const now = new Date();
         console.log('Current server time:', now.toISOString(), 'Timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
 
+        // Tạo giờ hiện tại cho khách vãng lai
+        const currentTime = now.toLocaleTimeString('vi-VN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        });
+
+        let reservationStatus = 'confirmed';
+        if (req.body.status === 'seated' && contact_name === 'Khách vãng lai') {
+            reservationStatus = 'seated';
+        }
         const reservationData = {
             table_ids: tablesToReserve,
             table_id: tablesToReserve[0],
             date: reservationDate,
-            slot_id,
-            slot_start_time: bookingSlot.start_time,
-            slot_end_time: bookingSlot.end_time,
+            slot_id: isWalkIn ? undefined : slot_id,
+            slot_start_time: isWalkIn ? undefined : (bookingSlot ? bookingSlot.start_time : undefined),
+            slot_end_time: isWalkIn ? undefined : (bookingSlot ? bookingSlot.end_time : undefined),
+            current_time: isWalkIn ? currentTime : undefined,
             guest_count: parseInt(guest_count),
             contact_name: contact_name.trim(),
             contact_phone: contact_phone.trim(),
             contact_email: contact_email ? contact_email.trim() : '',
             pre_order_items: processedPreOrderItems,
             notes: notes ? notes.trim() : '',
-            status: 'confirmed', // Đặt bàn thành công, không cần xác nhận thủ công
+            status: reservationStatus,
             payment_status: 'pending',
             created_at: now,
             updated_at: now
@@ -520,7 +540,7 @@ const createReservation = async (req, res) => {
         }
 
         try {
-            // Tính priority: nếu có pre_order_items thì priority cao hơn
+            // Tạo order assignment cho tất cả reservations (có hoặc không có pre_order_items)
             const priority = processedPreOrderItems.length > 0 ? 2 : 1;
             await createOrderAssignment(reservation._id, 'reservation', priority);
             console.log('✅ Order assignment created successfully with priority:', priority);
@@ -543,31 +563,31 @@ const createReservation = async (req, res) => {
         }
 
         // Gửi email xác nhận đặt bàn cho khách
-        // if (reservation.contact_email) {
-        //     try {
-        //         const tableNames = reservation.table_ids && reservation.table_ids.length > 0
-        //             ? reservation.table_ids.map(t => t.name).join(', ')
-        //             : (reservation.table_id?.name || '');
-        //         const subject = 'Xác nhận đặt bàn thành công tại Nhà hàng';
-        //         const content = `
-        //             <p>Xin chào <strong>${reservation.contact_name}</strong>,</p>
-        //             <p>Bạn đã đặt bàn thành công tại <strong>Nhà hàng</strong>.</p>
-        //             <ul>
-        //                 <li><strong>Mã đặt bàn:</strong> ${reservation._id}</li>
-        //                 <li><strong>Bàn:</strong> ${tableNames}</li>
-        //                 <li><strong>Ngày:</strong> ${reservation.date.toLocaleDateString('vi-VN')}</li>
-        //                 <li><strong>Khung giờ:</strong> ${reservation.slot_start_time} - ${reservation.slot_end_time}</li>
-        //                 <li><strong>Số khách:</strong> ${reservation.guest_count}</li>
-        //                 <li><strong>Số điện thoại:</strong> ${reservation.contact_phone}</li>
-        //             </ul>
-        //             <p>Chúng tôi sẽ chuẩn bị bàn cho bạn đúng giờ. Nếu có thay đổi, vui lòng liên hệ lại với nhà hàng.</p>
-        //             <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi!</p>
-        //         `;
-        //         sendMail(reservation.contact_email, subject, content);
-        //     } catch (mailErr) {
-        //         console.error('Lỗi khi gửi email xác nhận đặt bàn:', mailErr);
-        //     }
-        // }
+        if (reservation.contact_email) {
+            try {
+                const tableNames = reservation.table_ids && reservation.table_ids.length > 0
+                    ? reservation.table_ids.map(t => t.name).join(', ')
+                    : (reservation.table_id?.name || '');
+                const subject = 'Xác nhận đặt bàn thành công tại Nhà hàng';
+                const content = `
+                    <p>Xin chào <strong>${reservation.contact_name}</strong>,</p>
+                    <p>Bạn đã đặt bàn thành công tại <strong>Nhà hàng</strong>.</p>
+                    <ul>
+                        <li><strong>Mã đặt bàn:</strong> ${reservation._id}</li>
+                        <li><strong>Bàn:</strong> ${tableNames}</li>
+                        <li><strong>Ngày:</strong> ${reservation.date.toLocaleDateString('vi-VN')}</li>
+                        <li><strong>Khung giờ:</strong> ${reservation.slot_start_time} - ${reservation.slot_end_time}</li>
+                        <li><strong>Số khách:</strong> ${reservation.guest_count}</li>
+                        <li><strong>Số điện thoại:</strong> ${reservation.contact_phone}</li>
+                    </ul>
+                    <p>Chúng tôi sẽ chuẩn bị bàn cho bạn đúng giờ. Nếu có thay đổi, vui lòng liên hệ lại với nhà hàng.</p>
+                    <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi!</p>
+                `;
+                sendMail(reservation.contact_email, subject, content);
+            } catch (mailErr) {
+                console.error('Lỗi khi gửi email xác nhận đặt bàn:', mailErr);
+            }
+        }
 
         if (global.io && !reservationData.created_by_staff) {
             const notificationData = {
@@ -1783,7 +1803,7 @@ const getChefOrders = async (req, res) => {
         // Lấy tất cả reservations có pre_order_items và status phù hợp
         const allReservations = await Reservation.find({
             'pre_order_items.0': { $exists: true },
-            status: { $in: ['pending', 'confirmed', 'completed', 'cancelled'] }
+            status: { $in: ['pending', 'confirmed', 'seated', 'completed', 'cancelled'] }
         })
             .populate('customer_id', 'full_name phone')
             .populate('created_by_staff', 'full_name')
@@ -1811,19 +1831,22 @@ const getChefOrders = async (req, res) => {
                 note: reservation.notes || ''
             };
 
-            // Nếu có created_by_staff, phân loại là staff_order
-            if (reservation.created_by_staff) {
+            // Phân loại dựa trên contact_name và current_time
+            // Nếu là khách vãng lai (contact_name === 'Khách vãng lai' và có current_time) -> đơn tại quán
+            if (reservation.contact_name === 'Khách vãng lai' && reservation.current_time) {
                 staffOrders.push({
                     ...orderData,
-                    type: 'staff_order',
-                    staff_name: reservation.created_by_staff?.full_name || 'N/A'
+                    type: 'walk_in_order',
+                    staff_name: reservation.created_by_staff?.full_name || 'N/A',
+                    order_time: reservation.current_time
                 });
             }
-            // Nếu không có created_by_staff nhưng đã thanh toán, phân loại là pre_order
-            else if (reservation.payment_status === 'paid') {
+            // Nếu có slot_id (đặt trước) -> đơn đặt trước
+            else if (reservation.slot_id) {
                 preOrders.push({
                     ...orderData,
-                    type: 'pre_order'
+                    type: 'pre_order',
+                    slot_time: `${reservation.slot_start_time} - ${reservation.slot_end_time}`
                 });
             }
         });

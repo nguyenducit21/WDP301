@@ -13,8 +13,8 @@ const getPendingOrders = async (req, res) => {
         // Lấy assignments đang chờ hoặc đã được assign cho user hiện tại
         const assignments = await OrderAssignment.find({
             $or: [
-                { status: 'processing' },
-                { assigned_to: employeeId, status: 'processing' }
+                { status: 'processing', assigned_to: null }, // Chưa được assign
+                { assigned_to: employeeId, status: 'processing' } // Đã được assign cho user hiện tại
             ]
         })
             .populate({
@@ -61,7 +61,7 @@ const getPendingOrders = async (req, res) => {
                 status: assignment.status,
                 assigned_to: assignment.assigned_to,
                 priority: assignment.priority,
-                can_take: assignment.status === 'waiting' && !assignment.rejected_by.some(r => r.employee_id.toString() === employeeId),
+                can_take: assignment.status === 'processing' && !assignment.assigned_to && !assignment.rejected_by.some(r => r.employee_id.toString() === employeeId),
                 is_mine: assignment.assigned_to && assignment.assigned_to._id.toString() === employeeId,
                 order_details: orderDetails,
                 created_at: assignment.created_at,
@@ -76,7 +76,7 @@ const getPendingOrders = async (req, res) => {
                 currentPage: parseInt(page),
                 totalItems: await OrderAssignment.countDocuments({
                     $or: [
-                        { status: 'waiting' },
+                        { status: 'processing', assigned_to: null },
                         { assigned_to: employeeId, status: 'processing' }
                     ]
                 })
@@ -108,7 +108,7 @@ const claimOrder = async (req, res) => {
         }
 
         // Kiểm tra xem đơn có đang chờ không
-        if (assignment.status !== 'waiting') {
+        if (assignment.status !== 'processing' || assignment.assigned_to) {
             return res.status(400).json({
                 success: false,
                 message: 'Đơn hàng này đã được xử lý hoặc đã có người nhận'
@@ -392,8 +392,16 @@ const createOrderAssignment = async (orderId, orderType, priority = 1) => {
                     items: reservation.pre_order_items || [],
                     notes: reservation.notes,
                     created_at: reservation.created_at,
+                    date: reservation.date,
+                    slot_id: reservation.slot_id,
+                    slot_start_time: reservation.slot_start_time,
+                    slot_end_time: reservation.slot_end_time,
+                    current_time: reservation.current_time,
                     has_pre_order: hasPreOrder,
-                    reservation_type: hasPreOrder ? 'pre_order' : 'table_booking'
+                    reservation_type: hasPreOrder ? 'pre_order' : 'table_booking',
+                    status: reservation.status,
+                    payment_status: reservation.payment_status,
+                    reservation_id: reservation._id
                 };
             }
         } else if (orderType === 'order') {
@@ -532,8 +540,16 @@ const updateOrderAssignment = async (orderId, orderType, newItems) => {
                     items: reservation.pre_order_items || [],
                     notes: reservation.notes,
                     created_at: reservation.created_at,
+                    date: reservation.date,
+                    slot_id: reservation.slot_id,
+                    slot_start_time: reservation.slot_start_time,
+                    slot_end_time: reservation.slot_end_time,
+                    current_time: reservation.current_time,
                     has_pre_order: hasPreOrder,
-                    reservation_type: hasPreOrder ? 'pre_order' : 'table_booking'
+                    reservation_type: hasPreOrder ? 'pre_order' : 'table_booking',
+                    status: reservation.status,
+                    payment_status: reservation.payment_status,
+                    reservation_id: reservation._id
                 };
 
                 // Cập nhật priority dựa trên việc có pre_order_items không

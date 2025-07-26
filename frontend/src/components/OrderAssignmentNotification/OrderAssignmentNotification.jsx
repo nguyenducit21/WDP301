@@ -84,11 +84,13 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
             const isPreOrder = data.order_details.has_pre_order;
             const isTableBooking = data.order_details.reservation_type === 'table_booking';
 
-            let title = '🛎️ Đặt bàn thành công';
+            let title = isPreOrder ? '🍽️ Đặt bàn + Chọn món' : '🛎️ Đặt bàn mới';
             let icon = isPreOrder ? '🍽️' : '🛎️';
             let message = '';
             if (isPreOrder && data.order_details.items?.length > 0) {
                 message += `\nKhách đã đặt trước ${data.order_details.items.length} món ăn.`;
+            } else {
+                message += `\nKhách chỉ đặt bàn (chưa chọn món).`;
             }
             message += `\nBàn: ${data.order_details.tables}`;
 
@@ -118,7 +120,10 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
             }
 
             // Hiển thị toast
-            showToast(`Khách hàng ${data.order_details.customer_name} đã đặt bàn thành công. Vui lòng chuẩn bị bàn đúng giờ!`, 'info');
+            const toastMessage = isPreOrder ?
+                `Khách hàng ${data.order_details.customer_name} đã đặt bàn và chọn món. Vui lòng chuẩn bị bàn đúng giờ!` :
+                `Khách hàng ${data.order_details.customer_name} đã đặt bàn. Vui lòng chuẩn bị bàn đúng giờ!`;
+            showToast(toastMessage, 'info');
         });
 
 
@@ -143,16 +148,8 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
                     const isPreOrder = data.order_details.has_pre_order;
                     const isTableBooking = data.order_details.reservation_type === 'table_booking';
 
-                    let title = '🔔 Đơn hàng mới';
-                    let icon = '📋';
-
-                    if (isPreOrder) {
-                        title = '🍽️ Đặt trước mới';
-                        icon = '🍽️';
-                    } else if (isTableBooking) {
-                        title = '📅 Đặt bàn mới';
-                        icon = '📅';
-                    }
+                    let title = isPreOrder ? '🍽️ Đặt bàn + Chọn món' : '🛎️ Đặt bàn mới';
+                    let icon = isPreOrder ? '🍽️' : '🛎️';
 
                     return {
                         ...assignment,
@@ -169,7 +166,7 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
             }));
 
             // Hiển thị toast thông báo
-            const updateType = data.order_details.has_pre_order ? 'đã chọn món' : 'đã cập nhật thông tin';
+            const updateType = data.order_details.has_pre_order ? 'đã chọn món' : 'đã đặt bàn';
             showToast(`${data.order_details.customer_name} ${updateType}`, 'info');
         });
 
@@ -225,7 +222,9 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
                 const formattedAssignments = response.data.data.map(assignment => ({
                     id: assignment.assignment_id,
                     type: 'existing_order',
-                    title: assignment.status === 'processing' ? '⏳ Đơn đang chờ' : '🔄 Đơn đang xử lý',
+                    title: assignment.order_details.has_pre_order ?
+                        (assignment.status === 'processing' ? '🍽️ Đơn đặt bàn + Chọn món' : '🔄 Đơn đang xử lý') :
+                        (assignment.status === 'processing' ? '🛎️ Đơn đặt bàn' : '🔄 Đơn đang xử lý'),
                     message: `${assignment.order_details.customer_name} - ${assignment.order_details.tables}`,
                     data: {
                         assignment_id: assignment.assignment_id,
@@ -556,7 +555,7 @@ const OrderAssignmentNotification = ({ isPage = false }) => {
                                                                     <span>🍽️ {assignment.data.order_details.items.length} món đặt trước</span>
                                                                 </div>
                                                             )}
-                                                            {!assignment.data.order_details.has_pre_order && (
+                                                            {!assignment.data.order_details.has_pre_order && assignment.data.order_details.reservation_type === 'table_booking' && (
                                                                 <span>📅 Đặt bàn (chưa order món)</span>
                                                             )}
                                                             {assignment.data.order_details.notes && (

@@ -12,7 +12,8 @@ const MenuModal = ({
     categories,
     loadingMenu,
     getFilteredMenuItems,
-    getItemQuantity
+    getItemQuantity,
+    onConfirm // thêm prop này
 }) => {
     const [selectedCategory, setSelectedCategory] = useState("All");
 
@@ -110,7 +111,7 @@ const MenuModal = ({
                         <span>Tổng tiền: <strong>{calculatePreOrderTotal().toLocaleString()}đ</strong></span>
                         <span>Số món: <strong>{getSelectedItemsCount()}</strong></span>
                     </div>
-                    <button className="confirm-menu-btn" onClick={onClose}>
+                    <button className="confirm-menu-btn" onClick={onConfirm ? onConfirm : onClose}>
                         Xác nhận ({getSelectedItemsCount()} món)
                     </button>
                 </div>
