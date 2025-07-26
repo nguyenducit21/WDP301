@@ -1217,7 +1217,7 @@ const getInvoiceData = async (req, res) => {
         const order = await Order.findOne({
             $or: [
                 { reservation_id: reservationId },
-                { table_id: reservation.table_id._id }
+                // { table_id: reservation.table_id._id }
             ]
         }).populate({
             path: 'order_items.menu_item_id',
@@ -1246,18 +1246,63 @@ const getInvoiceData = async (req, res) => {
             total + (item.price * item.quantity), 0);
 
         const subtotal = preOrderTotal + orderTotal;
-        const tax = Math.round(subtotal * 0.1);
-        const total = subtotal + tax;
-        const remaining = orderTotal; // Số tiền còn lại phải thanh toán
+        // const tax = Math.round(subtotal * 0.1);
+        // const total = subtotal + tax;
+        // const total = subtotal;
+        // const remaining = orderTotal; // Số tiền còn lại phải thanh toán
+
+        let discount = 0;
+        let promotionInfo = null;
+
+        if (reservation.promotion && preOrderTotal > 0) {
+            try {
+                // Lấy thông tin promotion
+                const promotionCode = typeof reservation.promotion === 'string'
+                    ? reservation.promotion
+                    : reservation.promotion.code;
+
+                const promotion = await Promotion.findOne({ code: promotionCode });
+
+                if (promotion) {
+                    promotionInfo = {
+                        code: promotion.code,
+                        type: promotion.type,
+                        value: promotion.value,
+                        maxDiscount: promotion.maxDiscount
+                    };
+
+                    // Tính discount dựa trên loại promotion
+                    if (promotion.type === 'percent' || promotion.type === 'first_order') {
+                        discount = preOrderTotal * (promotion.value / 100);
+                        if (promotion.maxDiscount && discount > promotion.maxDiscount) {
+                            discount = promotion.maxDiscount;
+                        }
+                    } else if (promotion.type === 'fixed') {
+                        discount = Math.min(promotion.value, preOrderTotal); // Không vượt quá tiền đặt trước
+                    }
+                }
+            } catch (error) {
+                console.error('Error calculating promotion discount:', error);
+            }
+        }
+
+        const preOrderAfterDiscount = preOrderTotal - discount; // Tiền đặt trước sau giảm giá
+        const total = preOrderAfterDiscount + orderTotal; // Tổng sau giảm giá
+        const remaining = orderTotal; // Chỉ phải trả tiền order thêm
+
+        // const total = subtotal - discount;
+        // const remaining = Math.max(0, total - preOrderTotal); // Số tiền còn lại phải thanh toán
 
         const totals = {
             preOrderTotal,
+            preOrderAfterDiscount,
             orderTotal,
             subtotal,
-            discount: 0,
-            tax,
+            discount,
+            // tax,
             total,
-            remaining
+            remaining,
+            promotionInfo
         };
 
         // Thông tin nhà hàng
@@ -1492,7 +1537,7 @@ const updatePaymentStatus = async (req, res) => {
         }
 
         // Validate payment status
-        const validStatuses = ['pending', 'partial', 'paid', 'refunded'];
+        const validStatuses = ['pending', 'partial', 'paid', 'refunded', 'prepaid'];
         if (!validStatuses.includes(payment_status)) {
             return res.status(400).json({
                 success: false,
@@ -1503,8 +1548,9 @@ const updatePaymentStatus = async (req, res) => {
         //  Kiểm tra logic chuyển đổi trạng thái
         const currentStatus = reservation.payment_status || 'pending';
 
-        // Cho phép chuyển từ pending -> partial -> paid
-        // Hoặc từ partial -> paid
+        // Cho phép chuyển từ pending -> partial/prepaid -> paid
+        // Hoặc từ partial -> paid/prepaid
+        // Hoặc từ prepaid -> paid
         // Hoặc từ bất kỳ trạng thái nào -> refunded (với quyền admin)
         if (currentStatus === 'paid' && payment_status !== 'refunded') {
             return res.status(400).json({
@@ -1539,7 +1585,7 @@ const updatePaymentStatus = async (req, res) => {
         }
 
         // Thêm timestamp cho thanh toán
-        if (payment_status === 'paid') {
+        if (payment_status === 'paid' || payment_status === 'prepaid') {
             updateData.payment_date = new Date();
             if (promotion) {
                 updateData.promotion = promotion;

@@ -47,7 +47,7 @@ const PaymentModal = ({
                 if (isSuccess) {
                     // Update reservation payment status
                     const updateBody = {
-                        payment_status: 'paid',
+                        payment_status: 'prepaid',
                         paid_at: new Date().toISOString()
                     };
                     if (promotion) {
@@ -92,7 +92,7 @@ const PaymentModal = ({
 
             if (isSuccess) {
                 const updateBody = {
-                    payment_status: 'paid',
+                    payment_status: 'prepaid',
                     paid_at: new Date().toISOString()
                 };
                 if (promotion) {

@@ -57,7 +57,7 @@ const ReservationSchema = new Schema({
   reminder_sent: { type: Boolean, default: false },
   payment_status: {
     type: String,
-    enum: ["pending", "partial", "paid", "refunded"],
+    enum: ["pending", "partial", "prepaid", "paid", "refunded"],
     default: "pending",
   },
   notes: { type: String },

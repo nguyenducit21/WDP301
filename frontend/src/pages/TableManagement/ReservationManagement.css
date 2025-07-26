@@ -195,7 +195,7 @@
     font-style: italic;
 }
 
-/* Table Selection Section - Customer Style */
+/* Table Selection Section */
 .table-selection-section {
     margin-top: 20px;
     background: white;
@@ -208,7 +208,6 @@
     margin-top: 16px;
 }
 
-/* Compact Table Combinations with Scroll */
 .table-selection-section .table-combinations {
     max-height: 400px;
     overflow-y: auto;
@@ -231,7 +230,6 @@
     z-index: 1;
 }
 
-/* Compact Combination Groups */
 .table-selection-section .combination-group {
     margin-bottom: 20px;
 }
@@ -251,7 +249,6 @@
     border: 1px solid #e2e8f0;
 }
 
-/* Compact Combination Options */
 .table-selection-section .combination-options {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -261,30 +258,7 @@
     padding: 4px;
 }
 
-/* Scrollbar Styling */
-.table-selection-section .table-combinations::-webkit-scrollbar,
-.table-selection-section .combination-options::-webkit-scrollbar {
-    width: 6px;
-}
-
-.table-selection-section .table-combinations::-webkit-scrollbar-track,
-.table-selection-section .combination-options::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 3px;
-}
-
-.table-selection-section .table-combinations::-webkit-scrollbar-thumb,
-.table-selection-section .combination-options::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 3px;
-}
-
-.table-selection-section .table-combinations::-webkit-scrollbar-thumb:hover,
-.table-selection-section .combination-options::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
-}
-
-/* Compact Table Cards */
+/* Table Cards */
 .table-selection-section .table-card,
 .table-selection-section .combination-card {
     padding: 12px;
@@ -311,83 +285,15 @@
     box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
 }
 
-/* Compact Text in Cards */
-.table-selection-section .table-name {
-    font-weight: 600;
-    font-size: 14px;
-    color: #111827;
-    margin-bottom: 4px;
-}
-
-.table-selection-section .table-capacity,
-.table-selection-section .combination-capacity {
-    font-size: 12px;
-    color: #6b7280;
-    margin-bottom: 2px;
-}
-
-.table-selection-section .table-area,
-.table-selection-section .combination-areas {
-    font-size: 11px;
-    color: #9ca3af;
-}
-
-.table-selection-section .combination-tables {
-    font-size: 13px;
-    font-weight: 600;
-    color: #111827;
-    margin-bottom: 4px;
-}
-
-/* Scroll Indicators */
-.table-selection-section .table-combinations::before {
-    content: "📜 Cuộn để xem thêm bàn";
-    position: absolute;
-    top: 50px;
-    right: 20px;
-    font-size: 11px;
-    color: #9ca3af;
-    background: rgba(248, 250, 252, 0.9);
-    padding: 4px 8px;
-    border-radius: 4px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    pointer-events: none;
-    z-index: 2;
-}
-
-.table-selection-section .table-combinations:hover::before {
-    opacity: 1;
-}
-
-/* Hide scroll indicator when content fits */
-.table-selection-section .table-combinations[data-scrollable="false"]::before {
-    display: none;
-}
-
-.no-tables-message {
+/* No Tables Messages */
+.no-tables-message,
+.no-combinations-message {
     text-align: center;
     padding: 40px 20px;
     background: #fef3c7;
     border: 1px solid #fbbf24;
     border-radius: 8px;
     color: #92400e;
-}
-
-.no-tables-message p {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 500;
-}
-
-.no-combinations-message {
-    text-align: center;
-    padding: 30px 20px;
-    background: #fef3c7;
-    border: 1px solid #fbbf24;
-    border-radius: 8px;
-    color: #92400e;
-    margin-top: 20px;
 }
 
 .no-combinations-message p {
@@ -401,28 +307,6 @@
     display: inline-block;
     margin: 0;
     padding-left: 20px;
-}
-
-.no-combinations-message li {
-    margin: 8px 0;
-    font-size: 14px;
-}
-
-/* Override some styles to match customer interface */
-.table-selection-section .selected-tables-summary {
-    margin-bottom: 20px;
-}
-
-.table-selection-section .table-combinations {
-    margin-top: 0;
-}
-
-/* Ensure proper spacing */
-.table-selection-section h4,
-.table-selection-section h5 {
-    color: #374151;
-    font-weight: 600;
-    margin-bottom: 16px;
 }
 
 /* Modern Action Button */
@@ -448,6 +332,7 @@
 .reservations-table {
     background: white;
     overflow: hidden;
+    position: relative;
 }
 
 .reservations-table table {
@@ -475,16 +360,17 @@
     padding: 16px 12px;
     border-bottom: 1px solid #f1f5f9;
     vertical-align: middle;
+    position: relative;
 }
 
 .reservations-table tbody tr {
     transition: all 0.2s ease;
     cursor: pointer;
+    position: relative;
 }
 
 .reservations-table tbody tr:hover {
     background: #f8fafc;
-    transform: scale(1.001);
 }
 
 .reservations-table tbody tr.selected {
@@ -566,24 +452,31 @@ tr.highlight {
     color: #5b21b6;
 }
 
+.payment-badge.prepaid {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
 .payment-badge.paid {
-    background: #d1fae5;
-    color: #065f46;
+    background: #d4edda;
+    color: #155724;
 }
 
-.action-buttons-reservation .action-dropdown-wrapper button{
-    background: #ffe5e5 !important;
-    color: #c54848 !important;
-}
-
-
-/* Modern Action Buttons */
+/* ================ ACTION BUTTONS & DROPDOWN ================ */
 .action-buttons {
     display: flex;
     gap: 6px;
     align-items: center;
+    flex-wrap: wrap;
+    position: relative;
 }
 
+.action-buttons-reservation {
+    min-height: 40px;
+    /* Đảm bảo chiều cao tối thiểu để tránh nhấp nháy */
+}
+
+/* Base Action Button Styles */
 .action-button {
     padding: 8px 12px;
     border: none;
@@ -591,19 +484,42 @@ tr.highlight {
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    position: relative;
+    z-index: 1;
 }
 
-.action-button.edit {
+/* Specific Button Colors */
+.action-button.confirm {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+}
+
+.action-button.seat {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
 }
 
-.action-button.edit:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+.action-button.delete {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+}
+
+.action-button.edit {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+}
+
+.action-button.move {
+    background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    color: white;
 }
 
 .action-button.payment-status {
@@ -611,29 +527,168 @@ tr.highlight {
     color: white;
 }
 
-.action-button.payment-status:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-}
-
 .action-button.add-menu {
     background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
     color: white;
 }
 
-.action-button.add-menu:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-}
-
-.action-button.cancel {
-    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+.action-button.invoice {
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%);
     color: white;
 }
 
-.action-button.cancel:hover {
+.action-button.complete {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: white;
+}
+
+/* Hover Effects */
+.action-button:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.action-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ================ DROPDOWN SPECIFIC STYLES ================ */
+.action-dropdown-wrapper {
+    position: relative;
+    display: inline-block;
+    z-index: 10;
+    /* Đảm bảo dropdown luôn ở trên */
+}
+
+/* Dropdown Toggle Button */
+.action-button.dropdown-toggle {
+    background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
+    color: white;
+    position: relative;
+    z-index: 11;
+}
+
+.action-button.dropdown-toggle:hover {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+}
+
+.action-dropdown-wrapper.open .action-button.dropdown-toggle {
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Dropdown Menu */
+.action-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    /* Tạo khoảng cách nhỏ giữa button và menu */
+    right: 0;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    min-width: 160px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    z-index: 999;
+    /* Z-index cao để không bị đè */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.15s ease;
+    backdrop-filter: blur(8px);
+}
+
+/* Menu hiển thị khi mở */
+.action-dropdown-wrapper.open .action-dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Dropdown Menu Items */
+.action-dropdown-menu .action-button {
+    width: 100%;
+    background: transparent;
+    color: #374151;
+    border: none;
+    border-radius: 0;
+    padding: 12px 16px;
+    text-align: left;
+    justify-content: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+    transition: all 0.1s ease;
+    position: relative;
+    z-index: 1000;
+}
+
+.action-dropdown-menu .action-button:first-child {
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.action-dropdown-menu .action-button:last-child {
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+.action-dropdown-menu .action-button:hover {
+    background: #f3f4f6;
+    color: #111827;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Specific colors for dropdown items */
+.action-dropdown-menu .action-button.edit:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+.action-dropdown-menu .action-button.move:hover {
+    background: rgba(139, 92, 246, 0.1);
+    color: #7c3aed;
+}
+
+.action-dropdown-menu .action-button.payment-status:hover {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.action-dropdown-menu .action-button.add-menu:hover {
+    background: rgba(245, 158, 11, 0.1);
+    color: #d97706;
+}
+
+.action-dropdown-menu .action-button.invoice:hover {
+    background: rgba(100, 116, 139, 0.1);
+    color: #475569;
+}
+
+/* Separator line between dropdown items */
+.action-dropdown-menu .action-button:not(:last-child) {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* ================ TABLE ROW SPACING ================ */
+/* Đảm bảo các hàng table không bị ảnh hưởng bởi dropdown */
+.reservations-table tbody tr {
+    position: relative;
+}
+
+.reservations-table tbody tr td:last-child {
+    position: relative;
+    z-index: 5;
+}
+
+/* Khi dropdown mở, tăng z-index cho hàng đó */
+.reservations-table tbody tr:has(.action-dropdown-wrapper.open) {
+    z-index: 15;
+    position: relative;
 }
 
 /* Pre-order Indicators */
@@ -728,97 +783,7 @@ tr.highlight {
     }
 }
 
-/* Responsive Design */
-@media (max-width: 1200px) {
-    .filters-row {
-        grid-template-columns: repeat(2, 1fr);
-    }
-
-    .date-filter-group {
-        min-width: auto;
-    }
-}
-
-@media (max-width: 768px) {
-    .reservation-management .main-content {
-        padding: 12px;
-    }
-
-    .reservations-header {
-        flex-direction: column;
-        gap: 16px;
-        text-align: center;
-    }
-
-    .filters-row {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    .date-filter-controls {
-        flex-direction: column;
-        gap: 8px;
-        align-items: stretch;
-    }
-
-    .date-filter-controls .checkbox-wrapper {
-        min-width: auto;
-    }
-
-    .reservations-table {
-        overflow-x: auto;
-    }
-
-    .reservations-table table {
-        min-width: 800px;
-    }
-
-    .action-buttons {
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .action-button {
-        font-size: 11px;
-        padding: 6px 10px;
-    }
-
-    .table-selection-section {
-        padding: 16px;
-        margin-top: 16px;
-    }
-
-    .table-selection-section .table-combinations {
-        max-height: 300px;
-        padding: 12px;
-    }
-
-    .table-selection-section .combination-options {
-        grid-template-columns: 1fr;
-        max-height: 150px;
-        gap: 6px;
-    }
-
-    .table-selection-section .table-card,
-    .table-selection-section .combination-card {
-        padding: 10px;
-        font-size: 12px;
-    }
-
-    .no-tables-message {
-        padding: 20px 16px;
-    }
-}
-
-/* Old styles removed - using new modern design */
-
-/* Old table styles removed - using new modern design */
-
-/* Old action button styles removed - using new modern design */
-
-/* Old button styles removed - using new modern design */
-
-/* Reservation Details Panel */
+/* ================ RESERVATION DETAILS PANEL ================ */
 .reservation-details {
     background: white;
     border-radius: 8px;
@@ -878,120 +843,7 @@ tr.highlight {
     border-left: 4px solid #28a745;
 }
 
-.order-item {
-    background: white;
-    padding: 15px;
-    border-radius: 4px;
-    margin-bottom: 10px;
-    border-left: 4px solid #007bff;
-}
-
-.order-item:last-child {
-    margin-bottom: 0;
-}
-
-.order-item p {
-    margin: 5px 0;
-}
-
-/* Old responsive styles removed - using new modern responsive design */
-
-/* Pre-order modal styles */
-.pre-order-summary {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.pre-order-total-row,
-.pre-order-discount-row,
-.pre-order-final-total-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 12px;
-    background: white;
-    border-radius: 4px;
-    border-left: 4px solid #007bff;
-}
-
-.pre-order-discount-row {
-    border-left-color: #dc3545;
-    color: #dc3545;
-}
-
-.pre-order-final-total-row {
-    border-left-color: #28a745;
-    background: #d4edda;
-    font-weight: bold;
-}
-
-.edit-pre-order-btn,
-.add-pre-order-btn {
-    background: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-weight: 500;
-    transition: background-color 0.2s;
-    margin-top: 10px;
-}
-
-.edit-pre-order-btn:hover,
-.add-pre-order-btn:hover {
-    background: #0056b3;
-}
-
-.no-pre-order {
-    text-align: center;
-    padding: 20px;
-    color: #6c757d;
-}
-
-.no-pre-order p {
-    margin-bottom: 15px;
-    font-style: italic;
-}
-
-.pre-order-pricing {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 14px;
-}
-
-.pre-order-pricing span:last-child {
-    font-size: 16px;
-    color: #28a745;
-    font-weight: bold;
-}
-
-/* Table selection section */
-.table-selection-section {
-    margin: 20px 0;
-    padding: 15px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    background-color: #fafafa;
-}
-
-.warning-message {
-    padding: 12px;
-    background-color: #fff3cd;
-    border: 1px solid #ffeaa7;
-    border-radius: 4px;
-    color: #856404;
-    margin: 10px 0;
-}
-
-.warning-message p {
-    margin: 0;
-    font-size: 14px;
-}
-
-/* Modal styles */
+/* ================ MODAL STYLES ================ */
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -1012,7 +864,6 @@ tr.highlight {
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     width: 1000px;
     max-width: none;
-    /* Bỏ giới hạn max-width */
     max-height: 90vh;
     overflow-y: auto;
     position: relative;
@@ -1033,7 +884,7 @@ tr.highlight {
     color: #111827;
 }
 
-.modal-close {
+.close-button {
     background: none;
     border: none;
     font-size: 24px;
@@ -1049,30 +900,22 @@ tr.highlight {
     transition: all 0.2s;
 }
 
-.modal-close:hover {
+.close-button:hover {
     background-color: #f3f4f6;
     color: #374151;
 }
 
-.modal-content {
+.modal-body {
     padding: 24px;
 }
 
-.modal-content form {
-    width: 100%;
-    max-width: none;
-}
-
-/* Form layout adjustments for wide modal */
-.form-row {
+.modal-footer {
     display: flex;
-    gap: 20px;
-    margin-bottom: 20px;
-}
-
-.form-row .form-group {
-    flex: 1;
-    margin-bottom: 0;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid #e5e7eb;
+    background-color: #f9fafb;
 }
 
 .form-group {
@@ -1105,71 +948,101 @@ tr.highlight {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-/* Modal buttons */
-.modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    padding: 20px 24px;
-    border-top: 1px solid #e5e7eb;
-    background-color: #f9fafb;
-}
-
-.modal-actions button {
+.cancel-button {
+    background-color: white;
+    color: #374151;
+    border: 1px solid #d1d5db;
     padding: 10px 20px;
     border-radius: 6px;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s;
-    border: 1px solid transparent;
 }
 
-.modal-actions .btn-primary {
-    background-color: #3b82f6;
-    color: white;
-    border-color: #3b82f6;
-}
-
-.modal-actions .btn-primary:hover {
-    background-color: #2563eb;
-    border-color: #2563eb;
-}
-
-.modal-actions .btn-secondary {
-    background-color: #6b7280;
-    color: white;
-    border-color: #6b7280;
-}
-
-.modal-actions .btn-secondary:hover {
-    background-color: #4b5563;
-    border-color: #4b5563;
-}
-
-.modal-actions .btn-cancel {
-    background-color: white;
-    color: #374151;
-    border-color: #d1d5db;
-}
-
-.modal-actions .btn-cancel:hover {
+.cancel-button:hover {
     background-color: #f3f4f6;
     border-color: #9ca3af;
 }
 
-/* Responsive adjustments */
+.confirm-button {
+    background-color: #3b82f6;
+    color: white;
+    border: 1px solid #3b82f6;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.confirm-button:hover:not(:disabled) {
+    background-color: #2563eb;
+    border-color: #2563eb;
+}
+
+.confirm-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ================ RESPONSIVE DESIGN ================ */
 @media (max-width: 1200px) {
-    .modal-container {
-        width: 95vw;
-        max-width: 95vw;
+    .filters-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .date-filter-group {
+        min-width: auto;
     }
 }
 
 @media (max-width: 768px) {
-    .table-selection-section {
-        margin: 15px 0;
-        padding: 10px;
+    .reservation-management .main-content {
+        padding: 12px;
+    }
+
+    .reservations-header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .filters-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .date-filter-controls {
+        flex-direction: column;
+        gap: 8px;
+        align-items: stretch;
+    }
+
+    .reservations-table {
+        overflow-x: auto;
+    }
+
+    .reservations-table table {
+        min-width: 800px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .action-button {
+        font-size: 11px;
+        padding: 6px 10px;
+    }
+
+    /* Dropdown adjustments for mobile */
+    .action-dropdown-menu {
+        right: auto;
+        left: 0;
+        min-width: 140px;
     }
 
     .modal-container {
@@ -1182,20 +1055,60 @@ tr.highlight {
         padding: 10px;
     }
 
-    .form-row {
-        flex-direction: column;
-        gap: 0;
-    }
-
-    .form-row .form-group {
-        margin-bottom: 20px;
-    }
-
-    .modal-actions {
+    .modal-footer {
         flex-direction: column;
     }
 
-    .modal-actions button {
+    .modal-footer button {
         width: 100%;
     }
+}
+
+/* ================ ADDITIONAL FIXES ================ */
+/* Đảm bảo dropdown không bị cắt */
+.reservations-table {
+    overflow: visible;
+}
+
+.reservations-table tbody {
+    overflow: visible;
+}
+
+/* Cải thiện hiệu suất rendering */
+.action-dropdown-wrapper {
+    will-change: auto;
+}
+
+.action-dropdown-menu {
+    will-change: opacity, visibility, transform;
+}
+
+/* Đảm bảo hover states hoạt động tốt */
+.action-button:not(.dropdown-toggle):hover {
+    z-index: 1;
+}
+
+/* Fix cho trường hợp table có scroll ngang */
+.reservations-table-container {
+    overflow-x: auto;
+    position: relative;
+}
+
+/* Scrollbar styling */
+.reservations-table-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.reservations-table-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.reservations-table-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.reservations-table-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
