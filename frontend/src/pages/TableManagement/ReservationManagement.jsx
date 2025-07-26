@@ -1484,10 +1484,18 @@ const ReservationManagement = () => {
                                                                         className="action-button invoice"
                                                                         onClick={e => {
                                                                             e.stopPropagation();
+                                                                            console.log('Debug - Opening invoice for:', {
+                                                                                reservationId: res._id,
+                                                                                status: res.status,
+                                                                                paymentStatus: res.payment_status,
+                                                                                hasPreOrder: res.pre_order_items && res.pre_order_items.length > 0,
+                                                                                hasRelatedOrders: hasRelatedOrders(res)
+                                                                            });
                                                                             openInvoice(res);
                                                                             setOpenActionDropdownId(null);
                                                                         }}
                                                                         disabled={loading}
+                                                                        title={`In hóa đơn - Trạng thái: ${getReservationStatusLabel(res.status)}`}
                                                                     >
                                                                         🖨️ In hóa đơn
                                                                     </button>
