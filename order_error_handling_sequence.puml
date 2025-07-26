@@ -1,0 +1,102 @@
+@startuml Order Error Handling Sequence Diagram
+
+title Xử Lý Lỗi Trong Luồng Đơn Hàng
+
+participant "Waiter" as Waiter
+participant "Order\nController" as OrderCtrl
+participant "Order\nModel" as OrderModel
+participant "Validation\nMiddleware" as Validation
+participant "Auth\nMiddleware" as Auth
+participant "Database" as DB
+participant "Error\nHandler" as ErrorHandler
+
+== Lỗi Validation ==
+Waiter -> OrderCtrl: POST /orders (invalid data)
+activate OrderCtrl
+OrderCtrl -> Validation: validateOrderData()
+activate Validation
+Validation -> Validation: checkRequiredFields()
+Validation -> Validation: validateOrderItems()
+Validation -> OrderCtrl: ValidationError
+deactivate Validation
+OrderCtrl -> ErrorHandler: handleValidationError()
+activate ErrorHandler
+ErrorHandler -> Waiter: {success: false, message: 'Dữ liệu không hợp lệ'}
+deactivate ErrorHandler
+deactivate OrderCtrl
+
+== Lỗi Authentication ==
+Waiter -> OrderCtrl: PUT /orders/{id}/assign (no token)
+activate OrderCtrl
+OrderCtrl -> Auth: verifyToken()
+activate Auth
+Auth -> Auth: checkTokenExists()
+Auth -> OrderCtrl: UnauthorizedError
+deactivate Auth
+OrderCtrl -> ErrorHandler: handleAuthError()
+activate ErrorHandler
+ErrorHandler -> Waiter: {success: false, message: 'Không có quyền truy cập'}
+deactivate ErrorHandler
+deactivate OrderCtrl
+
+== Lỗi Database ==
+Waiter -> OrderCtrl: PUT /orders/{id}/status
+activate OrderCtrl
+OrderCtrl -> OrderModel: findByIdAndUpdate(id, data)
+activate OrderModel
+OrderModel -> DB: updateOne()
+DB -> OrderModel: DatabaseError
+OrderModel -> OrderCtrl: DatabaseError
+deactivate OrderModel
+OrderCtrl -> ErrorHandler: handleDatabaseError()
+activate ErrorHandler
+ErrorHandler -> Waiter: {success: false, message: 'Lỗi cơ sở dữ liệu'}
+deactivate ErrorHandler
+deactivate OrderCtrl
+
+== Lỗi Order Not Found ==
+Waiter -> OrderCtrl: PUT /orders/invalid-id/status
+activate OrderCtrl
+OrderCtrl -> OrderModel: findById(invalid-id)
+activate OrderModel
+OrderModel -> DB: findOne({_id: invalid-id})
+DB -> OrderModel: null
+OrderModel -> OrderCtrl: null
+deactivate OrderModel
+OrderCtrl -> ErrorHandler: handleNotFoundError()
+activate ErrorHandler
+ErrorHandler -> Waiter: {success: false, message: 'Không tìm thấy đơn hàng'}
+deactivate ErrorHandler
+deactivate OrderCtrl
+
+== Lỗi Permission ==
+Waiter -> OrderCtrl: PUT /orders/{id}/status (wrong role)
+activate OrderCtrl
+OrderCtrl -> Auth: checkPermission('update_order')
+activate Auth
+Auth -> Auth: verifyUserRole()
+Auth -> OrderCtrl: PermissionError
+deactivate Auth
+OrderCtrl -> ErrorHandler: handlePermissionError()
+activate ErrorHandler
+ErrorHandler -> Waiter: {success: false, message: 'Không có quyền thực hiện'}
+deactivate ErrorHandler
+deactivate OrderCtrl
+
+== Lỗi Business Logic ==
+Waiter -> OrderCtrl: PUT /orders/{id}/status (completed order)
+activate OrderCtrl
+OrderCtrl -> OrderModel: findById(id)
+activate OrderModel
+OrderModel -> DB: findOne({_id: id})
+DB -> OrderModel: completedOrder
+OrderModel -> OrderCtrl: order
+deactivate OrderModel
+OrderCtrl -> OrderCtrl: checkOrderStatus()
+OrderCtrl -> ErrorHandler: handleBusinessError()
+activate ErrorHandler
+ErrorHandler -> Waiter: {success: false, message: 'Đơn hàng đã hoàn thành'}
+deactivate ErrorHandler
+deactivate OrderCtrl
+
+@enduml 

@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import { AuthContext } from '../../../context/AuthContext';
 import '../../../pages/TableManagement/TableLayout.css';
 import axios from '../../../utils/axios.customize';
-import MenuModal from '../../../components/Reservation/MenuModal/MenuModal';
+import MenuModalWaiter from '../../../components/Reservation/MenuModal/MenuModalWaiter';
 
 const TableWaiter = () => {
     const navigate = useNavigate();
@@ -812,7 +812,7 @@ const TableWaiter = () => {
             {/* XÓA modal thêm/sửa/xóa bàn (isModalOpen && ...) */}
             {/* Modal chọn món cho bàn trống */}
             {showMenuModal && menuModalTable && (
-                <MenuModal
+                <MenuModalWaiter
                     isOpen={showMenuModal}
                     onClose={handleCloseMenuModal}
                     preOrderItems={preOrderItems}

@@ -1,0 +1,65 @@
+@startuml Order Flow Sequence Diagram
+
+title Luồng Xử Lý Đơn Hàng: Nhân Viên → Chef → Nhân Viên
+
+actor "Khách Hàng" as Customer
+participant "Nhân Viên\n(Waiter)" as Waiter
+participant "Hệ Thống\n(Backend)" as System
+participant "Chef" as Chef
+participant "Database" as DB
+participant "Socket\n(Real-time)" as Socket
+
+== Khách Hàng Đặt Món ==
+Customer -> Waiter: Yêu cầu đặt món
+Waiter -> System: POST /orders (tạo đơn hàng mới)
+System -> DB: Lưu đơn hàng với status: "pending"
+System -> Waiter: Trả về thông tin đơn hàng
+Waiter -> Customer: Xác nhận đơn hàng
+
+== Nhân Viên Gửi Đơn Cho Chef ==
+Waiter -> System: PUT /orders/{id}/assign (gán cho chef)
+System -> DB: Cập nhật status: "assigned"
+System -> Socket: Emit "order_assigned" event
+Socket -> Chef: Thông báo đơn hàng mới
+Chef -> System: GET /orders/assigned (lấy danh sách đơn)
+System -> DB: Query đơn hàng assigned
+System -> Chef: Trả về danh sách đơn hàng
+
+== Chef Xử Lý Đơn Hàng ==
+Chef -> System: PUT /orders/{id}/status (status: "preparing")
+System -> DB: Cập nhật status: "preparing"
+System -> Socket: Emit "order_preparing" event
+Socket -> Waiter: Thông báo chef đang nấu
+
+note over Chef: Chef nấu ăn...
+
+Chef -> System: PUT /orders/{id}/status (status: "ready")
+System -> DB: Cập nhật status: "ready"
+System -> Socket: Emit "order_ready" event
+Socket -> Waiter: Thông báo món ăn sẵn sàng
+
+== Nhân Viên Xử Lý Đơn Hoàn Thành ==
+Waiter -> System: GET /orders/ready (lấy đơn sẵn sàng)
+System -> DB: Query đơn hàng ready
+System -> Waiter: Trả về danh sách đơn sẵn sàng
+
+Waiter -> System: PUT /orders/{id}/status (status: "served")
+System -> DB: Cập nhật status: "served"
+System -> Socket: Emit "order_served" event
+
+== Thanh Toán ==
+Customer -> Waiter: Yêu cầu thanh toán
+Waiter -> System: PUT /orders/{id}/status (status: "completed")
+System -> DB: Cập nhật status: "completed"
+System -> DB: Cập nhật payment_status: "paid"
+System -> Waiter: Xác nhận hoàn thành
+
+== Thông Báo Real-time ==
+note over Socket: Socket.io events
+Socket -> Waiter: order_assigned
+Socket -> Waiter: order_preparing  
+Socket -> Waiter: order_ready
+Socket -> Waiter: order_served
+Socket -> Waiter: order_completed
+
+@enduml 

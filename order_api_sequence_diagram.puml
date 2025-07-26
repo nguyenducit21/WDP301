@@ -1,0 +1,119 @@
+@startuml Order API Sequence Diagram
+
+title Chi Tiết API Endpoints - Luồng Xử Lý Đơn Hàng
+
+participant "Waiter\nFrontend" as Waiter
+participant "Order\nController" as OrderCtrl
+participant "Order\nModel" as OrderModel
+participant "Socket\nService" as SocketService
+participant "Chef\nFrontend" as Chef
+participant "Database" as DB
+
+== 1. Tạo Đơn Hàng Mới ==
+Waiter -> OrderCtrl: POST /orders
+activate OrderCtrl
+OrderCtrl -> OrderModel: create(orderData)
+activate OrderModel
+OrderModel -> DB: insertOne(order)
+DB -> OrderModel: orderId
+OrderModel -> OrderCtrl: newOrder
+deactivate OrderModel
+OrderCtrl -> SocketService: emit('new_order', orderData)
+OrderCtrl -> Waiter: {success: true, data: order}
+deactivate OrderCtrl
+
+== 2. Gán Đơn Cho Chef ==
+Waiter -> OrderCtrl: PUT /orders/{id}/assign
+activate OrderCtrl
+OrderCtrl -> OrderModel: findByIdAndUpdate(id, {status: 'assigned'})
+activate OrderModel
+OrderModel -> DB: updateOne({_id: id}, {$set: {status: 'assigned'}})
+DB -> OrderModel: updatedOrder
+OrderModel -> OrderCtrl: assignedOrder
+deactivate OrderModel
+OrderCtrl -> SocketService: emit('order_assigned', {orderId, chefId})
+OrderCtrl -> Waiter: {success: true, message: 'Đơn hàng đã gán cho chef'}
+deactivate OrderCtrl
+
+== 3. Chef Nhận Đơn ==
+Chef -> OrderCtrl: GET /orders/assigned
+activate OrderCtrl
+OrderCtrl -> OrderModel: find({status: 'assigned'})
+activate OrderModel
+OrderModel -> DB: find({status: 'assigned'})
+DB -> OrderModel: assignedOrders
+OrderModel -> OrderCtrl: orders
+deactivate OrderModel
+OrderCtrl -> Chef: {success: true, data: orders}
+deactivate OrderCtrl
+
+== 4. Chef Bắt Đầu Nấu ==
+Chef -> OrderCtrl: PUT /orders/{id}/status
+activate OrderCtrl
+note right of OrderCtrl: body: {status: 'preparing'}
+OrderCtrl -> OrderModel: findByIdAndUpdate(id, {status: 'preparing'})
+activate OrderModel
+OrderModel -> DB: updateOne({_id: id}, {$set: {status: 'preparing'}})
+DB -> OrderModel: updatedOrder
+OrderModel -> OrderCtrl: preparingOrder
+deactivate OrderModel
+OrderCtrl -> SocketService: emit('order_preparing', {orderId})
+OrderCtrl -> Chef: {success: true, message: 'Đang nấu'}
+deactivate OrderCtrl
+
+== 5. Chef Hoàn Thành Nấu ==
+Chef -> OrderCtrl: PUT /orders/{id}/status
+activate OrderCtrl
+note right of OrderCtrl: body: {status: 'ready'}
+OrderCtrl -> OrderModel: findByIdAndUpdate(id, {status: 'ready'})
+activate OrderModel
+OrderModel -> DB: updateOne({_id: id}, {$set: {status: 'ready'}})
+DB -> OrderModel: updatedOrder
+OrderModel -> OrderCtrl: readyOrder
+deactivate OrderModel
+OrderCtrl -> SocketService: emit('order_ready', {orderId})
+OrderCtrl -> Chef: {success: true, message: 'Món ăn sẵn sàng'}
+deactivate OrderCtrl
+
+== 6. Waiter Nhận Thông Báo Món Sẵn ==
+SocketService -> Waiter: order_ready event
+Waiter -> OrderCtrl: GET /orders/ready
+activate OrderCtrl
+OrderCtrl -> OrderModel: find({status: 'ready'})
+activate OrderModel
+OrderModel -> DB: find({status: 'ready'})
+DB -> OrderModel: readyOrders
+OrderModel -> OrderCtrl: orders
+deactivate OrderModel
+OrderCtrl -> Waiter: {success: true, data: orders}
+deactivate OrderCtrl
+
+== 7. Waiter Phục Vụ Món ==
+Waiter -> OrderCtrl: PUT /orders/{id}/status
+activate OrderCtrl
+note right of OrderCtrl: body: {status: 'served'}
+OrderCtrl -> OrderModel: findByIdAndUpdate(id, {status: 'served'})
+activate OrderModel
+OrderModel -> DB: updateOne({_id: id}, {$set: {status: 'served'}})
+DB -> OrderModel: updatedOrder
+OrderModel -> OrderCtrl: servedOrder
+deactivate OrderModel
+OrderCtrl -> SocketService: emit('order_served', {orderId})
+OrderCtrl -> Waiter: {success: true, message: 'Đã phục vụ'}
+deactivate OrderCtrl
+
+== 8. Hoàn Thành Đơn Hàng ==
+Waiter -> OrderCtrl: PUT /orders/{id}/status
+activate OrderCtrl
+note right of OrderCtrl: body: {status: 'completed', payment_status: 'paid'}
+OrderCtrl -> OrderModel: findByIdAndUpdate(id, {status: 'completed', payment_status: 'paid'})
+activate OrderModel
+OrderModel -> DB: updateOne({_id: id}, {$set: {status: 'completed', payment_status: 'paid'}})
+DB -> OrderModel: updatedOrder
+OrderModel -> OrderCtrl: completedOrder
+deactivate OrderModel
+OrderCtrl -> SocketService: emit('order_completed', {orderId})
+OrderCtrl -> Waiter: {success: true, message: 'Đơn hàng hoàn thành'}
+deactivate OrderCtrl
+
+@enduml 

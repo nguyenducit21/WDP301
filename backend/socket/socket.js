@@ -53,6 +53,22 @@ const initializeSocket = (server) => {
             console.log('User joined waiter room:', socket.id);
         });
 
+        // Khi user join chef room (cho order notifications)
+        socket.on('join-chef-room', (data) => {
+            const { userId, fullName } = data;
+            socket.join('chef-room');
+            console.log(`👨‍🍳 Chef ${fullName} joined chef room:`, socket.id);
+
+            // Lưu thông tin chef
+            connectedUsers.set(socket.id, {
+                userId,
+                role: 'kitchen_staff',
+                fullName,
+                socketId: socket.id,
+                joinedAt: new Date()
+            });
+        });
+
         // Xử lý khi user disconnect
         socket.on('disconnect', () => {
             const userInfo = connectedUsers.get(socket.id);

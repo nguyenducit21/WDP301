@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useContext } from 'react';
 import axios from '../../../utils/axios.customize';
 import { ToastContext } from '../../../context/StoreContext';
+import { AuthContext } from '../../../context/AuthContext';
+import io from 'socket.io-client';
 import './Orders.css';
 
 const Orders = () => {
@@ -13,6 +15,9 @@ const Orders = () => {
     const [activeTab, setActiveTab] = useState('all'); // 'all', 'pre_orders', 'staff_orders', 'completed', 'cancelled'
     const [editingOrderId, setEditingOrderId] = useState(null);
     const { showToast } = useContext(ToastContext);
+    const { user } = useContext(AuthContext);
+    const [socket, setSocket] = useState(null);
+    const [newOrderNotification, setNewOrderNotification] = useState(null);
 
     // Filter states
     const [filterCustomer, setFilterCustomer] = useState('');
@@ -29,7 +34,50 @@ const Orders = () => {
 
     useEffect(() => {
         fetchOrders();
-    }, []);
+
+        // Khởi tạo socket connection
+        const newSocket = io('http://localhost:3000');
+        setSocket(newSocket);
+
+        // Join chef room
+        if (user) {
+            newSocket.emit('join-chef-room', {
+                userId: user.userId || user._id,
+                fullName: user.full_name || user.username
+            });
+        }
+
+        // Lắng nghe new order notification
+        newSocket.on('new_order_for_chef', (data) => {
+            console.log('🔔 New order notification received:', data);
+            setNewOrderNotification(data);
+
+            // Hiển thị toast notification
+            showToast(`Có đơn hàng mới từ ${data.order.customer_name}!`, 'info');
+
+            // Phát âm thanh thông báo (nếu browser hỗ trợ)
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+                audio.play();
+            } catch (error) {
+                console.log('Audio notification not supported');
+            }
+
+            // Tự động refresh danh sách đơn hàng sau 2 giây
+            setTimeout(() => {
+                fetchOrders();
+            }, 2000);
+
+            // Tự động ẩn notification sau 8 giây
+            setTimeout(() => {
+                setNewOrderNotification(null);
+            }, 8000);
+        });
+
+        return () => {
+            newSocket.disconnect();
+        };
+    }, [user]);
 
     useEffect(() => {
     }, [orders]);
@@ -267,6 +315,41 @@ const Orders = () => {
 
     return (
         <div className="orders-container">
+            {/* New Order Notification */}
+            {newOrderNotification && (
+                <div className="new-order-notification">
+                    <div className="notification-content">
+                        <div className="notification-icon">🔔</div>
+                        <div className="notification-text">
+                            <h4>Có đơn hàng mới!</h4>
+                            <p>Khách hàng: {newOrderNotification.order.customer_name}</p>
+                            <p>Bàn: {newOrderNotification.order.tables}</p>
+                            <p>Số món: {newOrderNotification.order.items?.length || 0}</p>
+                            <p>Loại: {newOrderNotification.order.type === 'pre_order' ? 'Đặt trước' : 'Tại quán'}</p>
+                            {newOrderNotification.order.items && newOrderNotification.order.items.length > 0 && (
+                                <div className="notification-items">
+                                    <p><strong>Món ăn:</strong></p>
+                                    {newOrderNotification.order.items.slice(0, 3).map((item, index) => (
+                                        <p key={index} className="notification-item">
+                                            • {item.menu_item?.name || 'Món không xác định'} x{item.quantity}
+                                        </p>
+                                    ))}
+                                    {newOrderNotification.order.items.length > 3 && (
+                                        <p className="notification-more">... và {newOrderNotification.order.items.length - 3} món khác</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <button
+                            className="notification-close"
+                            onClick={() => setNewOrderNotification(null)}
+                        >
+                            ×
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="orders-header modern">
                 <div className="orders-title">Danh sách đơn hàng</div>
                 <button onClick={fetchOrders} className="refresh-btn outline">Làm mới</button>

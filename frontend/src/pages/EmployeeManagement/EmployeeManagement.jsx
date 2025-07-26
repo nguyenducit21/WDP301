@@ -185,12 +185,19 @@ const EmployeeManagement = () => {
     };
 
     // Lọc employees: nếu là manager thì ẩn admin
-    const filteredEmployees = currentRole === 'manager'
+    // Lọc employees: nếu là admin thì ẩn admin, nếu là manager thì ẩn admin và manager
+    const filteredEmployees = currentRole === 'admin'
         ? employees.filter(emp => {
             const roleName = emp.role_id?.name || emp.role?.name || emp.role;
             return roleName !== 'admin';
         })
-        : employees;
+        : currentRole === 'manager'
+            ? employees.filter(emp => {
+                const roleName = emp.role_id?.name || emp.role?.name || emp.role;
+                return roleName !== 'admin' && roleName !== 'manager';
+            })
+            : employees;
+
     // Lọc roles cho filter (dropdown filter ngoài giao diện):
     const filteredRolesForFilter = currentRole === 'manager'
         ? roles.filter(role => role.name !== 'admin')

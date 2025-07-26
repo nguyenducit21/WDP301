@@ -766,14 +766,29 @@ const ReservationManagement = () => {
                 payment_note: ''
             });
         } else if (type === 'move' && item) {
-            const availableTables = allTables.filter(table =>
-                table && (table.status === 'available' || table.status === 'cleaning') &&
-                table._id !== (safeGet(item, 'table_id._id') || item.table_id)
-            );
+            console.log('Opening move modal for reservation:', item);
+
+            // Lấy table_id hiện tại của reservation
+            const currentTableId = safeGet(item, 'table_id._id') || item.table_id;
+            console.log('Current table ID:', currentTableId);
+
+            // Lọc bàn có thể chuyển đến (trống hoặc đang dọn, không phải bàn hiện tại)
+            const availableTables = allTables.filter(table => {
+                if (!table || !table._id) return false;
+
+                const isCurrentTable = table._id === currentTableId;
+                const isAvailable = table.status === 'available' || table.status === 'cleaning';
+
+                console.log(`Table ${table.name}: current=${isCurrentTable}, available=${isAvailable}`);
+
+                return !isCurrentTable && isAvailable;
+            });
+
+            console.log('Available tables for move:', availableTables.length);
 
             setFormData({
                 _id: item._id,
-                table_id: safeGet(item, 'table_id._id') || item.table_id,
+                table_id: currentTableId,
                 new_table_id: '',
                 contact_name: item.contact_name || '',
                 current_status: item.status,
@@ -1060,18 +1075,42 @@ const ReservationManagement = () => {
                     break;
 
                 case 'move':
-                    response = await axios.patch(`/reservations/${formData._id}/move`, {
-                        new_table_id: formData.new_table_id,
-                        transfer_orders: true,
-                        update_table_status: true
-                    });
+                    try {
+                        // Validation
+                        if (!formData.new_table_id) {
+                            setError('Vui lòng chọn bàn mới để chuyển');
+                            return;
+                        }
 
-                    if (response?.data?.success) {
-                        await axios.put(`/tables/${formData.table_id}/status`, { status: 'available' });
-                        await axios.put(`/tables/${formData.new_table_id}/status`, { status: 'occupied' });
-                        alert('Chuyển bàn thành công');
-                    } else {
-                        setError(response?.data?.message || 'Lỗi khi chuyển bàn');
+                        if (formData.new_table_id === formData.table_id) {
+                            setError('Không thể chuyển đến cùng một bàn');
+                            return;
+                        }
+
+                        console.log('Moving reservation:', {
+                            reservationId: formData._id,
+                            oldTableId: formData.table_id,
+                            newTableId: formData.new_table_id
+                        });
+
+                        response = await axios.patch(`/reservations/${formData._id}/move`, {
+                            new_table_id: formData.new_table_id,
+                            transfer_orders: true,
+                            update_table_status: true
+                        });
+
+                        if (response?.data?.success) {
+                            console.log('Move reservation successful:', response.data);
+                            console.log('Updated reservation data:', response.data.data);
+                            alert('Chuyển bàn thành công');
+                        } else {
+                            console.error('Move reservation failed:', response?.data);
+                            setError(response?.data?.message || 'Lỗi khi chuyển bàn');
+                            return;
+                        }
+                    } catch (moveError) {
+                        console.error('Error moving reservation:', moveError);
+                        setError(moveError.response?.data?.message || 'Có lỗi xảy ra khi chuyển bàn');
                         return;
                     }
                     break;

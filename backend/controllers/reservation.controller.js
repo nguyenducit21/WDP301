@@ -14,6 +14,7 @@ const {
     restoreIngredients,
     updateIngredientConsumption
 } = require('./menuItemRecipe.controller');
+const { getIO } = require('../socket/socket');
 
 // Lấy tất cả đặt bàn
 const getReservations = async (req, res) => {
@@ -608,6 +609,31 @@ const createReservation = async (req, res) => {
             console.log('📢 Sent new reservation notification to waiters');
         }
 
+        // Emit notification cho chef khi có đơn hàng mới với pre_order_items
+        if (processedPreOrderItems.length > 0) {
+            const orderData = {
+                id: reservation._id,
+                customer_name: reservation.contact_name,
+                customer_phone: reservation.contact_phone,
+                tables: reservation.table_ids?.map(table => table.name).join(', ') || 'N/A',
+                items: processedPreOrderItems.map(item => ({
+                    menu_item: item.menu_item_id,
+                    quantity: item.quantity
+                })),
+                total_amount: reservation.total_amount,
+                created_at: reservation.created_at,
+                status: reservation.status,
+                note: reservation.notes || '',
+                type: reservation.contact_name === 'Khách vãng lai' ? 'walk_in_order' : 'pre_order',
+                staff_name: reservation.created_by_staff ? 'N/A' : undefined,
+                order_time: reservation.current_time,
+                slot_time: reservation.slot_start_time && reservation.slot_end_time ?
+                    `${reservation.slot_start_time} - ${reservation.slot_end_time}` : undefined
+            };
+
+            emitNewOrderNotification(orderData);
+        }
+
         res.status(201).json({
             success: true,
             message: inventoryWarning
@@ -1092,6 +1118,13 @@ const moveReservation = async (req, res) => {
     try {
         const { new_table_id, transfer_orders, update_table_status } = req.body;
 
+        console.log('Move reservation request:', {
+            reservationId: req.params.id,
+            newTableId: new_table_id,
+            transferOrders: transfer_orders,
+            updateTableStatus: update_table_status
+        });
+
         if (!new_table_id) {
             return res.status(400).json({
                 success: false,
@@ -1107,6 +1140,13 @@ const moveReservation = async (req, res) => {
             });
         }
 
+        console.log('Current reservation:', {
+            id: reservation._id,
+            currentTableId: reservation.table_id,
+            currentTableIds: reservation.table_ids,
+            status: reservation.status
+        });
+
         // Kiểm tra bàn mới có tồn tại
         const newTable = await Table.findById(new_table_id);
         if (!newTable) {
@@ -1117,7 +1157,7 @@ const moveReservation = async (req, res) => {
         }
 
         // Lưu lại bàn cũ để cập nhật trạng thái sau
-        const oldTableId = reservation.table_id;
+        const originalTableId = reservation.table_id;
 
         //  Kiểm tra bàn mới có trống trong ngày và giờ của reservation không
         const startOfDay = new Date(reservation.date);
@@ -1125,16 +1165,27 @@ const moveReservation = async (req, res) => {
         const endOfDay = new Date(reservation.date);
         endOfDay.setHours(23, 59, 59, 999);
 
-        const conflictReservation = await Reservation.findOne({
+        // Tạo query để kiểm tra conflict
+        const conflictQuery = {
             _id: { $ne: req.params.id },
             table_id: new_table_id,
             date: {
                 $gte: startOfDay,
                 $lte: endOfDay
             },
-            time: reservation.time,
             status: { $in: ['pending', 'confirmed', 'seated'] }
-        });
+        };
+
+        // Thêm điều kiện time nếu có
+        if (reservation.time) {
+            conflictQuery.time = reservation.time;
+        }
+        // Thêm điều kiện slot_id nếu có
+        if (reservation.slot_id) {
+            conflictQuery.slot_id = reservation.slot_id;
+        }
+
+        const conflictReservation = await Reservation.findOne(conflictQuery);
 
         if (conflictReservation) {
             return res.status(400).json({
@@ -1144,14 +1195,28 @@ const moveReservation = async (req, res) => {
         }
 
         // Cập nhật reservation
+        const oldTableId = reservation.table_id;
         reservation.table_id = new_table_id;
+        // Cập nhật table_ids nếu có (để đồng bộ)
+        if (reservation.table_ids && reservation.table_ids.length > 0) {
+            reservation.table_ids = [new_table_id];
+        }
         reservation.updated_at = new Date();
+
+        console.log('Updating reservation:', {
+            oldTableId: oldTableId,
+            newTableId: new_table_id,
+            newTableIds: reservation.table_ids
+        });
+
         await reservation.save();
+
+        console.log('Reservation updated successfully');
 
         // Cập nhật trạng thái bàn nếu được yêu cầu
         if (update_table_status) {
             // Đặt bàn cũ về trạng thái available
-            await Table.findByIdAndUpdate(oldTableId, {
+            await Table.findByIdAndUpdate(originalTableId, {
                 status: 'available',
                 updated_at: new Date()
             });
@@ -1166,7 +1231,7 @@ const moveReservation = async (req, res) => {
         // Chuyển đơn hàng sang bàn mới nếu được yêu cầu
         if (transfer_orders) {
             await Order.updateMany(
-                { table_id: oldTableId, status: { $nin: ['completed', 'cancelled'] } },
+                { table_id: originalTableId, status: { $nin: ['completed', 'cancelled'] } },
                 { table_id: new_table_id, updated_at: new Date() }
             );
         }
@@ -1177,6 +1242,13 @@ const moveReservation = async (req, res) => {
             { path: 'customer_id', select: 'username full_name email phone' },
             { path: 'created_by_staff', select: 'username full_name' }
         ]);
+
+        console.log('Final reservation data:', {
+            id: reservation._id,
+            tableId: reservation.table_id,
+            tableIds: reservation.table_ids,
+            tableName: reservation.table_id?.name
+        });
 
         res.status(200).json({
             success: true,
@@ -1915,6 +1987,22 @@ const getChefOrders = async (req, res) => {
             message: 'Lỗi khi lấy danh sách orders cho chef',
             error: error.message
         });
+    }
+};
+
+// Hàm emit notification cho chef khi có đơn hàng mới
+const emitNewOrderNotification = (orderData) => {
+    try {
+        const io = getIO();
+        io.to('chef-room').emit('new_order_for_chef', {
+            type: 'new_order',
+            message: 'Có đơn hàng mới!',
+            order: orderData,
+            timestamp: new Date()
+        });
+        console.log('🔔 Emitted new order notification to chef room');
+    } catch (error) {
+        console.error('Error emitting new order notification:', error);
     }
 };
 
